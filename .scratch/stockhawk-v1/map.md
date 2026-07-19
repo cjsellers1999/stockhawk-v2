@@ -33,12 +33,13 @@ The map is complete when nothing material remains undecided before implementatio
 - [Define the V1 completion contract](issues/01-define-v1-completion-contract.md) — V1 has an all-or-nothing acceptance contract for site outcomes, evidence-scoped completeness, open-world product discovery, safe freshness, fast local search, diagnostics, private operation, manual purchasing, and alert-ready history.
 - [Clean and characterize the Seed List](issues/02-clean-and-characterize-the-seed-list.md) — Only endpoint-equivalent records merge automatically (2,489 safe pre-audit); location review yields an expected 2,247 candidates, with all remaining ambiguity handled by a deterministic 220-endpoint research audit and later full onboarding.
 - [Research exhaustive catalog and stock surfaces](issues/03-research-exhaustive-catalog-surfaces.md) — Route by freshly detected public capabilities: prefer documented count/cursor APIs, otherwise close platform product sitemaps plus every exact variant, keep search-only results Partial, and reserve measured browser access for stores whose shopper catalog needs it.
+- [Design the open-world Master Catalog and Catalog Match policy](issues/13-design-master-catalog-and-match-policy.md) — Use a recall-first, provenance-preserving catalog that promotes strong best-effort retailer evidence, keeps every listing and variant separate, corrects matches reversibly, and confines manual review to genuine exceptions.
+- [Design the Connector and Catalog Certification seam](issues/04-design-the-connector-and-certification-seam.md) — Use one two-job Connector interface for shared and bespoke Adapters, with centrally governed access, evidence-judged certification, immediate Partial value, isolated failures, and measured costs.
+- [Design catalog persistence and Change Event history](issues/05-design-catalog-persistence-and-change-history.md) — Use normalized durable identities with atomic current/history transitions, certified absence reconciliation, permanent ordered Change Events, 30-day detailed retention, and rebuildable live Search Documents.
 
 ## Not yet specified
 
-- Browser fallback is demonstrably necessary for some shopper-visible Storefronts, but the Connector and scheduler designs must still decide which affected stores may use it recurrently, at what cadence, and with what repair trigger.
-- Concrete discovery and monitoring cadences remain fog until representative Connector costs and residential-IP throughput are measured.
-- Media caching, long-term observation retention, and database-volume limits remain fog until the cleaned Seed List and representative catalog sizes are known.
+- Media caching and exact database-volume limits remain fog until representative catalog sizes are known; unpinned detailed operational history now has a 30-day default while permanent structured truth is retained.
 - Storefront-specific repair playbooks remain fog until the health model identifies actionable failure classes and diagnostic evidence.
 
 ## Out of scope
