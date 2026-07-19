@@ -36,6 +36,7 @@ The map is complete when nothing material remains undecided before implementatio
 - [Design the open-world Master Catalog and Catalog Match policy](issues/13-design-master-catalog-and-match-policy.md) — Use a recall-first, provenance-preserving catalog that promotes strong best-effort retailer evidence, keeps every listing and variant separate, corrects matches reversibly, and confines manual review to genuine exceptions.
 - [Design the Connector and Catalog Certification seam](issues/04-design-the-connector-and-certification-seam.md) — Use one two-job Connector interface for shared and bespoke Adapters, with centrally governed access, evidence-judged certification, immediate Partial value, isolated failures, and measured costs.
 - [Design catalog persistence and Change Event history](issues/05-design-catalog-persistence-and-change-history.md) — Use normalized durable identities with atomic current/history transitions, certified absence reconciliation, permanent ordered Change Events, 30-day detailed retention, and rebuildable live Search Documents.
+- [Prototype the residential-IP crawl scheduler](issues/06-prototype-the-residential-ip-scheduler.md) — Use an HTTP-first hybrid Network-Limited Scheduler with adaptive shared-IP and Storefront pacing, fair resumable work, and an isolated browser-context pool that expands only for proven browser-required backlog.
 
 ## Not yet specified
 

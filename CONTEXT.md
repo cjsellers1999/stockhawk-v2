@@ -252,6 +252,10 @@ _Avoid_: Direct worker table update, duplicated transaction logic, repository-pe
 An immutable, schema-versioned attachment to a Retailer Listing Observation or Source Evidence Artifact that preserves Connector-specific source fields and a content hash beside StockHawk's typed relational facts. Important shared facts are deliberately promoted into the core schema; retention may prune the bulky payload while preserving its permanent envelope, hash, and extracted decision evidence.
 _Avoid_: Entire domain model in JSON, retailer-specific core column, unversioned blob
 
+**Network-Limited Scheduling**:
+The StockHawk objective of maximizing successfully committed useful catalog and stock observations per wall-clock time while letting concurrency rise until Storefront-specific feedback or correlated residential-IP pressure reveals the current safe limit. Fixed CPU, RAM, browser, or production concurrency quotas never intentionally throttle V1.
+_Avoid_: Hardware-budget scheduling, fixed global concurrency, attempted-request maximization
+
 **Stock Observation**:
 An immutable, conclusive source observation of a Retailer Listing's Stock Status together with its observation order, observation time, source run, and evidence. The newest eligible observation advances Current Stock State; failed, omitted, or unobservable attempts remain run and Health facts rather than Stock Observations.
 _Avoid_: Failed check attempt, current-state row, freshness guarantee
