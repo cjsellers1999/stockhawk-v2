@@ -31,11 +31,12 @@ The map is complete when nothing material remains undecided before implementatio
 <!-- Closed ticket decisions are appended here as one-line context pointers. -->
 
 - [Define the V1 completion contract](issues/01-define-v1-completion-contract.md) — V1 has an all-or-nothing acceptance contract for site outcomes, evidence-scoped completeness, open-world product discovery, safe freshness, fast local search, diagnostics, private operation, manual purchasing, and alert-ready history.
+- [Clean and characterize the Seed List](issues/02-clean-and-characterize-the-seed-list.md) — Only endpoint-equivalent records merge automatically (2,489 safe pre-audit); location review yields an expected 2,247 candidates, with all remaining ambiguity handled by a deterministic 220-endpoint research audit and later full onboarding.
+- [Research exhaustive catalog and stock surfaces](issues/03-research-exhaustive-catalog-surfaces.md) — Route by freshly detected public capabilities: prefer documented count/cursor APIs, otherwise close platform product sitemaps plus every exact variant, keep search-only results Partial, and reserve measured browser access for stores whose shopper catalog needs it.
 
 ## Not yet specified
 
-- Platform-specific Connector decision branches cannot be sliced until the catalog-surface research shows which families share a reliable exhaustive method and which require distinct designs.
-- Whether recurring browser-driven access is acceptable and reliable for any otherwise inaccessible Storefront class cannot be decided until the representative audit exposes those cases.
+- Browser fallback is demonstrably necessary for some shopper-visible Storefronts, but the Connector and scheduler designs must still decide which affected stores may use it recurrently, at what cadence, and with what repair trigger.
 - Concrete discovery and monitoring cadences remain fog until representative Connector costs and residential-IP throughput are measured.
 - Media caching, long-term observation retention, and database-volume limits remain fog until the cleaned Seed List and representative catalog sizes are known.
 - Storefront-specific repair playbooks remain fog until the health model identifies actionable failure classes and diagnostic evidence.
