@@ -10,8 +10,10 @@ Owner amendment: private access is required while away from home. Tailscale Serv
 Run StockHawk natively on the Mac mini as one TypeScript release with two StockHawk processes, one PostgreSQL database, and two private access edges:
 
 - Node.js 24 LTS and TypeScript.
+- A pnpm workspace with Turborepo for local-only development, build, and deterministic verification orchestration.
 - React/Vite SPA with TanStack Query, TanStack Table, and TanStack Router.
 - Fastify JSON API; it also serves the built SPA.
+- Zod 4 as the shared runtime-contract decoder at untrusted application boundaries.
 - PostgreSQL 18, Drizzle typed access, and reviewed checked-in SQL migrations.
 - PostgreSQL full-text search plus `pg_trgm`; no separate search engine.
 - pg-boss v12 for durable jobs in the same PostgreSQL database.
@@ -53,6 +55,12 @@ Approved owner device anywhere       Approved home-LAN device
 
 The API and worker are separate so a browser or Connector crash cannot take down morning search. Tailscale Serve and Caddy are alternate inbound routes to the same loopback API, not separate applications. The system remains one codebase, schema, deployment, and release—not microservices.
 
+### Workspace orchestration and runtime contracts
+
+pnpm owns workspace dependencies. Turborepo runs dependency-aware, filterable tasks and caches only deterministic work locally. Build, lint, typecheck, and unit tasks may be cached after their inputs, environment, and outputs are declared. Migrations, real-database integration, Playwright/live-source checks, backup/restore, and actual-Mac gates never accept a cached result. V1 has no remote cache, and production `launchd` services invoke built API and worker entrypoints without Turborepo. Keep workspace packages coarse and aligned to real deployable or shared Module seams. [Turborepo documentation](https://turborepo.com/docs), [pnpm workspaces](https://pnpm.io/workspaces)
+
+Zod schemas decode untrusted values once at their owning Interface: process configuration, URL/search state, API input, Storefront Integration and Adapter configuration, Connector output, and versioned JSON evidence/checkpoints. Internal Implementations receive parsed typed values rather than repeatedly validating them. App-owned commands and versioned configurations reject unknown structure; retailer payload schemas validate consumed fields but tolerate unrelated additive fields. Infer TypeScript types from the schema where practical and test the boundary with malformed and unknown-version inputs. Zod supplements rather than replaces PostgreSQL constraints, migrations, matching, certification, or shopper-visible stock validation. [Zod documentation](https://zod.dev/)
+
 ## Why this application stack
 
 | Option | Result | Reason |
@@ -63,7 +71,7 @@ The API and worker are separate so a browser or Connector crash cannot take down
 
 The browser never loads 100,000 Offers. Fastify owns filtering, sorting, and keyset pagination; TanStack Table uses manual server-side pagination. TanStack Query owns server state. [Vite backend integration](https://vite.dev/guide/backend-integration), [Fastify TypeScript](https://fastify.dev/docs/latest/Reference/TypeScript/), [TanStack Table pagination](https://tanstack.com/table/latest/docs/guide/pagination)
 
-Fastify request/response schemas validate commands and serialize responses. Each access edge is same-origin: Tailscale Serve and Caddy proxy both the SPA and API on their respective hostname. The application allowlists those two exact origins and uses host-only sessions. [Fastify validation and serialization](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
+Shared Zod schemas own runtime API contracts; a tested Fastify integration validates inputs and supplies response serialization schemas without a second handwritten contract. Each access edge is same-origin: Tailscale Serve and Caddy proxy both the SPA and API on their respective hostname. The application allowlists those two exact origins and uses host-only sessions. [Fastify validation and serialization](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
 
 ### Enforced optimistic command boundary
 

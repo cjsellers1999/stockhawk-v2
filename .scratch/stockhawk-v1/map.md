@@ -1,6 +1,7 @@
 # Chart StockHawk V1 for exhaustive Jellycat discovery
 
 Label: wayfinder:map
+Status: resolved
 
 ## Destination
 
@@ -39,13 +40,14 @@ The map is complete when nothing material remains undecided before implementatio
 - [Prototype the residential-IP crawl scheduler](issues/06-prototype-the-residential-ip-scheduler.md) — Use an HTTP-first hybrid Network-Limited Scheduler with adaptive shared-IP and Storefront pacing, fair resumable work, and an isolated browser-context pool that expands only for proven browser-required backlog.
 - [Define Storefront Health and remediation](issues/07-define-storefront-health-and-remediation.md) — Keep access, catalog coverage/freshness, stock-answer coverage/freshness, and lifecycle truth independent; preserve useful stale data while prioritizing restock impact, safe automatic recovery, and actionable diagnostics.
 - [Prototype the search and Health Page experience](issues/08-prototype-search-and-health-experience.md) — Use the dense Compact-ledger interaction for Search and Health while treating the prototype's visual styling as disposable pending the owner's future design.
-- [Choose the local stack and deployment topology](issues/09-choose-the-local-stack-and-deployment-topology.md) — Run native launchd-supervised Node/React/Fastify and collection processes over PostgreSQL, Drizzle, and pg-boss, with Tailscale Serve for private remote access, Caddy for pre-login LAN recovery, enforced optimistic commands, and restore-tested daily backups.
+- [Choose the local stack and deployment topology](issues/09-choose-the-local-stack-and-deployment-topology.md) — Run a coarse pnpm/Turborepo workspace as native launchd-supervised Node/React/Fastify and collection processes over PostgreSQL, Drizzle, and pg-boss; validate untrusted ingress through shared Zod contracts; use Tailscale Serve for private remote access, Caddy for pre-login LAN recovery, enforced optimistic commands, and restore-tested daily backups.
 - [Design the one-pass Storefront onboarding workflow](issues/10-design-the-storefront-onboarding-workflow.md) — Use agent-led resumable cases with brokered preflight, browser/network audit, proof-gated shared or bespoke Integrations, shopper-validated stock semantics, isolated recovery, and generated full-input reconciliation.
 - [Define the V1 verification strategy](issues/11-define-the-v1-verification-strategy.md) — Trust V1 through deterministic contracts, a representative actual-Mac rehearsal, and per-Storefront live qualification, joined by commit-keyed evidence and exhaustive closeout reconciliation.
+- [Decide the V1 implementation sequence and handoff](issues/12-decide-the-v1-implementation-sequence.md) — Build one real proof-carrying Storefront, pressure-test 100,000 Offers, prove connector diversity and the actual Mac, then expand through evidence-gated rollout tickets to exhaustive closeout.
 
 ## Not yet specified
 
-- The remaining frontier is the tracer-bullet implementation order, proof-gate placement, full-rollout start, and execution handoff in [Decide the V1 implementation sequence and handoff](issues/12-decide-the-v1-implementation-sequence.md). Media-cache quota and disk high-water values are deliberately measured and set by its first 100,000-Offer representative-load slice rather than guessed from the Seed List.
+- None. This map is decision-complete; execution proceeds from the linked implementation handoff. Media-cache quota and disk high-water values are evidence-derived during its first 100,000-Offer slice and confirmed on the target Mac.
 
 ## Out of scope
 

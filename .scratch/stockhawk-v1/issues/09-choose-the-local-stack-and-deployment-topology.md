@@ -26,11 +26,12 @@ StockHawk V1 runs **natively on the Mac mini**, without Docker Desktop, as one p
 
 | Concern | V1 choice |
 | --- | --- |
-| Runtime | Node.js 24 LTS, TypeScript, pnpm lockfile |
+| Runtime | Node.js 24 LTS, TypeScript, pnpm workspace, Turborepo local task orchestration |
 | Browser app | React/Vite SPA, TanStack Router, TanStack Query, TanStack Table |
 | Server | Fastify same-origin JSON API serving the built SPA |
 | Database | PostgreSQL 18 |
 | Data access | Drizzle over `node-postgres`, plus reviewed PostgreSQL-specific SQL |
+| Runtime contracts | Zod 4 schemas at untrusted process, HTTP, URL, Integration, Connector, and versioned-JSON ingress |
 | Search | Controlled Search Documents with GIN full text, measured `pg_trgm`, and query-shaped B-tree indexes |
 | Durable jobs | pg-boss v12 in the same PostgreSQL database |
 | Collection | Separate worker containing the due-work planner, shared Crawl Request Broker, HTTP clients, Connectors, and adaptive Playwright pool |
@@ -38,6 +39,10 @@ StockHawk V1 runs **natively on the Mac mini**, without Docker Desktop, as one p
 | Private access | Tailscale Serve HTTPS for normal access from approved tailnet devices anywhere; Caddy internal HTTPS at `8443` as the automatic LAN fallback |
 | Diagnostics | Redacted Pino JSON with bounded 30-day files; durable Health and throughput aggregates in PostgreSQL |
 | Backup | Daily validated `pg_dump -Fc`, seven completed generations, encrypted external copy when configured, weekly clean restore |
+
+pnpm owns dependency installation and the workspace. Turborepo supplies dependency-aware, filterable task orchestration and local caching only; it does not create another runtime or deployment boundary. Cache only deterministic tasks whose inputs, environment, and outputs are completely declared. Migrations, real-PostgreSQL integration, Playwright and live-Storefront checks, backup/restore, and actual-Mac release work are always uncached. V1 has no remote task cache. `launchd` starts the built API and worker entrypoints directly, never Turborepo. Workspace packages remain coarse and follow real deployable or shared Module seams rather than creating a shallow package for every folder.
+
+Zod is the canonical runtime decoder for data entering trusted Modules: environment and deployment configuration, browser URL/search state, HTTP commands and queries, immutable Storefront Integration configuration, Adapter options, Certification Recipes, Connector outputs, and versioned JSON evidence/checkpoints. Decode once at the owning Interface, derive TypeScript types from the schema where useful, then pass typed values inward. App-owned commands and versioned configuration are closed contracts; retailer payload decoders validate the fields StockHawk consumes while tolerating unrelated additive fields. Do not scatter repeated `safeParse` calls through Implementations or maintain parallel handwritten validators. Zod does not replace PostgreSQL constraints and checked-in migrations, Catalog Certification, product matching, or shopper-visible Stock Semantics Validation.
 
 PostgreSQL is selected over SQLite because StockHawk's risk is concurrent write shape, not merely row count. API commands, Connector batches, stock observations, Current Projections, Search Documents, Change Events, checkpoints, Health summaries, and queue state must commit concurrently and transactionally. SQLite WAL still has one writer and would require StockHawk to invent a cross-process single-writer coordinator. PostgreSQL also supplies the required constraints, MVCC, text indexes, queue claiming, retention paths, and future Change Event consumption without another data service.
 
