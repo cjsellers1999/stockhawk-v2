@@ -148,6 +148,7 @@ The release fixture contains at least 100,000 Offers/Search Documents, separate 
 
 ### Search and interaction assertions
 
+- the production shell, Search page, Health page, exact light/dark tokens, density, semantic badges, and responsive reorganizations match the [locked owner design](../design/DESIGN.md) at representative desktop, tablet, and mobile widths;
 - match-any chips search Product title, retailer name, and site URL;
 - chip, stock, match-status, view, sort, and pagination state round-trip through the URL and survive refresh/back/forward;
 - flat pagination operates on Offers; grouped pagination preserves Storefront boundaries without missing or duplicating rows;
@@ -162,7 +163,7 @@ Against the representative dataset on the production Mac topology, the first hom
 
 ### End-to-end and accessibility
 
-Playwright drives the real built UI, Fastify API, and PostgreSQL database for the morning purchase workflow, Health remediation, error/rollback, refresh, and history navigation in Chromium and WebKit. No test-only UI implementation may replace production state handling.
+Playwright drives the real built UI, Fastify API, and PostgreSQL database for the morning purchase workflow, Health remediation, error/rollback, refresh, and history navigation in Chromium and WebKit. Visual snapshots cover Search flat/grouped/degraded and Health healthy/attention plus loading, empty, long-title, missing-image, overflow, and focus states in both themes. No test-only UI implementation may replace production state handling, and no baseline may be regenerated merely to make an unexplained diff pass.
 
 Target WCAG 2.2 AA. Run axe automatically, then manually verify keyboard-only operation, logical focus order, visible/unobscured focus, table and status semantics, labels/names, error announcements, zoom/reflow, light/dark contrast, and a screen-reader pass over Search and Health. Automation alone is not an accessibility sign-off.
 
@@ -178,7 +179,7 @@ Before production rollout and after material topology/migration changes, rehears
 
 1. provision from written instructions and locked versions;
 2. migrate an empty PostgreSQL database and load the representative dataset;
-3. pass search, query-plan, scheduler, and UI latency gates;
+3. pass search, query-plan, scheduler, UI latency, and locked-design visual-regression gates in both themes and representative widths;
 4. kill the worker before and after a bounded batch commit, then prove safe recovery;
 5. stop PostgreSQL, break retailer connectivity, exhaust the browser lane, and interrupt Tailscale; local search remains available wherever its dependency permits and Health tells the truth;
 6. reboot with no macOS login and prove PostgreSQL, Fastify, worker, Caddy, and local search recover through `launchd`;

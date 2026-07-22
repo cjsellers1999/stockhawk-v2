@@ -1,5 +1,7 @@
 # StockHawk search prototype verdict
 
+Visual implementation is governed by the [locked owner design](../stockhawk-v1/design/DESIGN.md). These notes retain the earlier search behavior decisions only.
+
 ## Question
 
 How should Jellycat search results be presented for daily manual shopping?

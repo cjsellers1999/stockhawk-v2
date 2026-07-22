@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StockHawk V1 — Scoped Design Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #fff;
+      --foreground: #0a0a0a;
+      --card: #fff;
+      --card-foreground: #0a0a0a;
+      --primary: #171717;
+      --primary-foreground: #fafafa;
+      --secondary: #f5f5f5;
+      --secondary-foreground: #171717;
+      --muted: #f5f5f5;
+      --muted-foreground: #737373;
+      --accent: #f0f0f0;
+      --accent-foreground: #171717;
+      --border: #e5e5e5;
+      --input: #e5e5e5;
+      --ring: #0a0a0a;
+      --sidebar: #fafafa;
+      --success-bg: #dcfce7;
+      --success-fg: #166534;
+      --warning-bg: #fef3c7;
+      --warning-fg: #92400e;
+      --danger-bg: #fee2e2;
+      --danger-fg: #991b1b;
+      --info-bg: #dbeafe;
+      --info-fg: #1e40af;
+      --shadow: 0 1px 2px rgb(0 0 0 / .06);
+      --radius: 8px;
+    }
+
+    html.dark {
+      color-scheme: dark;
+      --background: #0a0a0a;
+      --foreground: #fafafa;
+      --card: #0f0f0f;
+      --card-foreground: #fafafa;
+      --primary: #fafafa;
+      --primary-foreground: #171717;
+      --secondary: #262626;
+      --secondary-foreground: #fafafa;
+      --muted: #1d1d1d;
+      --muted-foreground: #a3a3a3;
+      --accent: #262626;
+      --accent-foreground: #fafafa;
+      --border: #292929;
+      --input: #333;
+      --ring: #d4d4d4;
+      --sidebar: #111;
+      --success-bg: #12351f;
+      --success-fg: #86efac;
+      --warning-bg: #3a2a0b;
+      --warning-fg: #fcd34d;
+      --danger-bg: #3f1515;
+      --danger-fg: #fca5a5;
+      --info-bg: #142a4c;
+      --info-fg: #93c5fd;
+      --shadow: 0 1px 2px rgb(0 0 0 / .3);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--background); color: var(--foreground); }
+    button, input, select { font: inherit; color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    svg { width: 16px; height: 16px; flex: none; stroke-width: 2; }
+    .app { min-height: 100vh; display: flex; }
+    .sidebar { width: 224px; flex: 0 0 224px; min-height: 100vh; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--sidebar); }
+    .brand { height: 62px; padding: 0 16px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); font-size: 18px; font-weight: 700; }
+    .brand svg { width: 24px; height: 24px; }
+    .nav { flex: 1; padding: 8px; }
+    .nav button { width: 100%; border: 0; background: transparent; display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 6px; font-weight: 600; color: var(--muted-foreground); cursor: pointer; text-align: left; }
+    .nav button:hover, .nav button.active { color: var(--foreground); background: var(--accent); }
+    .sidebar-foot { padding: 12px 16px 16px; color: var(--muted-foreground); font-size: 12px; }
+    .main { flex: 1; min-width: 0; }
+    .topbar { height: 62px; padding: 0 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    .content { padding: 24px; max-width: 1500px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    h1 { font-size: 24px; line-height: 1.2; margin: 0 0 5px; letter-spacing: -.02em; }
+    h2 { font-size: 16px; margin: 0; }
+    p { margin: 0; }
+    .muted { color: var(--muted-foreground); }
+    .small { font-size: 12px; }
+    .btn { height: 36px; border-radius: 6px; border: 1px solid var(--input); background: var(--background); padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow); white-space: nowrap; }
+    .btn:hover { background: var(--accent); }
+    .btn.primary { border-color: var(--primary); background: var(--primary); color: var(--primary-foreground); }
+    .btn.ghost { border-color: transparent; box-shadow: none; background: transparent; }
+    .btn.sm { height: 32px; padding: 0 11px; font-size: 12px; }
+    .btn.icon { width: 36px; padding: 0; }
+    .segmented { display: inline-flex; border: 1px solid var(--input); border-radius: 7px; padding: 2px; background: var(--background); }
+    .segmented button { height: 28px; border: 0; background: transparent; padding: 0 10px; border-radius: 5px; color: var(--muted-foreground); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .segmented button.active { color: var(--foreground); background: var(--secondary); box-shadow: var(--shadow); }
+    .badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 5px; padding: 2px 8px; font-size: 11px; font-weight: 650; white-space: nowrap; border: 1px solid transparent; }
+    .badge.neutral { background: var(--secondary); color: var(--secondary-foreground); }
+    .badge.outline { background: transparent; border-color: var(--border); }
+    .badge.success { background: var(--success-bg); color: var(--success-fg); }
+    .badge.warning { background: var(--warning-bg); color: var(--warning-fg); }
+    .badge.danger { background: var(--danger-bg); color: var(--danger-fg); }
+    .badge.info { background: var(--info-bg); color: var(--info-fg); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .card { border: 1px solid var(--border); background: var(--card); border-radius: 12px; box-shadow: var(--shadow); }
+    .warning-strip { margin-bottom: 16px; padding: 11px 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid color-mix(in srgb, var(--warning-fg) 25%, var(--border)); border-radius: 8px; background: var(--warning-bg); color: var(--warning-fg); }
+    .warning-copy { display: flex; align-items: center; gap: 9px; }
+    .filters { display: grid; grid-template-columns: minmax(280px, 1fr) auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .search-box { min-height: 42px; border: 1px solid var(--input); border-radius: 7px; background: var(--background); display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 12px; }
+    .search-box:focus-within { outline: 1px solid var(--ring); }
+    .search-box input { min-width: 100px; flex: 1; border: 0; outline: 0; background: transparent; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 5px; background: var(--secondary); font-size: 12px; white-space: nowrap; }
+    .chip button { width: 16px; height: 16px; padding: 0; border: 0; background: transparent; color: var(--muted-foreground); cursor: pointer; }
+    .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .filter-field { height: 34px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); padding: 0 28px 0 10px; font-size: 12px; }
+    .result-count { margin-left: auto; font-size: 12px; color: var(--muted-foreground); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 11px 12px; color: var(--muted-foreground); font-size: 11px; font-weight: 650; white-space: nowrap; border-bottom: 1px solid var(--border); }
+    td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: color-mix(in srgb, var(--muted) 55%, transparent); }
+    .product { display: flex; align-items: center; gap: 10px; min-width: 250px; }
+    .thumb { width: 42px; height: 42px; flex: none; border-radius: 7px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground); }
+    .thumb svg { width: 22px; height: 22px; }
+    .thumb.sky { background: #dbeafe; color: #31567f; }
+    .thumb.barth { background: #f3e8d2; color: #755f43; }
+    .thumb.bashful { background: #f5e3e6; color: #875c64; }
+    html.dark .thumb.sky { background: #19304c; color: #a8c9ef; }
+    html.dark .thumb.barth { background: #342b20; color: #d9c3a4; }
+    html.dark .thumb.bashful { background: #38252a; color: #e5b6c0; }
+    .product-title { font-weight: 650; line-height: 1.25; }
+    .canonical { margin-top: 3px; color: var(--muted-foreground); font-size: 11px; }
+    .store { min-width: 145px; }
+    .store-name { font-weight: 550; }
+    .store-url { color: var(--muted-foreground); font-size: 11px; }
+    .fresh { font-size: 12px; white-space: nowrap; }
+    .fresh span { display: block; color: var(--muted-foreground); font-size: 11px; }
+    .action-link { color: inherit; text-decoration: none; }
+    .table-foot { min-height: 54px; padding: 10px 12px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .pager { display: flex; gap: 5px; }
+    .pager .btn { width: 32px; padding: 0; }
+    .group-row { display: none; background: var(--muted); }
+    .group-row td { padding: 9px 12px; font-weight: 650; }
+    .grouped .group-row { display: table-row; }
+    .grouped tbody tr[data-store] { display: none; }
+    .grouped tbody tr[data-store].visible-group { display: table-row; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat { padding: 15px; }
+    .stat-label { display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 12px; }
+    .stat-value { margin-top: 4px; font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; }
+    .stat-context { color: var(--muted-foreground); font-size: 11px; margin-top: 3px; }
+    .health-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+    .panel-head { padding: 15px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .health-item { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .health-item:last-child { border-bottom: 0; }
+    .health-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .health-title { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-weight: 650; }
+    .health-url { margin-top: 2px; color: var(--muted-foreground); font-size: 11px; }
+    .health-facts { display: grid; grid-template-columns: repeat(5, minmax(90px, 1fr)); gap: 10px; margin-top: 13px; }
+    .fact-label { color: var(--muted-foreground); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+    .fact-value { margin-top: 3px; font-size: 12px; font-weight: 600; }
+    .bar { height: 5px; border-radius: 999px; background: var(--secondary); overflow: hidden; margin-top: 6px; }
+    .bar > span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+    .health-actions { display: flex; gap: 6px; margin-top: 12px; }
+    .side-panel { padding: 16px; }
+    .side-panel + .side-panel { border-top: 1px solid var(--border); }
+    .rollout-row { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 12px; }
+    .legend-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 9px; }
+    .legend-list li { display: flex; gap: 9px; align-items: flex-start; font-size: 12px; }
+    .legend-list .badge { min-width: 105px; justify-content: center; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; padding: 11px 14px; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); box-shadow: 0 8px 28px rgb(0 0 0 / .18); transform: translateY(80px); opacity: 0; transition: .2s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .mobile-nav { display: none; }
+
+    @media (max-width: 1050px) {
+      .health-layout { grid-template-columns: 1fr; }
+      .health-side { display: grid; grid-template-columns: 1fr 1fr; }
+      .health-facts { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .app { display: block; }
+      .sidebar { width: auto; min-height: auto; height: 58px; position: sticky; top: 0; z-index: 10; flex-direction: row; align-items: center; border-right: 0; border-bottom: 1px solid var(--border); }
+      .brand { border: 0; height: 58px; }
+      .sidebar .nav, .sidebar-foot { display: none; }
+      .mobile-nav { display: flex; margin-left: auto; padding-right: 10px; gap: 4px; }
+      .mobile-nav button { border: 0; background: transparent; padding: 8px; border-radius: 6px; }
+      .mobile-nav button.active { background: var(--accent); }
+      .topbar { display: none; }
+      .content { padding: 18px 14px; }
+      .page-head { align-items: center; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .filters { grid-template-columns: 1fr; }
+      .filters .segmented { justify-self: start; }
+      .result-count { width: 100%; margin-left: 0; }
+      .health-side { grid-template-columns: 1fr; }
+      .health-facts { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 430px) {
+      .brand span { display: none; }
+      .stats { grid-template-columns: 1fr; }
+      .page-head { align-items: flex-start; }
+      .page-head .btn span { display: none; }
+      .warning-strip { align-items: flex-start; }
+      .warning-strip .btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <symbol id="i-bird" viewBox="0 0 24 24"><path d="M16 7h.01M3.4 18H12a8 8 0 0 0 8-8V7l1.8-2.4-3.3.6A8 8 0 0 0 5 11v1c0 1.7-.7 3.3-2 4.5L1.8 18H5v3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor"/><path d="m20 20-4-4" fill="none" stroke="currentColor" stroke-linecap="round"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-linecap="round"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6m0-6-9 9M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.7 2.2 18a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M12 9v4m0 4h.01" fill="none" stroke="currentColor" stroke-linecap="round"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7h-6V1M4 17h6v6M20 7a9 9 0 0 0-15 3M4 17a9 9 0 0 0 15-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-package" viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4Zm8 4v10l-8 4-8-4V7m8 4v10" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-linecap="round"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><svg><use href="#i-bird"/></svg><span>StockHawk</span></div>
+      <nav class="nav" aria-label="Primary navigation">
+        <button class="active" data-page="search"><svg><use href="#i-search"/></svg>Search</button>
+        <button data-page="health"><svg><use href="#i-activity"/></svg>Health</button>
+      </nav>
+      <div class="mobile-nav">
+        <button class="active" data-page="search" aria-label="Search"><svg><use href="#i-search"/></svg></button>
+        <button data-page="health" aria-label="Health"><svg><use href="#i-activity"/></svg></button>
+        <button class="theme-toggle" aria-label="Toggle theme"><svg><use href="#i-sun"/></svg></button>
+      </div>
+      <div class="sidebar-foot">Private owner application<br>StockHawk V1</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <span class="badge success"><span class="dot"></span>Worker online</span>
+        <button class="btn icon ghost theme-toggle" aria-label="Toggle theme"><svg><use href="#i-sun"/></svg></button>
+      </header>
+
+      <div class="content">
+        <section class="page active" id="page-search">
+          <div class="page-head">
+            <div>
+              <h1>Search offers</h1>
+              <p class="muted">Find distinct retailer listings and hand purchase off to the exact page.</p>
+            </div>
+            <span class="badge neutral">24,816 offers</span>
+          </div>
+
+          <div class="warning-strip">
+            <div class="warning-copy">
+              <svg><use href="#i-alert"/></svg>
+              <div><strong>Collection is partially degraded.</strong> <span class="small">Two Storefronts are stale; prior trustworthy results remain searchable.</span></div>
+            </div>
+            <button class="btn sm" data-page="health">View health</button>
+          </div>
+
+          <div class="filters">
+            <label class="search-box" aria-label="Match any product, retailer, or URL">
+              <svg><use href="#i-search"/></svg>
+              <span class="chip">Sky Dragon <button aria-label="Remove Sky Dragon">×</button></span>
+              <span class="chip">Bartholomew Bear <button aria-label="Remove Bartholomew Bear">×</button></span>
+              <input id="chip-input" placeholder="Add product, retailer, or URL…">
+            </label>
+            <div class="segmented" aria-label="View mode">
+              <button class="active" data-view="flat">Flat</button>
+              <button data-view="grouped">By Storefront</button>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <select class="filter-field" id="stock-filter" aria-label="Stock status">
+              <option value="all">All stock</option><option value="in">In stock</option><option value="out">Out of stock</option><option value="preorder">Preorder</option><option value="unknown">Unknown</option>
+            </select>
+            <select class="filter-field" id="match-filter" aria-label="Match status">
+              <option value="all">Confirmed + Provisional</option><option value="confirmed">Confirmed only</option><option value="provisional">Provisional only</option>
+            </select>
+            <select class="filter-field" id="fresh-filter" aria-label="Freshness">
+              <option value="all">All freshness</option><option value="fresh">Fresh</option><option value="stale">Stale</option>
+            </select>
+            <span class="result-count" id="result-count">6 results · freshest first</span>
+          </div>
+
+          <div class="card" id="offer-table-card">
+            <div class="table-wrap">
+              <table id="offer-table">
+                <thead><tr><th>Retailer listing</th><th>Storefront</th><th>Stock</th><th>Match</th><th>Last checked</th><th></th></tr></thead>
+                <tbody>
+                  <tr class="group-row" data-group="lil-tulips"><td colspan="6">Lil’ Tulips <span class="badge neutral">2 offers</span></td></tr>
+                  <tr data-store="lil-tulips" data-stock="in" data-match="confirmed" data-fresh="fresh">
+                    <td><div class="product"><div class="thumb sky"><svg><use href="#i-package"/></svg></div><div><div class="product-title">Sky Dragon — Medium</div><div class="canonical">Jellycat Sky Dragon · exact variant</div></div></div></td>
+                    <td><div class="store"><div class="store-name">Lil’ Tulips</div><div class="store-url">liltulips.com</div></div></td>
+                    <td><span class="badge success"><span class="dot"></span>In stock</span></td><td><span class="badge neutral">Confirmed</span></td>
+                    <td><div class="fresh">4 min ago<span>Target 60 min</span></div></td><td><a class="btn sm action-link" href="#handoff" data-handoff="Sky Dragon — Medium at Lil’ Tulips">Buy <svg><use href="#i-external"/></svg></a></td>
+                  </tr>
+                  <tr data-store="lil-tulips" data-stock="out" data-match="confirmed" data-fresh="fresh">
+                    <td><div class="product"><div class="thumb barth"><svg><use href="#i-package"/></svg></div><div><div class="product-title">Bartholomew Bear Medium</div><div class="canonical">Jellycat Bartholomew Bear · medium</div></div></div></td>
+                    <td><div class="store"><div class="store-name">Lil’ Tulips</div><div class="store-url">liltulips.com</div></div></td>
+                    <td><span class="badge danger"><span class="dot"></span>Out of stock</span></td><td><span class="badge neutral">Confirmed</span></td>
+                    <td><div class="fresh">9 min ago<span>Target 15 min</span></div></td><td><a class="btn sm action-link" href="#handoff" data-handoff="Bartholomew Bear Medium at Lil’ Tulips">View <svg><use href="#i-external"/></svg></a></td>
+                  </tr>
+                  <tr class="group-row" data-group="maison-baby"><td colspan="6">Maison Baby &amp; Kids <span class="badge neutral">2 offers</span> <span class="badge warning">Partial</span></td></tr>
+                  <tr data-store="maison-baby" data-stock="in" data-match="confirmed" data-fresh="fresh">
+                    <td><div class="product"><div class="thumb sky"><svg><use href="#i-package"/></svg></div><div><div class="product-title">Jellycat Sky Dragon</div><div class="canonical">Sky Dragon · variant unknown</div></div></div></td>
+                    <td><div class="store"><div class="store-name">Maison Baby &amp; Kids</div><div class="store-url">maisonbabyandkids.com</div></div></td>
+                    <td><span class="badge success"><span class="dot"></span>In stock</span></td><td><span class="badge neutral">Confirmed</span> <span class="badge warning">Partial</span></td>
+                    <td><div class="fresh">12 min ago<span>Target 60 min</span></div></td><td><a class="btn sm action-link" href="#handoff" data-handoff="Jellycat Sky Dragon at Maison Baby & Kids">Buy <svg><use href="#i-external"/></svg></a></td>
+                  </tr>
+                  <tr data-store="maison-baby" data-stock="preorder" data-match="provisional" data-fresh="fresh">
+                    <td><div class="product"><div class="thumb bashful"><svg><use href="#i-package"/></svg></div><div><div class="product-title">Bashful Bunny Blush — Large</div><div class="canonical">Possible Jellycat exact variant</div></div></div></td>
+                    <td><div class="store"><div class="store-name">Maison Baby &amp; Kids</div><div class="store-url">maisonbabyandkids.com</div></div></td>
+                    <td><span class="badge info"><span class="dot"></span>Preorder</span></td><td><span class="badge warning">Provisional</span></td>
+                    <td><div class="fresh">18 min ago<span>Target 60 min</span></div></td><td><a class="btn sm action-link" href="#handoff" data-handoff="Bashful Bunny Blush at Maison Baby & Kids">View <svg><use href="#i-external"/></svg></a></td>
+                  </tr>
+                  <tr class="group-row" data-group="paper-store"><td colspan="6">The Paper Store <span class="badge neutral">1 offer</span></td></tr>
+                  <tr data-store="paper-store" data-stock="unknown" data-match="confirmed" data-fresh="stale">
+                    <td><div class="product"><div class="thumb barth"><svg><use href="#i-package"/></svg></div><div><div class="product-title">Bartholomew Bear Bathrobe</div><div class="canonical">Jellycat Bartholomew Bear Bathrobe</div></div></div></td>
+                    <td><div class="store"><div class="store-name">The Paper Store</div><div class="store-url">thepaperstore.com</div></div></td>
+                    <td><span class="badge neutral"><span class="dot"></span>Unknown</span></td><td><span class="badge neutral">Confirmed</span></td>
+                    <td><div class="fresh" style="color:var(--warning-fg)">47 min ago<span>Overdue · prior status retained</span></div></td><td><a class="btn sm action-link" href="#handoff" data-handoff="Bartholomew Bear Bathrobe at The Paper Store">View <svg><use href="#i-external"/></svg></a></td>
+                  </tr>
+                  <tr class="group-row" data-group="tiny-hanger"><td colspan="6">Tiny Hanger <span class="badge neutral">1 offer</span></td></tr>
+                  <tr data-store="tiny-hanger" data-stock="out" data-match="provisional" data-fresh="stale">
+                    <td><div class="product"><div class="thumb"><svg><use href="#i-package"/></svg></div><div><div class="product-title">Sky Blue Dragon Plush 20in</div><div class="canonical">Possible Sky Dragon · measurement conflict</div></div></div></td>
+                    <td><div class="store"><div class="store-name">Tiny Hanger</div><div class="store-url">tinyhanger.com</div></div></td>
+                    <td><span class="badge danger"><span class="dot"></span>Out of stock</span></td><td><span class="badge warning">Provisional</span></td>
+                    <td><div class="fresh" style="color:var(--warning-fg)">2 hr ago<span>Storefront auto-recovering</span></div></td><td><a class="btn sm action-link" href="#handoff" data-handoff="Sky Blue Dragon Plush at Tiny Hanger">View <svg><use href="#i-external"/></svg></a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot"><span class="muted small">Showing 1–6 of 24,816 distinct offers</span><div class="pager"><button class="btn sm" disabled>‹</button><button class="btn sm primary">1</button><button class="btn sm">2</button><button class="btn sm">›</button></div></div>
+          </div>
+        </section>
+
+        <section class="page" id="page-health">
+          <div class="page-head">
+            <div><h1>Health</h1><p class="muted">Independent collection facts, prioritized by buying impact and repair leverage.</p></div>
+            <button class="btn" id="refresh-health"><svg><use href="#i-refresh"/></svg><span>Refresh</span></button>
+          </div>
+
+          <div class="stats">
+            <div class="card stat"><div class="stat-label"><svg><use href="#i-activity"/></svg>Monitoring coverage</div><div class="stat-value">98.7%</div><div class="stat-context">24,493 of 24,816 targets accounted</div></div>
+            <div class="card stat"><div class="stat-label"><svg><use href="#i-refresh"/></svg>Restock freshness</div><div class="stat-value">96.2%</div><div class="stat-context">Out-of-stock + unknown within 15 min</div></div>
+            <div class="card stat"><div class="stat-label"><svg><use href="#i-package"/></svg>Catalog coverage</div><div class="stat-value">91.4%</div><div class="stat-context">38 certified · 4 Partial Storefronts</div></div>
+            <div class="card stat"><div class="stat-label"><svg><use href="#i-alert"/></svg>Repair required</div><div class="stat-value">1</div><div class="stat-context">2 more are auto-recovering</div></div>
+          </div>
+
+          <div class="filter-row">
+            <div class="segmented" id="health-filter"><button class="active" data-health="all">All 44</button><button data-health="attention">Needs attention 3</button><button data-health="healthy">Healthy 41</button></div>
+            <span class="result-count">Ordered by owner impact</span>
+          </div>
+
+          <div class="health-layout">
+            <div class="card">
+              <div class="panel-head"><h2>Storefronts</h2><span class="muted small">Live projections</span></div>
+              <div class="health-item" data-health-state="attention">
+                <div class="health-top"><div><div class="health-title">Tiny Hanger <span class="badge danger">Repair required</span></div><div class="health-url">tinyhanger.com · Shopify integration v3</div></div><span class="badge outline">High impact</span></div>
+                <div class="health-facts"><div><div class="fact-label">Access</div><div class="fact-value" style="color:var(--danger-fg)">Challenge detected</div></div><div><div class="fact-label">Catalog</div><div class="fact-value">Certified · 142</div></div><div><div class="fact-label">Monitoring</div><div class="fact-value">91% accounted</div></div><div><div class="fact-label">Freshness</div><div class="fact-value">2 hr overdue</div></div><div><div class="fact-label">Lifecycle</div><div class="fact-value">Active</div></div></div>
+                <div class="health-actions"><button class="btn sm queue-action">Retry</button><button class="btn sm queue-action">Re-audit</button></div>
+              </div>
+              <div class="health-item" data-health-state="attention">
+                <div class="health-top"><div><div class="health-title">The Paper Store <span class="badge warning">Auto-recovering</span></div><div class="health-url">thepaperstore.com · Bespoke integration v1</div></div><span class="badge outline">323 offers</span></div>
+                <div class="health-facts"><div><div class="fact-label">Access</div><div class="fact-value">Backoff · 8 min</div></div><div><div class="fact-label">Catalog</div><div class="fact-value">Certified · 323</div></div><div><div class="fact-label">Monitoring</div><div class="fact-value">97% accounted</div></div><div><div class="fact-label">Freshness</div><div class="fact-value">47 min overdue</div></div><div><div class="fact-label">Lifecycle</div><div class="fact-value">Active</div></div></div>
+                <div class="health-actions"><button class="btn sm queue-action">Retry</button></div>
+              </div>
+              <div class="health-item" data-health-state="attention">
+                <div class="health-top"><div><div class="health-title">Maison Baby &amp; Kids <span class="badge warning">Partial</span></div><div class="health-url">maisonbabyandkids.com · BigCommerce integration v2</div></div><span class="badge outline">Discovery running</span></div>
+                <div class="health-facts"><div><div class="fact-label">Access</div><div class="fact-value">Healthy</div></div><div><div class="fact-label">Catalog</div><div class="fact-value">Partial · page 18/26</div></div><div><div class="fact-label">Monitoring</div><div class="fact-value">100% known targets</div></div><div><div class="fact-label">Freshness</div><div class="fact-value">Within goals</div></div><div><div class="fact-label">Lifecycle</div><div class="fact-value">Onboarding</div></div></div>
+                <div class="bar" aria-label="Catalog discovery 69 percent"><span style="width:69%"></span></div>
+              </div>
+              <div class="health-item" data-health-state="healthy">
+                <div class="health-top"><div><div class="health-title">Lil’ Tulips <span class="badge success">Healthy</span></div><div class="health-url">liltulips.com · Shopify integration v3</div></div><span class="badge outline">218 offers</span></div>
+                <div class="health-facts"><div><div class="fact-label">Access</div><div class="fact-value">Healthy</div></div><div><div class="fact-label">Catalog</div><div class="fact-value">Certified · 218</div></div><div><div class="fact-label">Monitoring</div><div class="fact-value">100% accounted</div></div><div><div class="fact-label">Freshness</div><div class="fact-value">Within goals</div></div><div><div class="fact-label">Lifecycle</div><div class="fact-value">Active</div></div></div>
+                <div class="health-actions"><button class="btn sm queue-action">Run discovery</button></div>
+              </div>
+            </div>
+
+            <aside class="card health-side">
+              <div class="side-panel"><h2>Rollout coverage</h2><div class="rollout-row"><span>Candidate Sites handled</span><strong>1,842 / 2,247</strong></div><div class="bar"><span style="width:82%"></span></div><div class="rollout-row"><span>Terminal outcomes</span><strong>1,706</strong></div><div class="rollout-row"><span>Durable suspensions</span><strong>136</strong></div><div class="rollout-row"><span>Remaining queue</span><strong>405</strong></div><p class="small muted" style="margin-top:12px">Daily use is open. Full V1 is not complete while any Candidate or branch remains Partial or unaccounted.</p></div>
+              <div class="side-panel"><h2>Status meanings</h2><ul class="legend-list"><li><span class="badge success">Healthy</span><span class="muted">Independent facts are within policy.</span></li><li><span class="badge warning">Auto-recovering</span><span class="muted">Backoff or retry is active; no owner action needed.</span></li><li><span class="badge danger">Repair required</span><span class="muted">Structural issue needs intervention.</span></li><li><span class="badge warning">Partial</span><span class="muted">Useful results exist, but completeness is unproven.</span></li></ul></div>
+              <div class="side-panel"><h2>Throughput &amp; backlog</h2><div class="rollout-row"><span>Requests</span><strong>84 / min</strong></div><div class="rollout-row"><span>Offer refreshes</span><strong>612 / min</strong></div><div class="rollout-row"><span>Restock refreshes</span><strong>228 / min</strong></div><div class="rollout-row"><span>Due backlog</span><strong>323 targets</strong></div><div class="rollout-row"><span>Estimated catch-up</span><strong>11 min</strong></div></div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" role="status" aria-live="polite" id="toast">Queued — waiting for authoritative result</div>
+
+  <script>
+    const pages = [...document.querySelectorAll('[data-page]')];
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${name}`));
+      pages.forEach(button => button.classList.toggle('active', button.dataset.page === name));
+      history.replaceState(null, '', `#${name}`);
+    }
+    pages.forEach(button => button.addEventListener('click', () => showPage(button.dataset.page)));
+    if (location.hash === '#health') showPage('health');
+    window.addEventListener('hashchange', () => showPage(location.hash === '#health' ? 'health' : 'search'));
+
+    document.querySelectorAll('.theme-toggle').forEach(button => button.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+    }));
+
+    document.querySelectorAll('.chip button').forEach(button => button.addEventListener('click', () => button.closest('.chip').remove()));
+    document.getElementById('chip-input').addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || !event.target.value.trim()) return;
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = event.target.value.trim() + ' ';
+      const close = document.createElement('button');
+      close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Remove chip');
+      close.addEventListener('click', () => chip.remove()); chip.appendChild(close);
+      event.target.before(chip); event.target.value = '';
+    });
+
+    const table = document.getElementById('offer-table');
+    document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('[data-view]').forEach(peer => peer.classList.toggle('active', peer === button));
+      table.classList.toggle('grouped', button.dataset.view === 'grouped');
+      table.querySelectorAll('tr[data-store]').forEach(row => row.classList.toggle('visible-group', button.dataset.view === 'grouped'));
+    }));
+
+    function filterOffers() {
+      const stock = document.getElementById('stock-filter').value;
+      const match = document.getElementById('match-filter').value;
+      const fresh = document.getElementById('fresh-filter').value;
+      let count = 0;
+      table.querySelectorAll('tr[data-store]').forEach(row => {
+        const visible = (stock === 'all' || row.dataset.stock === stock) && (match === 'all' || row.dataset.match === match) && (fresh === 'all' || row.dataset.fresh === fresh);
+        row.hidden = !visible; if (visible) count++;
+      });
+      table.querySelectorAll('.group-row').forEach(group => {
+        const hasVisible = [...table.querySelectorAll(`tr[data-store="${group.dataset.group}"]`)].some(row => !row.hidden);
+        group.hidden = !hasVisible;
+      });
+      document.getElementById('result-count').textContent = `${count} result${count === 1 ? '' : 's'} · freshest first`;
+    }
+    ['stock-filter','match-filter','fresh-filter'].forEach(id => document.getElementById(id).addEventListener('change', filterOffers));
+
+    const toast = document.getElementById('toast'); let toastTimer;
+    function showToast(message) { toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2500); }
+    document.querySelectorAll('.queue-action').forEach(button => button.addEventListener('click', () => { button.textContent = 'Queued'; button.disabled = true; showToast('Queued — waiting for authoritative result'); }));
+    document.getElementById('refresh-health').addEventListener('click', event => { event.currentTarget.querySelector('span').textContent = 'Current'; showToast('Health projections refreshed'); });
+    document.querySelectorAll('[data-handoff]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); showToast(`Purchase handoff: ${link.dataset.handoff}`); }));
+
+    document.querySelectorAll('#health-filter button').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('#health-filter button').forEach(peer => peer.classList.toggle('active', peer === button));
+      document.querySelectorAll('[data-health-state]').forEach(item => item.hidden = button.dataset.health !== 'all' && item.dataset.healthState !== button.dataset.health);
+    }));
+  </script>
+</body>
+</html>

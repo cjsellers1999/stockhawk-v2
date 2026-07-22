@@ -12,7 +12,7 @@ Build a single-owner local web application backed by PostgreSQL in a coarse pnpm
 
 StockHawk bootstraps and refreshes an open-world Master Catalog from official Jellycat sources, then strengthens it with evidence from retailers. It stores every enumerated Retailer Listing, classifies locally without depending on a “Jellycat” title keyword, preserves exact source variants and duplicate-looking listings, and keeps uncertain positive evidence searchable as Provisional Candidates. A central Catalog Certifier—not an Adapter—decides whether a complete public Storefront catalog was exhaustively enumerated.
 
-The owner searches a compact table using one URL-persistent, match-any chip input over Product title, retailer name, and site URL. Flat and Storefront-grouped views support Stock Status and Match Status filters, images, freshness, Partial warnings, and exact retailer Purchase Handoff. A separate Health Page shows independent access, catalog, monitoring, freshness, lifecycle, throughput, backlog, and repair facts.
+The owner searches a compact table using one URL-persistent, match-any chip input over Product title, retailer name, and site URL. Flat and Storefront-grouped views support Stock Status, Match Status, and Freshness filters, images, freshness, Partial warnings, and exact retailer Purchase Handoff. A separate Health Page shows independent access, catalog, monitoring, freshness, lifecycle, throughput, backlog, and repair facts. The [locked owner design](../stockhawk-v1/design/DESIGN.md) governs the complete visual and responsive presentation of both pages.
 
 Implementation proceeds through one real end-to-end Storefront, an immediate 100,000-Offer pressure test, a capability-diverse pilot, the actual-Mac release rehearsal, then widening 25/100/500/remainder rollout waves. Each Storefront begins recurring work only after its own Catalog Certification, shopper-visible Stock Semantics Validation, and complete initial monitoring target accounting. Useful verified data is available before final rollout completion; V1 is accepted only after exhaustive input reconciliation contains no hidden or Partial case.
 
@@ -141,7 +141,7 @@ Implementation proceeds through one real end-to-end Storefront, an immediate 100
 - **Scheduling:** One Crawl Request Broker governs all HTTP, browser, redirect, and image requests. The scheduler learns safe global, Storefront, and browser concurrency from real due work, obeys server guidance, coalesces work, allows one active Storefront job, and maximizes committed useful observations rather than attempts.
 - **Freshness policy:** Out-of-stock and recoverable-unknown Offers target 15 minutes; in-stock and preorder Offers target 60 minutes. Safe access wins. Missed goals remain visible and never redefine freshness. Active catalog change checks target hourly with complete discovery daily; Dormant checks target daily signal and weekly complete discovery.
 - **Search:** Query server-side Search Documents with URL-bound keyset cursors. Support match-any chips over Product/title aliases, retailer, and URL; Stock and Match filters; flat and Storefront-grouped modes; raw retailer title; canonical secondary name; freshness; Partial evidence; images; and exact Purchase Handoff.
-- **UI:** Use the Compact ledger behavior in light and dark modes with TanStack Router, Query, and Table. Visual styling remains replaceable when the owner supplies a future design. Missing images never affect visibility or Health.
+- **UI:** Reproduce the [locked owner design](../stockhawk-v1/design/DESIGN.md) in light and dark modes with TanStack Router, Query, and Table. Its shell, exact tokens, typography, spacing, density, Search table, Health list/panels, semantic badges, controls, and responsive breakpoints are V1 acceptance criteria. Do not ship the old variant selector, side inspector, Storefront outline, or card-per-result layout. Missing images never affect visibility or Health.
 - **Optimistic commands:** Every true UI mutation crosses one shared optimistic command boundary, immediately applies only truthful owner intent, sends an idempotency key, rolls back exactly, and reconciles authoritative state. Direct mutation use and direct mutation endpoints from features fail static checks.
 - **Health:** Store independent access, certification/coverage, catalog freshness, monitoring coverage, status-specific freshness, lifecycle, and collection-gap facts. Derive Attention Severity, Healthy, Auto-Recovering, and Repair Required for presentation without turning them into authoritative shortcuts.
 - **Onboarding:** One durable Onboarding Case owns each Candidate and all branches. Bounded preflight precedes universal Computer Use plus sanitized network inspection. Shared repair work coalesces; bespoke repair remains local. Recurring schedules publish only after certification, Stock Semantics Validation, and initial target accounting.
@@ -165,12 +165,13 @@ Implementation proceeds through one real end-to-end Storefront, an immediate 100
 - Use a seeded 100,000-Offer scheduler model to verify adaptive scopes, fairness, coalescing, no early/artificial requests, status priority, safe degradation, truthful unreachable goals, browser shared-IP accounting, and crash recovery.
 - Run representative 100,000-Offer search and UI performance on the actual production topology. Require the first home-network page within two seconds and search/filter/view/page updates within 500 milliseconds; record distributions and query plans.
 - Test URL state, flat/grouped keyset pagination, concurrent changes, variants, provisional filters, stale ranking, image fallback, manual handoff, every optimistic mutation lifecycle, and truth boundaries using the built application against the real API/database.
+- Visually regress the built application against the locked owner design at representative desktop, tablet, and mobile widths in both themes. Cover Search flat/grouped/degraded and Health healthy/attention plus empty, loading, long-content, missing-image, overflow, and keyboard-focus states; baseline updates require owner approval.
 - Target WCAG 2.2 AA with automated axe checks plus manual keyboard, focus, zoom/reflow, contrast, status announcement, semantics, and screen-reader verification.
 - Inject Health failures for transient/structural errors, throttling, challenges, stale and Partial work, count drops, semantics drift, collection gaps, queue delay, process death, and recovery. Assert independent facts and idempotent remediation.
 - Rehearse on the actual Mac: clean provision, migration, load, worker/database/browser/network/Tailscale failures, no-login reboot, post-login Serve recovery, access isolation, residential egress, CSRF/SSRF/session controls, log redaction, backup, and restore.
 - Live qualification is mandatory per Storefront Integration. Fixtures and another Storefront on the same platform cannot substitute for current shopper-visible catalog and stock proof.
 - Final acceptance regenerates the Onboarding Closeout Report and CSV ledgers from committed facts and fails for any unaccounted or Partial branch or nondeterministic total.
-- Existing prototype tests are interaction prior art only. Production acceptance must exercise production modules and styling-independent behavior; prototype code is not the application.
+- The old multi-variant prototype is interaction prior art only. Production acceptance must exercise production Modules and visual-regression baselines derived from the locked design; neither prototype's demo code or data is the application.
 
 ## Out of Scope
 
@@ -184,7 +185,7 @@ Implementation proceeds through one real end-to-end Storefront, an immediate 100
 - Free-form owner creation of Products, Offers, Storefronts, or stock answers.
 - A manual Storefront pause control or manual command that paints canonical Health healthy.
 - Guaranteed discovery of merchandise not publicly observable from the home residential IP.
-- Final visual design; the accepted compact interaction is implemented with replaceable styling until the owner supplies a design.
+- Visual redesign, unapproved baseline drift, or design-system substitution outside the locked owner design.
 
 ## Further Notes
 
@@ -193,4 +194,5 @@ Implementation proceeds through one real end-to-end Storefront, an immediate 100
 - The original workbook remains immutable at its recorded SHA-256. Generated Seed List and reconciliation artifacts retain every source row.
 - The expected post-location-review Candidate count is approximately 2,247, but only completed audits determine the final count.
 - Exact media quota and disk high-water values are evidence-derived during the first 100,000-Offer slice and confirmed on the target Mac before full rollout.
+- The canonical design HTML is preserved verbatim at SHA-256 `1b03f2a6bbe5b0d4cad972901c100057b658c1375540a283f2f90821a85cb23a`; sample data and demo JavaScript are non-production, while rendered design changes require owner approval and a new recorded hash.
 - Work the implementation ticket frontier one ticket at a time. Each ticket must leave the application buildable, demonstrable, and covered by its portion of the Evidence Bundle.

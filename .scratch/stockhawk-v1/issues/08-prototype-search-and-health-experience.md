@@ -13,16 +13,17 @@ What final V1 interaction and information hierarchy best supports the morning sh
 ## Upstream decisions
 
 - Offer thumbnails prefer the Retailer Listing's primary image, fall back to an official Jellycat image only for an exact Catalog Match, then use a neutral placeholder. Ambiguous or variant-unknown listings never receive a potentially wrong official image; image availability never affects health, visibility, or stock.
-- Owner rejected card-heavy layouts. The V1 interaction must be linear and table-first, with light and dark modes.
+- Owner rejected card-per-result layouts. Search is a dense linear table; Health is a dense linear Storefront fact list. Both use light and dark modes, with restrained summary and containing surfaces only where the locked design shows them.
 - Use TanStack Table for table row models and TanStack Query for server state. Every true UI mutation must be optimistic through an enforced shared boundary with immediate cache update, rollback on failure, and authoritative reconciliation.
 - Optimistic state represents only truth already established by the owner's action—for example, a retry command becomes `Queued` immediately. It must never claim unverified Storefront health, stock, certification, or crawl success.
 
-## Prototype asset
+## Design assets
 
 - [Search and Health table prototype](../prototypes/search-health-experience/README.md) — React/Vite prototype with three linear TanStack Table directions, light/dark mode, TanStack Query data, optimistic command behavior, rollback tests, direct-mutation enforcement, and a complete real-Chrome regression suite. Every control was also walked through with Computer Use after fixing table auto-reset freezes.
+- [Locked owner design](../design/DESIGN.md) — Accepted V1 visual and interaction contract, with the owner-supplied HTML preserved verbatim at SHA-256 `1b03f2a6bbe5b0d4cad972901c100057b658c1375540a283f2f90821a85cb23a`.
 
 ## Answer
 
-Use `A — Compact ledger` as V1's primary Search and Health interaction and information hierarchy. It keeps the workflow linear and dense, maximizes visible rows, retains operational facts in the table, and still supports the accepted optional Storefront-grouped view, URL-persistent match-any chips, filters, sorting, pagination, images, freshness/Partial warnings, and manual retailer handoff.
+Use the [locked owner design](../design/DESIGN.md) as V1's visual and interaction baseline. It instantiates the accepted Compact-ledger direction with the exact shell, light/dark tokens, typography, spacing, density, responsive breakpoints, Search composition, Health composition, badges, tables, panels, and controls recorded in the canonical HTML.
 
-Do not use the side inspector or Storefront outline as the primary structure. The prototype's visual styling is not accepted: colors, typography, spacing, and overall appearance remain disposable and will be replaced by a future owner-supplied design. This styling deferral does not reopen the accepted Compact-ledger behavior, light/dark support, TanStack Table/Query boundary, or optimistic-mutation policy.
+Do not use the old side inspector, Storefront outline, card-per-Offer layout, or variant selector. The earlier React prototype remains behavior and TanStack prior art only; its styling is superseded. The locked HTML's fake data, hash navigation, in-memory filtering, and demo actions are not production architecture. Production preserves the accepted server-side/URL behavior, TanStack Table/Query boundary, and optimistic-mutation policy while matching the locked appearance. Deliberate visual changes require owner approval and a newly recorded artifact hash.

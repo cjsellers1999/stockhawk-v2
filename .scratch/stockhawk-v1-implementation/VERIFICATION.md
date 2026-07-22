@@ -10,6 +10,7 @@ Every change must pass locked install, format, lint, typecheck, production build
 | --- | --- |
 | Workspace task integrity | Dependency/filter graph and declared input/output/environment tests; deterministic local cache hits are reproducible; migrations, real-database, browser/live-source, backup/restore, and release tasks prove cache-disabled |
 | Runtime contract integrity | Shared Zod schemas enforce each owning Interface: closed app contracts reject unknown structure, retailer payloads tolerate unrelated additive fields, malformed/missing consumed fields and unknown versions fail, inferred types compile from the same source, and independent PostgreSQL negative tests still fail invalid storage |
+| Locked visual design | Canonical HTML hash is pinned; visual regression covers Search flat/grouped/degraded and Health healthy/attention plus empty/loading/long/missing-image/overflow/focus states at desktop, tablet, and mobile widths in both themes; baseline changes require owner approval |
 | All mutations are optimistic | Static ban outside the shared command boundary; immediate intent, rejection rollback, authoritative reconciliation, duplicate, refresh, and overlap tests for every command family |
 | Optimism stays truthful | External work may show `Queued`; tests forbid optimistic stock, health, discovery, or certification success |
 | Broker-only network | Static dependency rule plus runtime traps for HTTP, browser, redirects, and images outside the Crawl Request Broker |
@@ -26,7 +27,7 @@ Every change must pass locked install, format, lint, typecheck, production build
 | Scheduler safety | Seeded 100,000-Offer simulation proves adaptive scopes, safe server guidance, one Storefront job, coalescing, fairness, checkpoint recovery, and no artificial traffic |
 | Scheduler priority | Out-of-stock/unknown 15-minute urgency outranks separable in-stock/preorder 60-minute work without starving catalog discovery |
 | Honest capacity failure | Insufficient modeled capacity preserves safety and reports unreachable goals rather than weakening them or growing duplicate backlog |
-| Search correctness | URL match-any chips, filters, flat/grouped keyset cursors, concurrent changes, variants, provisional visibility, stale ranking, images, and exact handoff |
+| Search correctness | Locked Search hierarchy and columns; URL match-any chips; Stock/Match/Freshness filters; flat/grouped keyset cursors; concurrent changes; variants; provisional visibility; stale ranking; images; degradation strip; exact handoff |
 | Search performance | Representative query plans and load tests; production topology repeats the final latency gate |
 | Health truth | Failure-injection state matrix proves independent dimensions, thresholds, recovery, collection gaps, throughput meanings, and idempotent remediation |
 | Retention | Thirty-day compaction preserves permanent identities, pins, hashes, causal envelopes, references, events, and rebuildability |
@@ -55,6 +56,7 @@ Run before the capability pilot opens full rollout and after material topology o
 - Meet at most 24-hour logical-loss RPO and under four-hour representative database-restore RTO once PostgreSQL is ready.
 - Measure database, 30-day detail, diagnostics, and media growth; set quota and high-water values while reserving safe disk headroom.
 - Complete manual WCAG 2.2 AA-oriented keyboard, focus, zoom/reflow, contrast, status-announcement, semantic-table, and screen-reader checks in light and dark modes.
+- Compare the actual-Mac Search and Health rendering to the locked artifact at representative desktop, tablet, and mobile widths; record visual diffs and reject unapproved baseline changes.
 
 ## Gate C — live Storefront qualification
 

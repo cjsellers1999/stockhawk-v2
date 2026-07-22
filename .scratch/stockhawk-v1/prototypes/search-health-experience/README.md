@@ -1,6 +1,6 @@
 # StockHawk Search + Health table prototype
 
-> PROTOTYPE — throw away after the interaction verdict is captured.
+> HISTORICAL INTERACTION PROTOTYPE — its three table experiments remain behavior prior art. Its visual styling is superseded by the [locked owner design](../../design/DESIGN.md) and must not guide production appearance.
 
 React/Vite prototype using real TanStack Table row models and TanStack Query cache/mutations. It does not crawl stores or persist production data.
 
@@ -19,6 +19,8 @@ Open [http://127.0.0.1:4173/?variant=A&page=search](http://127.0.0.1:4173/?varia
 - `C — Store outline`: expandable linear Storefront/state sections with child rows.
 
 Every direction supports light/dark mode, flat/Storefront search views, one match-any chip input, URL-persistent state, sorting, filtering, pagination, images and safe retailer handoff.
+
+Production uses only the Compact-ledger behavior expressed through the locked design. Do not ship this prototype's variant selector, side inspector, Storefront outline, colors, typography, spacing, or mock presentation.
 
 ## Optimistic mutation enforcement
 

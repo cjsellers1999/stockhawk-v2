@@ -10,6 +10,10 @@ Blocked by: 04, 05
 
 Which independent health, coverage, and freshness states must StockHawk maintain so that working requests, Catalog Certification, stale observations, broken Connectors, blocked access, Dormant Storefronts, Dead Storefronts, and Non-Store Candidates cannot be confused? Define transition rules, failure thresholds, diagnostics, recovery behavior, stale-data treatment, and the information/actions the Health Page must expose for implementation fixes.
 
+## Visual authority
+
+The [locked owner design](../design/DESIGN.md) governs Health Page layout, hierarchy, density, tokens, responsive behavior, and presentation. The independent facts and additional domain-required states defined here fit that accepted visual language rather than introducing another dashboard structure.
+
 ## Comments
 
 - **Decision — goal and cadence remain independent:** Stock Freshness Goal is the desired maximum age of trustworthy Current Stock State, while Expected Check Cadence is the scheduler's measured safe expectation for that Storefront and access method. A goal miss degrades freshness visibly but never authorizes unsafe traffic, overrides Retry-After/backoff, or lets the system redefine “fresh” by silently weakening the goal. Access may remain healthy while freshness is degraded because the safe expected cadence cannot meet the goal.

@@ -6,7 +6,7 @@ Which table information hierarchy best supports the morning Jellycat shopping wo
 
 ## Rejected direction
 
-Card-heavy Search and Health layouts. Owner requested a linear table interface.
+Card-heavy Search and Health layouts. At this historical stage, the owner requested a linear table direction; the later locked design resolves production Search as a table and Health as a linear fact list.
 
 ## Evaluated options
 
@@ -31,6 +31,6 @@ Shared accepted constraints:
 
 ## Verdict
 
-Use `A — Compact ledger` as V1's interaction and information hierarchy for Search and Health: dense linear tables, maximum visible rows, facts kept in-row, and the existing optional Storefront-grouped view.
+Retain `A — Compact ledger` as behavior prior art: dense Search rows, maximum visible results, facts kept in-row, and the optional Storefront-grouped view. Production renders Search as the locked Offer table and Health as the locked linear Storefront fact list in the [owner-approved design](../../design/DESIGN.md).
 
-`B — Table + inspector` and `C — Store outline` are not the primary structures. The prototype's colors, typography, spacing, and overall visual design are explicitly rejected; they are disposable and will be replaced by a future owner-supplied design without changing the accepted Compact-ledger behavior.
+`B — Table + inspector` and `C — Store outline` are not the primary structures. This historical prototype's colors, typography, spacing, and overall appearance are superseded by the locked owner design. No future styling choice remains open for V1.

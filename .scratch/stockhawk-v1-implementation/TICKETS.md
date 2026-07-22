@@ -15,9 +15,9 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Configure dependency-aware/filterable tasks and local caching for deterministic work only; explicitly disable caching for migrations, real-database integration, Playwright/live-source checks, backup/restore, and release gates.
 - [ ] Establish shared Zod 4 runtime contracts and decode environment/startup configuration once before trusted application Modules receive it.
 - [ ] Start the API and browser application against a checked-in PostgreSQL migration without runtime schema push.
-- [ ] Expose a visible application shell plus truthful API/database readiness.
+- [ ] Build the locked responsive StockHawk shell, exact light/dark tokens, desktop sidebar/top bar, mobile top rail, Search/Health navigation, and truthful API/database/worker readiness from the canonical design artifact.
 - [ ] Establish formatting, linting, type checking, unit/integration orchestration, and production-build gates.
-- [ ] Record runtime, schema, lockfile, command, and test metadata in an initial Evidence Bundle.
+- [ ] Record runtime, schema, lockfile, canonical design SHA-256, command, and test metadata in an initial Evidence Bundle.
 
 ## Persist and search one synthetic Offer
 
@@ -27,7 +27,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 - [ ] Create the first normalized identities, observation/evidence, Product, Catalog Match, stock, event, and Search Document relations with database constraints.
 - [ ] Commit the entire synthetic Observation Batch through one typed idempotent Persistence Boundary operation.
-- [ ] Read the resulting Offer through the Fastify search API and compact table UI.
+- [ ] Read the resulting Offer through the Fastify search API and the locked Search table composition, including thumbnail fallback, raw/canonical title hierarchy, Storefront, Stock, Match, Last checked, and exact handoff columns.
 - [ ] Prove rollback, replay, stale/out-of-order observation handling, one active match, and causal Change Event uniqueness against real PostgreSQL.
 - [ ] Rebuild Search Documents from authoritative state without any source request and obtain equivalent results.
 
@@ -103,7 +103,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Implement only the real reusable Adapter capabilities required by the audited Storefront.
 - [ ] Enumerate every parent and exact sellable variant through the governed Broker with stable identities and resumable checkpoints.
 - [ ] Commit observations, evidence, local classifications, Current State Projections, Search Documents, and discovery Change Events atomically.
-- [ ] Show confirmed Offers and Provisional Candidates in the Compact ledger with match-any URL chips, Match/Stock filters, images, freshness, Partial state, and exact handoff.
+- [ ] Show confirmed Offers and Provisional Candidates in the locked Search design with match-any URL chips, Match/Stock/Freshness filters, images, freshness, Partial state, exact handoff, and the accepted degradation strip.
 - [ ] Support flat and Storefront-grouped server-side keyset traversal without deduplicating listings.
 - [ ] Preserve all valid results and prior truth when discovery is interrupted or fails.
 
@@ -144,6 +144,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Implement 15-minute restock/unknown goals, 60-minute in-stock/preorder goals, active hourly change/daily discovery, and Dormant daily-signal/weekly discovery policies.
 - [ ] Keep catalog and stock work fair, prefer HTTP, and allow adaptive browser contexts only behind audited grants and one shared IP budget.
 - [ ] Expose independent access, certification/coverage, catalog freshness, monitoring coverage, status-specific freshness, lifecycle, Collection Gap, throughput, backlog, Attention Severity, and timeline facts.
+- [ ] Render the locked Health composition: four summary cards, owner-impact filter/order, linear Storefront fact rows, applicable actions/progress, and rollout/status/throughput side panels without card-per-Storefront drift.
 - [ ] Make Retry, Run discovery, and Re-audit optimistic/idempotent without bypassing pacing or painting canonical Health healthy.
 
 ## Prove 100,000-Offer performance and storage
@@ -154,6 +155,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 - [ ] Generate deterministic representative Offers, listings, variants, matches, statuses, histories, Storefront states, failures, images, and Search Documents using measured first-Storefront distributions.
 - [ ] Prove first home-network page readiness within two seconds and every search/filter/view/page update within 500 milliseconds; retain distributions and query plans.
+- [ ] Pass visual regression against the locked artifact at representative desktop, tablet, and mobile widths in light and dark modes for Search and Health, including long, empty, loading, missing-image, overflow, and focus states.
 - [ ] Simulate sufficient and insufficient IP capacity, fair scheduling, coalescing, backoff, browser accounting, crashes, and truthful unreachable freshness.
 - [ ] Verify PostgreSQL constraints, concurrency, Search Document rebuild, Change Event causality, retention compaction, and backup-size behavior at load.
 - [ ] Measure database, 30-day detail, diagnostics, and media growth; set initial cache quota and disk high-water values with safe headroom.
@@ -225,6 +227,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Provision pinned Node/PostgreSQL/application/Caddy/Tailscale/backup configuration and migrate/load the representative database.
 - [ ] Prove `launchd` starts built API and worker entrypoints directly with no Turborepo or development-server runtime dependency.
 - [ ] Repeat latency, query-plan, scheduler, storage, accessibility, and deterministic release gates on the actual Mac.
+- [ ] Manually compare both themes and responsive Search/Health layouts to the locked artifact on the actual Mac; reject unexplained or unapproved baseline drift.
 - [ ] Kill worker/database/browser/network/Tailscale paths and prove truthful surviving behavior plus idempotent recovery.
 - [ ] Reboot without login and recover PostgreSQL, API, worker, Caddy, and LAN search; after normal login recover persistent Tailscale Serve.
 - [ ] Prove approved-private versus unapproved/public access, loopback-only API/database, security controls, and home-ISP retailer egress.
@@ -239,6 +242,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Publish only individually qualified Integrations into recurring work and retain safe historical/Partial data from all pilot cases.
 - [ ] Show rollout coverage, remaining Candidate/branch counts, Partial cases, and Search Health Warnings without calling V1 complete.
 - [ ] Exercise the morning flow from multi-chip in-stock search through exact retailer Purchase Handoff on an approved remote and LAN device.
+- [ ] Confirm the approved remote and LAN presentations preserve the locked visual hierarchy, density, responsive behavior, and all required facts without card-per-result fallback.
 - [ ] Regenerate and retain the pilot Evidence Bundle and reconciled closeout view for the release commit.
 
 ## Generate deterministic rollout sub-batches

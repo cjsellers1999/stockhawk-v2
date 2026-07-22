@@ -18,7 +18,7 @@ Run bounded preflight over plausible cleaned Seed List candidates and choose a n
 
 Do not use the official Jellycat Storefront as this retailer canary. Record the selected Storefront, rejected alternatives, and evidence.
 
-Take it through the complete production path: Seed provenance, Onboarding Case, Storefront Audit, Zod-validated Integration and Connector boundaries, Adapter, official Master Catalog input, Catalog Discovery, bounded persistence, local classification, Certification, Stock Semantics Validation, full monitoring target accounting, recurring-schedule publication, Search, Health, Change Events, and Evidence Bundle.
+Take it through the complete production path: Seed provenance, Onboarding Case, Storefront Audit, Zod-validated Integration and Connector boundaries, Adapter, official Master Catalog input, Catalog Discovery, bounded persistence, local classification, Certification, Stock Semantics Validation, full monitoring target accounting, recurring-schedule publication, Search, Health, Change Events, and Evidence Bundle. Search and Health must use the [locked owner design](../stockhawk-v1/design/DESIGN.md) from the first slice; rollout never postpones visual conformance.
 
 ## Stage 2 — immediate representative-load gate
 
@@ -41,7 +41,7 @@ Each Integration supplies its own shopper-visible stock proof. Shared platform c
 
 ## Stage 4 — actual-Mac release gate
 
-Install the candidate release on the target Mac mini and pass the complete verification matrix: representative performance, process and network failures, no-login reboot, post-login Tailscale return, access/security boundaries, residential egress, backup/restore, storage thresholds, and manual accessibility checks.
+Install the candidate release on the target Mac mini and pass the complete verification matrix: representative performance, process and network failures, no-login reboot, post-login Tailscale return, access/security boundaries, residential egress, backup/restore, storage thresholds, locked-design comparison, and manual accessibility checks.
 
 Only after the capability pilot and this gate may full rollout open. At that point the owner may use pilot data daily; Search and Health must disclose incomplete rollout coverage and may never label V1 complete.
 
@@ -102,6 +102,7 @@ Every sub-batch and wave records:
 - request/useful-observation throughput, throttles/challenges, backlog/freshness, and browser share;
 - database, diagnostics, evidence, media, backup, and restore growth;
 - deterministic test and qualification references;
+- canonical design hash and visual-regression references for UI-affecting releases;
 - balanced reconciliation delta.
 
 ## Completion
