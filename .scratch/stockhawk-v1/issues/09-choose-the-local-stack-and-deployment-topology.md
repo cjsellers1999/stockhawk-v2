@@ -2,15 +2,63 @@
 
 Type: research
 Label: wayfinder:research
-Status: claimed
+Status: resolved
 Triage: ready-for-agent
 Blocked by: 01, 04, 05
 
 ## Question
 
-Which application, database, job-runner, process-supervision, logging, backup, and private-LAN deployment topology best satisfies the accepted domain model, Connector seam, crawl concurrency, fast search, Mac mini operation, recoverability, and maintainability by one developer? Compare realistic options, include security and failure-recovery tradeoffs, and recommend a minimal topology with explicit operational characteristics.
+Which application, database, job-runner, process-supervision, logging, backup, and private-access deployment topology best satisfies the accepted domain model, Connector seam, crawl concurrency, fast search, Mac mini operation, recoverability, and maintainability by one developer? Compare realistic options, include security and failure-recovery tradeoffs, and recommend a minimal topology with explicit operational characteristics.
 
 ## Upstream constraints
 
 - The accepted UI stack must support TanStack Table and TanStack Query. Evaluate exact framework/runtime integration in this ticket rather than reopening those library choices.
 - Every true UI mutation must use an enforced optimistic command boundary: immediate cache update, rollback on failure, and authoritative reconciliation. Optimism may represent submitted intent such as `Queued`, never fabricate external Storefront, stock, discovery, or certification success.
+- Owner direction added after resolution: approved devices must reach StockHawk privately when the owner is away from home. Use Tailscale without public exposure, while preserving automatic local recovery after a Mac reboot.
+
+## Research asset
+
+- [Primary-source local stack and deployment recommendation](../research/09-local-stack-and-deployment-topology.md)
+
+## Answer
+
+StockHawk V1 runs **natively on the Mac mini**, without Docker Desktop, as one pinned TypeScript release with separate web and collection processes:
+
+| Concern | V1 choice |
+| --- | --- |
+| Runtime | Node.js 24 LTS, TypeScript, pnpm lockfile |
+| Browser app | React/Vite SPA, TanStack Router, TanStack Query, TanStack Table |
+| Server | Fastify same-origin JSON API serving the built SPA |
+| Database | PostgreSQL 18 |
+| Data access | Drizzle over `node-postgres`, plus reviewed PostgreSQL-specific SQL |
+| Search | Controlled Search Documents with GIN full text, measured `pg_trgm`, and query-shaped B-tree indexes |
+| Durable jobs | pg-boss v12 in the same PostgreSQL database |
+| Collection | Separate worker containing the due-work planner, shared Crawl Request Broker, HTTP clients, Connectors, and adaptive Playwright pool |
+| Supervision | Native `launchd` LaunchDaemons, including separate calendar backup verification |
+| Private access | Tailscale Serve HTTPS for normal access from approved tailnet devices anywhere; Caddy internal HTTPS at `8443` as the automatic LAN fallback |
+| Diagnostics | Redacted Pino JSON with bounded 30-day files; durable Health and throughput aggregates in PostgreSQL |
+| Backup | Daily validated `pg_dump -Fc`, seven completed generations, encrypted external copy when configured, weekly clean restore |
+
+PostgreSQL is selected over SQLite because StockHawk's risk is concurrent write shape, not merely row count. API commands, Connector batches, stock observations, Current Projections, Search Documents, Change Events, checkpoints, Health summaries, and queue state must commit concurrently and transactionally. SQLite WAL still has one writer and would require StockHawk to invent a cross-process single-writer coordinator. PostgreSQL also supplies the required constraints, MVCC, text indexes, queue claiming, retention paths, and future Change Event consumption without another data service.
+
+The normalized relational model stays authoritative. Versioned structured evidence uses `jsonb`; rare pinned source bodies may use compressed `bytea`. Routine checks retain extracted decision evidence, content hashes, and provenance rather than duplicating entire HTML bodies. High-volume rolling detail may be time-partitioned when representative query plans justify it and follows the accepted 30-day compaction/pinning policy. Only rebuildable images and temporary downloads live outside PostgreSQL in a content-addressed, quota-bound filesystem cache. The browser never fetches retailer images directly: cache misses use the same governed Crawl Request Broker, and missing images remain healthy.
+
+Drizzle provides typed access, but it does not replace database design. Schema changes are generated as checked-in SQL, reviewed and amended for checks, foreign keys, restrictive deletion, partial/expression indexes, extensions, and multi-row invariants, then applied once by a migration command before services start. Runtime schema push and startup-time application migrations are forbidden. Complex search and persistence operations may use reviewed SQL behind the one authoritative Persistence Boundary.
+
+pg-boss is selected over Graphile Worker, BullMQ/Redis, and in-memory timers. It can enqueue through the current Drizzle transaction and supplies PostgreSQL-backed scheduling, priority, retries, heartbeats, expiry, dead letters, and keyed exclusive policies without a second daemon. StockHawk still treats every handler as retryable: queue delivery never substitutes for domain idempotency. Domain tables—not pg-boss internals—own due times, priority, run state, coalescing, checkpoints, and Health. A frequent planner enqueues bounded Storefront work quanta, never one permanent job per Offer. Per-Storefront keyed exclusivity plus database constraints enforces one active Connector job; checkpoints and deterministic batch identities make crash replay harmless. Every HTTP, browser, redirect, and image request still acquires global and Storefront permits from the single residential-IP broker.
+
+The UI is fully server-driven at scale: Fastify performs text/filter/sort/keyset queries, and the browser never loads the whole catalog. URL state is validated by TanStack Router; TanStack Query owns server state; TanStack Table runs in manual server-side mode. Every mutation uses one exported `useOptimisticCommand` boundary. A static import rule prevents feature code from importing `useMutation` or calling mutation endpoints directly. The boundary snapshots and updates relevant caches, shows only truthful submitted intent such as `Queued`, sends an idempotency key, rolls back failure, then reconciles authoritative state. The API requires that idempotency key and atomically records the command receipt, domain intent, and any pg-boss wakeup.
+
+Tailscale Serve is the normal front door. It exposes the loopback-only Fastify server at a stable HTTPS `*.ts.net` URL exclusively inside the owner's tailnet. A deny-by-default Tailscale Grant permits only the owner's approved devices to the tagged StockHawk node on HTTPS; Funnel, subnet routing, exit-node use, database ports, and public router forwarding remain disabled. StockHawk does not trust Tailscale identity headers as application authorization: the Argon2id-protected admin account, PostgreSQL-backed server session, Secure/HttpOnly/SameSite-Strict cookie, exact Origin allowlist, Fetch-Metadata/CSRF validation, idempotency, and login throttling still apply. The Tailscale hostname contains no personal information because its certificate name is published through normal certificate-transparency infrastructure.
+
+Caddy remains a deliberately small LAN fallback at `https://<mac-mini-bonjour-name>:8443`, proxying the same Fastify loopback port. This is required because official Tailscale on macOS cannot run as the system before user login. After a reboot, `launchd` restores PostgreSQL, Fastify, the worker, and Caddy without a logged-in user; local search and operations therefore recover automatically. Tailscale Serve runs in persistent background mode and returns automatically after the owner logs into macOS and Tailscale reconnects. StockHawk exposes separate Health for the local and remote access edges, including Tailscale connection and Serve configuration status. It never weakens FileVault or enables automatic login merely to recover remote access.
+
+Fastify and PostgreSQL bind only to loopback or Unix sockets. The Mac firewall and FileVault remain enabled; router forwarding and UPnP exposure are forbidden. The Crawl Request Broker allowlists audited public origins, validates redirects, and blocks loopback, link-local, and private destinations. Tailscale is inbound access only: the collector never selects a Tailscale exit node, so every retailer request still leaves through the home residential IP and the accepted shared broker.
+
+`launchd` supervises PostgreSQL, Caddy, the Fastify API, and the worker under least-privilege service accounts and starts them without an interactive login. Tailscale's supported macOS user client owns the persistent Serve configuration and reconnects after user login. Startup does not rely on fragile ordering: API and worker retry database readiness. The Mac is configured to avoid sleep and restart after power loss. Search remains available if the worker, browser, Tailscale, or internet connection fails, displaying honest stale/Partial state through the surviving LAN edge. A worker restart recreates browser contexts, reclaims expired jobs, and resumes from the last committed checkpoint. Database durability settings remain enabled; no crawl optimization may disable `fsync`, `synchronous_commit`, or `full_page_writes`.
+
+Pino emits structured, correlated diagnostics while redacting credentials, cookies, authorization, sessions, and raw retailer bodies. Daily/size rotation and a disk high-water mark prevent logs from consuming the machine; early emergency pruning raises visible Health degradation. Checks/second, useful observations/second, outcomes, rate limits, backlog age, freshness attainment, run summaries, and Health transitions are compact PostgreSQL facts, never reconstructed from log files.
+
+A separate calendar LaunchDaemon creates one daily custom-format dump to a temporary file, parses it with `pg_restore --list`, checksums it, atomically publishes it, and retains the latest seven completed generations. It copies the validated dump to an encrypted external APFS target when mounted; a same-disk dump is explicitly not disk-failure recovery. Weekly automation restores the newest dump into a disposable database and verifies schema, extensions, constraints, representative search, idempotency, and Search Document rebuild. Monthly, the documented operator drill performs a fresh application start. The target is a 24-hour logical-loss RPO and a representative-load restore under four hours; total-disk-loss coverage requires a current external copy.
+
+Docker Desktop, Next.js, Electron, Redis/BullMQ, Temporal, a public Tailscale Funnel, and a separate search engine are rejected for V1 because each adds exposure, a VM, persistence system, deployment model, or synchronization boundary without solving an accepted requirement. Tailscale Serve is accepted only as the private inbound owner path; it never participates in crawling or replaces StockHawk authentication. The rejected options may be reconsidered only after measured evidence crosses a documented trigger; V1 never preemptively pays that complexity.

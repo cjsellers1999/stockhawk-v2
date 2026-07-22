@@ -15,3 +15,6 @@ What automated, audit, and operational verification is required to trust V1? Def
 - Prove every true UI mutation crosses the optimistic command boundary; direct TanStack Query mutation use outside that boundary must fail static verification.
 - For every mutation family, test immediate optimistic state, exact rollback after rejection, and reconciliation with authoritative data after settlement.
 - Test the truth boundary explicitly: actions may optimistically show submitted intent such as `Queued`, but must not optimistically claim Storefront health, stock, crawl, or certification outcomes.
+- Prove the dual private-access boundary: an approved off-LAN Tailscale device can use Serve, an unapproved tailnet device and public client cannot, Funnel/exit/subnet/public forwarding stay disabled, and neither API nor PostgreSQL is directly reachable.
+- Reboot with no macOS login and prove PostgreSQL, API, worker, and Caddy restore local operation; then log in normally and prove persistent Tailscale Serve returns without reconfiguration. Tailscale failure must leave local search and collection intact.
+- Verify retailer traffic still exits through the home residential IP and shared Crawl Request Broker rather than any Tailscale route.

@@ -21,7 +21,7 @@ The map is complete when nothing material remains undecided before implementatio
 - Catalog Certification means exhaustive enumeration of the complete public catalog visible to the Mac mini during the latest successful discovery, with evidence. Partial results remain searchable but visibly incomplete.
 - Catalog Discovery and Stock Monitoring are separate workloads. Search reads the local database and never waits on live Storefronts.
 - The scheduler must maximize safe throughput on one residential IP with global and per-Storefront pacing, adaptive concurrency, caching, and backoff rather than proxy rotation or evasion.
-- V1 is a private web application available on the home network. Purchasing is a manual handoff to the retailer.
+- V1 is a private web application available to the owner's approved Tailscale devices at home or away, with an automatic Caddy LAN fallback after reboot. It is never publicly exposed. Purchasing is a manual handoff to the retailer.
 - Search/UI decisions already validated are captured in [`Search prototype verdict`](../search-ui-prototype/NOTES.md): one URL-persistent chip input with match-any semantics; flat Offer pagination; optional Storefront-grouped pagination; Stock Status filters; retailer-page links.
 - V1 stores Change Events for future alerts but sends no notifications.
 - Never refer to this map's tickets by bare number in user-facing text; link their names.
@@ -39,6 +39,7 @@ The map is complete when nothing material remains undecided before implementatio
 - [Prototype the residential-IP crawl scheduler](issues/06-prototype-the-residential-ip-scheduler.md) — Use an HTTP-first hybrid Network-Limited Scheduler with adaptive shared-IP and Storefront pacing, fair resumable work, and an isolated browser-context pool that expands only for proven browser-required backlog.
 - [Define Storefront Health and remediation](issues/07-define-storefront-health-and-remediation.md) — Keep access, catalog coverage/freshness, stock-answer coverage/freshness, and lifecycle truth independent; preserve useful stale data while prioritizing restock impact, safe automatic recovery, and actionable diagnostics.
 - [Prototype the search and Health Page experience](issues/08-prototype-search-and-health-experience.md) — Use the dense Compact-ledger interaction for Search and Health while treating the prototype's visual styling as disposable pending the owner's future design.
+- [Choose the local stack and deployment topology](issues/09-choose-the-local-stack-and-deployment-topology.md) — Run native launchd-supervised Node/React/Fastify and collection processes over PostgreSQL, Drizzle, and pg-boss, with Tailscale Serve for private remote access, Caddy for pre-login LAN recovery, enforced optimistic commands, and restore-tested daily backups.
 
 ## Not yet specified
 
@@ -51,7 +52,7 @@ The map is complete when nothing material remains undecided before implementatio
 - Shipping, pickup, delivery, or purchase-eligibility checks.
 - Email, SMS, push, or other alert delivery in V1; only alert-ready Change Events are in scope.
 - Proxy farms, IP rotation, CAPTCHA bypass, anti-bot evasion, or access to login-restricted/private catalogs.
-- Public cloud hosting, public internet exposure, and native mobile applications.
+- Public cloud hosting, Tailscale Funnel or other public internet exposure, and native mobile applications.
 - Cataloging brands other than Jellycat.
 - Broad discovery of retailers unrelated to the supplied Seed Site Records or Storefronts clearly linked from them.
 - Reading or reusing code, databases, or configuration from other projects on this computer.
