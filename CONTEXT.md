@@ -29,8 +29,16 @@ The one-time human-style review of a Candidate Site that follows redirects and r
 _Avoid_: Catalog monitoring, recurring crawl
 
 **Storefront Health**:
-The reliability of StockHawk's current access to a Storefront, independent of every Offer's Stock Status. Unhealthy access means catalog or availability data may be incomplete or stale.
-_Avoid_: Product availability, stock status
+The independently evaluated reliability of StockHawk's allowed access to a Storefront for Catalog Discovery and Stock Monitoring, each expressed as `unassessed`, `healthy`, `degraded`, or `blocked`. It does not encode Storefront disposition, Catalog Certification, Offer Stock Status, freshness, or owner scheduling controls.
+_Avoid_: Overall health flag, product availability, dead state, paused state
+
+**Stock Monitoring Health**:
+The target coverage and conclusiveness of Stock Observations for a Storefront's eligible Offers. Unknown or intrinsically unobservable targets may degrade monitoring without implying that Storefront access failed, Catalog Certification is invalid, or any prior trustworthy Stock Status changed.
+_Avoid_: Storefront access health, stock freshness, catalog coverage
+
+**Attention Severity**:
+A derived, non-authoritative ranking that lets the Health Page sort and filter the most actionable Candidate Sites, Storefronts, and monitoring problems. It summarizes independent domain states without replacing them or becoming evidence for a transition.
+_Avoid_: Overall health state, stored truth, automatic classification evidence
 
 **Partial Storefront**:
 A live Storefront whose latest Catalog Discovery yielded useful observations but did not prove exhaustive coverage. Partial observations remain searchable, while missing prior listings are never reconciled as removals and any older certified snapshot remains historical rather than current completeness proof.
@@ -255,6 +263,26 @@ _Avoid_: Entire domain model in JSON, retailer-specific core column, unversioned
 **Network-Limited Scheduling**:
 The StockHawk objective of maximizing successfully committed useful catalog and stock observations per wall-clock time while letting concurrency rise until Storefront-specific feedback or correlated residential-IP pressure reveals the current safe limit. Fixed CPU, RAM, browser, or production concurrency quotas never intentionally throttle V1.
 _Avoid_: Hardware-budget scheduling, fixed global concurrency, attempted-request maximization
+
+**Stock Freshness Goal**:
+The desired maximum age of a trustworthy Current Stock State. Missing the goal degrades freshness but never authorizes unsafe requests, weakens Storefront backoff, or changes the last trustworthy Stock Status.
+_Avoid_: Polling interval, rate limit, guaranteed source capability
+
+**Restock Detection Goal**:
+The Stock Freshness Goal applied to an Offer last observed `out of stock`, reflecting the higher value of detecting its transition to `in stock`. It affects urgency only when source work is separable; a shared source response still refreshes every Offer it can observe at the same cost.
+_Avoid_: Alert, unsafe polling mandate, all-stock freshness goal
+
+**In-Stock Verification Goal**:
+The bounded Stock Freshness Goal applied to an Offer last observed `in stock`. It may be slower than the Restock Detection Goal while its visible observation age continues to disclose how trustworthy the search result is.
+_Avoid_: Unmonitored in-stock offer, restock goal, permanent availability claim
+
+**Unknown Recovery Goal**:
+The desired maximum time to obtain the first trustworthy Stock Status for an Offer whose Current Stock State is `unknown` and whose audited source is expected to expose stock. Proven intrinsic unobservability ends accelerated recovery and becomes visible Stock Monitoring degradation rather than an endless retry loop.
+_Avoid_: Failed-check status reset, guessed availability, permanent fast retry
+
+**Expected Check Cadence**:
+The evidence-based interval at which StockHawk currently expects to refresh an Offer safely through its Storefront's measured access method. It may be faster or slower than the Stock Freshness Goal and never redefines whether the current data meets that goal.
+_Avoid_: Freshness goal, fixed polling interval, freshness guarantee
 
 **Stock Observation**:
 An immutable, conclusive source observation of a Retailer Listing's Stock Status together with its observation order, observation time, source run, and evidence. The newest eligible observation advances Current Stock State; failed, omitted, or unobservable attempts remain run and Health facts rather than Stock Observations.
