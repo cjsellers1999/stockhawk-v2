@@ -30,18 +30,55 @@ _Avoid_: Catalog monitoring, recurring crawl
 
 **Storefront Health**:
 The independently evaluated reliability of StockHawk's allowed access to a Storefront for Catalog Discovery and Stock Monitoring, each expressed as `unassessed`, `healthy`, `degraded`, or `blocked`. It does not encode Storefront disposition, Catalog Certification, Offer Stock Status, freshness, or owner scheduling controls.
-_Avoid_: Overall health flag, product availability, dead state, paused state
+_Avoid_: Overall health flag, product availability, dead state
 
 **Stock Monitoring Health**:
-The target coverage and conclusiveness of Stock Observations for a Storefront's eligible Offers. Unknown or intrinsically unobservable targets may degrade monitoring without implying that Storefront access failed, Catalog Certification is invalid, or any prior trustworthy Stock Status changed.
+The exact count and ratio of eligible active Offers with a trustworthy conclusive Current Stock State, shown as answered Offers over eligible Offers plus the linked unknown remainder. It uses no arbitrary pass/fail threshold: gaps influence Attention Severity by count, share, persistence, and shared cause. Monitoring coverage is separate from whether those answers currently meet their freshness goals; unknown or intrinsically unobservable targets do not imply Storefront access failed, Catalog Certification is invalid, or a prior trustworthy Stock Status changed.
 _Avoid_: Storefront access health, stock freshness, catalog coverage
 
+**Freshness Compliance**:
+The exact count and ratio of conclusive Current Stock States whose observation ages meet their applicable Stock Freshness Goals. It is reported separately from Stock Monitoring Health and split by last-known Stock Status so high-volume, lower-priority in-stock checks cannot hide overdue restock-detection work. Thus a Storefront can have understandable but stale answers, or recent attempts that still cannot produce conclusive answers.
+_Avoid_: Monitoring coverage, access health, guaranteed polling interval
+
 **Attention Severity**:
-A derived, non-authoritative ranking that lets the Health Page sort and filter the most actionable Candidate Sites, Storefronts, and monitoring problems. It summarizes independent domain states without replacing them or becoming evidence for a transition.
+A derived, non-authoritative ranking that lets the Health Page sort and filter the most actionable Candidate Sites, Storefronts, and monitoring problems. Ranking follows current buying impact and repair leverage: failures affecting many active Offers or restock-detection work outrank routine maintenance for Dormant or Dead Storefronts, while structural repairs rank highly when one fix restores broad coverage. It summarizes independent domain states without replacing them or becoming evidence for a transition.
 _Avoid_: Overall health state, stored truth, automatic classification evidence
 
+**Health Page**:
+The operational Storefront overview with one row per Storefront, ordered by Attention Severity while retaining healthy rows. Each row exposes independent access, catalog, monitoring, freshness, disposition, counts, and next-action facts rather than one ambiguous health flag; filters include All, Needs Attention, Healthy, Dormant, and Dead. A row drills into evidence, affected Offers, attempts, timing, safe remediation actions, and a chronological Health timeline. Repeated actions coalesce into existing broker-safe work instead of duplicating jobs; the page never permits manually painting canonical health healthy.
+V1 has no manual Storefront pause control; automatic broker pacing, backoff, and lifecycle scheduling govern traffic.
+_Avoid_: Search results, single health boolean, hidden healthy stores, manual pause queue
+
+**Healthy View**:
+The derived Health Page filter for active Storefronts whose Catalog Discovery and Stock Monitoring access are healthy, catalog coverage is currently certified and fresh, every eligible active Offer has a conclusive stock answer, and each freshness obligation is currently met. It is computed from independent facts rather than stored as an overall health state. Optional presentation data such as a product image never affects it.
+_Avoid_: Homepage reachable, stored healthy boolean, image completeness
+
+**Health Timeline**:
+The chronological diagnostic history for one Storefront, correlating representative successes, failures, throttles, backoff, health transitions, Integration changes, and remediation work. Detailed diagnostics follow the 30-day rolling retention policy, while compact reasoned state transitions and causal envelopes remain permanent.
+_Avoid_: Current health snapshot, raw unbounded logs, transient toast history
+
+**Search Health Warning**:
+A concise, conditional banner on normal Offer search when material collection degradation can delay newly accurate results. It names the affected goal and scale, links to the Health Page, and never hides or rewrites search data; normal operation adds no warning clutter.
+_Avoid_: Full Health Page on search, generic traffic light, hidden stale results
+
+**Repair Required**:
+A derived Health Page action state for a deterministic structural problem that unchanged retries cannot fix, such as an unavailable Adapter, invalid Integration configuration, or Integration Drift. It stops wasteful repetition of the affected job until the Integration changes, while transient failures continue automatic broker-safe recovery. Repair Required is not a fifth access-health state.
+_Avoid_: Ordinary timeout, rate limit, manual health override
+
+**Auto-Recovering**:
+A derived Health Page action state showing that StockHawk has a safe automatic recovery plan for a transient, throttled, or otherwise retryable problem. It exposes the reason and next eligible retry without asking the owner to repair it, and is not a canonical access-health state.
+_Avoid_: Repair required, healthy override, hidden retry
+
+**Collection Gap**:
+An interval when StockHawk itself was not running or able to schedule collection work. It makes affected catalog and stock data stale and creates coalesced catch-up work, but supplies no evidence that any Storefront access degraded. The Health Page exposes the system-level gap instead of manufacturing one failure per missed check.
+_Avoid_: Storefront outage, connector failure, duplicated backlog
+
+**Collection Throughput**:
+The Health Page's rolling one-minute rates for actual outbound source requests, conclusive Offer stock refreshes, and the subset of conclusive refreshes targeting Offers last observed out of stock. Request throughput describes residential-IP pressure; Offer and restock throughput describe useful work. One bulk request may refresh many Offers, so these rates are never treated as interchangeable. Alongside current overdue count, StockHawk reports whether backlog is growing or shrinking and gives a catch-up estimate only when recent safe throughput makes one credible; otherwise it states that the freshness goal is currently unreachable.
+_Avoid_: Configured concurrency, queued target count, request count presented as product checks
+
 **Partial Storefront**:
-A live Storefront whose latest Catalog Discovery yielded useful observations but did not prove exhaustive coverage. Partial observations remain searchable, while missing prior listings are never reconciled as removals and any older certified snapshot remains historical rather than current completeness proof.
+A live Storefront whose latest Catalog Discovery yielded useful observations but did not prove exhaustive coverage. Partial affects confidence that every listing was found, not the usability or Stock Status of listings that were found: they remain searchable and purchasable through their retailer links. Missing prior listings are never reconciled as removals, and any older certified snapshot remains historical rather than current completeness proof.
 _Avoid_: Certified storefront, blocked storefront
 
 **Blocked Storefront**:
@@ -113,8 +150,12 @@ A Storefront Integration state entered when a coverage-affecting Adapter, identi
 _Avoid_: Data deletion, ordinary stock staleness
 
 **Catalog Certification**:
-Evidence that a Storefront Integration exhaustively enumerated the complete public catalog visible to StockHawk during its latest successful Catalog Discovery. Certification is time-scoped and does not claim access to hidden or restricted merchandise.
+Evidence that a Storefront Integration exhaustively enumerated the complete public catalog visible to StockHawk during a successful Catalog Discovery. Certification is immutable, time-scoped history: aging makes current Catalog Freshness stale rather than erasing the proof. A newer incomplete discovery makes current coverage Partial while retaining the older certification record; a coverage-affecting Integration change requires recertification. Certification does not claim access to hidden or restricted merchandise.
 _Avoid_: Successful request, permanent completeness guarantee
+
+**Catalog Freshness**:
+How recently a Storefront completed the catalog work currently expected for its disposition and Integration. Missing the applicable discovery goal becomes visibly stale without rewriting historical Catalog Certification, hiding known listings, or implying access failure.
+_Avoid_: Catalog certification, stock freshness, access health
 
 **Certification Claim**:
 The versioned evidence a Connector Adapter submits after Catalog Discovery to request Catalog Certification, including route, count, pagination, parent and exact-variant closure, snapshot-boundary, visibility, and gap evidence. The central Catalog Certifier judges the claim; the Adapter never certifies itself.
@@ -188,6 +229,10 @@ _Avoid_: Adapter-owned file, unexplained scrape result
 A raw catalog entry collected from a Storefront before its relationship to Jellycat or an exact Product is resolved. Every enumerated listing is persisted so its source data, classification evidence, and any collected Stock Observation remain available for local reclassification and catalog comparison.
 _Avoid_: Product, confirmed offer
 
+**Listing Image**:
+The image selected for an Offer thumbnail in search: prefer that Retailer Listing's primary retailer image; when absent, use an official Jellycat Product image only after an exact Catalog Match; otherwise use a neutral placeholder. Variant-unknown or ambiguous listings never borrow a potentially wrong official image. Missing or failed images never affect Storefront Health, Catalog Certification, classification, Listing Presence, or Stock Status. Media caching remains a local-stack decision.
+_Avoid_: Required catalog evidence, health signal, product identity
+
 **Retailer Listing Observation**:
 The source-specific facts emitted by a Connector Adapter for one Retailer Listing at one observation time, preserving retailer values while translating platform structure and availability into StockHawk's common forms. It contains no Jellycat classification or Product decision.
 _Avoid_: Catalog Match, Product classification
@@ -241,8 +286,8 @@ The availability state displayed by the retailer for an Offer: `in stock`, `out 
 _Avoid_: Purchase eligibility, shipping eligibility, deliverability
 
 **Listing Presence**:
-Whether a Retailer Listing is currently observed in its Storefront's public catalog rather than certified as disappeared. Positive evidence may mark a listing discovered or reappeared immediately; only absence from a newly certified complete Catalog Snapshot may mark it disappeared. Presence is independent of Stock Status.
-_Avoid_: Availability, partial-crawl absence, deletion
+The separate `active` or `inactive` lifecycle of a Retailer Listing. Positive evidence immediately makes it active or reactivates it. One missing crawl only records suspected disappearance; inactive requires absence from two complete certified Catalog Snapshots plus direct listing-page evidence that the offer disappeared. Inactive listings leave frequent Stock Monitoring and rely on normal catalog change detection and complete discovery for reappearance. They remain historically searchable but are excluded from current in-stock purchasing results. Presence is independent of Stock Status and never deletes the listing.
+_Avoid_: Availability, partial-crawl absence, stock status, deletion
 
 **Lifecycle Transition**:
 An explicit, timestamped, reasoned state change that retires, disappears, kills, excludes, corrects, merges, or supersedes a durable record without deleting its identity or history. Merges choose one canonical survivor and retain acyclic redirects from superseded identities; only retention-governed payload detail and uncommitted temporary data may be physically removed.
@@ -289,7 +334,7 @@ An immutable, conclusive source observation of a Retailer Listing's Stock Status
 _Avoid_: Failed check attempt, current-state row, freshness guarantee
 
 **Current Stock State**:
-The query-optimized latest trustworthy Stock Status and its `Last checked` time for one Retailer Listing. It starts `unknown`; a newer conclusive observation atomically updates it and emits a Change Event only when the status changes. Failed checks and older delayed observations never erase or overwrite the latest trustworthy answer, whose age remains visible separately.
+The query-optimized latest trustworthy Stock Status and its `Last checked` time for one Retailer Listing. It starts `unknown`; a newer conclusive observation atomically updates it and emits a Change Event only when the status changes. Failed checks and older delayed observations never erase or overwrite the latest trustworthy answer. A stale answer remains searchable under its last status, is visibly labeled with its age, and ranks after fresh matches by default.
 _Avoid_: Check-attempt time, health state, checkout guarantee
 
 **Catalog Discovery**:
