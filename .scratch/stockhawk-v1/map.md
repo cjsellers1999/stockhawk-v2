@@ -40,11 +40,12 @@ The map is complete when nothing material remains undecided before implementatio
 - [Define Storefront Health and remediation](issues/07-define-storefront-health-and-remediation.md) — Keep access, catalog coverage/freshness, stock-answer coverage/freshness, and lifecycle truth independent; preserve useful stale data while prioritizing restock impact, safe automatic recovery, and actionable diagnostics.
 - [Prototype the search and Health Page experience](issues/08-prototype-search-and-health-experience.md) — Use the dense Compact-ledger interaction for Search and Health while treating the prototype's visual styling as disposable pending the owner's future design.
 - [Choose the local stack and deployment topology](issues/09-choose-the-local-stack-and-deployment-topology.md) — Run native launchd-supervised Node/React/Fastify and collection processes over PostgreSQL, Drizzle, and pg-boss, with Tailscale Serve for private remote access, Caddy for pre-login LAN recovery, enforced optimistic commands, and restore-tested daily backups.
+- [Design the one-pass Storefront onboarding workflow](issues/10-design-the-storefront-onboarding-workflow.md) — Use agent-led resumable cases with brokered preflight, browser/network audit, proof-gated shared or bespoke Integrations, shopper-validated stock semantics, isolated recovery, and generated full-input reconciliation.
+- [Define the V1 verification strategy](issues/11-define-the-v1-verification-strategy.md) — Trust V1 through deterministic contracts, a representative actual-Mac rehearsal, and per-Storefront live qualification, joined by commit-keyed evidence and exhaustive closeout reconciliation.
 
 ## Not yet specified
 
-- Media caching and exact database-volume limits remain fog until representative catalog sizes are known; unpinned detailed operational history now has a 30-day default while permanent structured truth is retained.
-- Storefront-specific repair playbooks remain fog until the health model identifies actionable failure classes and diagnostic evidence.
+- The remaining frontier is the tracer-bullet implementation order, proof-gate placement, full-rollout start, and execution handoff in [Decide the V1 implementation sequence and handoff](issues/12-decide-the-v1-implementation-sequence.md). Media-cache quota and disk high-water values are deliberately measured and set by its first 100,000-Offer representative-load slice rather than guessed from the Seed List.
 
 ## Out of scope
 
@@ -57,3 +58,4 @@ The map is complete when nothing material remains undecided before implementatio
 - Broad discovery of retailers unrelated to the supplied Seed Site Records or Storefronts clearly linked from them.
 - Reading or reusing code, databases, or configuration from other projects on this computer.
 - Production implementation and the complete site-by-site audit/Connector rollout; these follow this planning map.
+- Storefront-specific repair playbooks, which are generated during that rollout from concrete Integration evidence and typed failures rather than guessed during architecture planning.

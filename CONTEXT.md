@@ -21,12 +21,24 @@ The reviewed set of verified, distinct Candidate Sites approved to initialize St
 _Avoid_: Raw workbook, seed records
 
 **Storefront**:
-A retailer-controlled commerce destination that exposes its product catalog. A Storefront may use a different host or platform from its Candidate Site, and multiple Candidate Sites may resolve to the same Storefront.
+A retailer-controlled commerce destination that exposes its product catalog. It may use a different host or platform from its Candidate Site; one Candidate Site may resolve to several distinct Storefronts, and several Candidate Sites may resolve to one Storefront.
 _Avoid_: Landing page, physical location page, candidate URL
 
 **Storefront Audit**:
-The one-time human-style review of a Candidate Site that follows redirects and retailer-controlled shop links to its actual Storefront, distinguishes location pages from commerce destinations, determines whether public Jellycat merchandise is present, and records whether the destination is live, dead, or unresolved.
+A one-time browser-assisted review of a Candidate Site that follows redirects and retailer-controlled shop links to its actual Storefront, distinguishes location pages from commerce destinations, and captures sanitized visual and network evidence about its public commerce surface.
 _Avoid_: Catalog monitoring, recurring crawl
+
+**Onboarding Case**:
+A durable, resumable work record that owns one Candidate Site and every distinct Storefront branch found during its initial Storefront Audit through terminal resolution. Multiple Onboarding Cases may resolve to one Storefront, whose Integration and certification work occurs once.
+_Avoid_: Browser session, repeated site audit, Storefront
+
+**Onboarding Preflight**:
+A bounded, read-only preparation for one Storefront Audit that collects local duplicate clues plus public reachability, redirect, sitemap, and commerce-surface evidence. It cannot assign a Candidate resolution, Storefront disposition, Connector Adapter, or Catalog Certification.
+_Avoid_: Storefront Audit, automatic classification, full crawl
+
+**Onboarding Closeout Report**:
+The reproducibly generated final reconciliation of every source Seed Site Record through its Candidate Site and Storefront outcomes, including published Integrations, Adapter work, verification results, and evidence-backed terminal classifications. A completed report contains no hidden unaccounted or Partial Onboarding Case.
+_Avoid_: Rejected list, progress report, hand-written summary
 
 **Storefront Health**:
 The independently evaluated reliability of StockHawk's allowed access to a Storefront for Catalog Discovery and Stock Monitoring, each expressed as `unassessed`, `healthy`, `degraded`, or `blocked`. It does not encode Storefront disposition, Catalog Certification, Offer Stock Status, freshness, or owner scheduling controls.
@@ -284,6 +296,14 @@ _Avoid_: Separate offer copy, variant, deduplicated store listing
 **Stock Status**:
 The availability state displayed by the retailer for an Offer: `in stock`, `out of stock`, `preorder`, or `unknown`. It does not assert that the Offer can be shipped or delivered to the buyer.
 _Avoid_: Purchase eligibility, shipping eligibility, deliverability
+
+**Stock Semantics Validation**:
+Evidence that a Storefront Integration's machine-readable availability signal agrees at the same moment with the public product page for the exact selected variant across the Storefront's observable availability conditions. A contradiction disqualifies the signal; absent trustworthy evidence produces `unknown` rather than a guess.
+_Avoid_: Raw availability boolean, cart test, purchase eligibility
+
+**Stock Semantics Sentinel**:
+A bounded recurring comparison between a Storefront Integration's trusted machine stock signal and contemporaneous public product-page state for a rotating exact-variant sample. A confirmed contradiction suspends that signal and triggers re-audit without rewriting prior trustworthy Stock Status.
+_Avoid_: Full Storefront Audit, every-check browser validation, cart test
 
 **Listing Presence**:
 The separate `active` or `inactive` lifecycle of a Retailer Listing. Positive evidence immediately makes it active or reactivates it. One missing crawl only records suspected disappearance; inactive requires absence from two complete certified Catalog Snapshots plus direct listing-page evidence that the offer disappeared. Inactive listings leave frequent Stock Monitoring and rely on normal catalog change detection and complete discovery for reappearance. They remain historically searchable but are excluded from current in-stock purchasing results. Presence is independent of Stock Status and never deletes the listing.
