@@ -37,6 +37,8 @@ The map is complete when nothing material remains undecided before implementatio
 - [Design the Connector and Catalog Certification seam](issues/04-design-the-connector-and-certification-seam.md) — Use one two-job Connector interface for shared and bespoke Adapters, with centrally governed access, evidence-judged certification, immediate Partial value, isolated failures, and measured costs.
 - [Design catalog persistence and Change Event history](issues/05-design-catalog-persistence-and-change-history.md) — Use normalized durable identities with atomic current/history transitions, certified absence reconciliation, permanent ordered Change Events, 30-day detailed retention, and rebuildable live Search Documents.
 - [Prototype the residential-IP crawl scheduler](issues/06-prototype-the-residential-ip-scheduler.md) — Use an HTTP-first hybrid Network-Limited Scheduler with adaptive shared-IP and Storefront pacing, fair resumable work, and an isolated browser-context pool that expands only for proven browser-required backlog.
+- [Define Storefront Health and remediation](issues/07-define-storefront-health-and-remediation.md) — Keep access, catalog coverage/freshness, stock-answer coverage/freshness, and lifecycle truth independent; preserve useful stale data while prioritizing restock impact, safe automatic recovery, and actionable diagnostics.
+- [Prototype the search and Health Page experience](issues/08-prototype-search-and-health-experience.md) — Use the dense Compact-ledger interaction for Search and Health while treating the prototype's visual styling as disposable pending the owner's future design.
 
 ## Not yet specified
 

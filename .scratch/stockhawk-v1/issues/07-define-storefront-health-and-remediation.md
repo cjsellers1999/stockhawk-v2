@@ -2,7 +2,7 @@
 
 Type: grilling
 Label: wayfinder:grilling
-Status: claimed
+Status: resolved
 Triage: ready-for-human
 Blocked by: 04, 05
 
@@ -56,3 +56,13 @@ Which independent health, coverage, and freshness states must StockHawk maintain
 - **Decision — remediation controls are idempotent:** Repeated `Retry`, `Run discovery`, or `Re-audit` actions never create duplicate work or bypass pacing. They merge targets and intent into the existing Storefront job and display its current state and earliest broker-safe run time. This applies across repeated clicks, page refreshes, and application restarts.
 - **UI requirement — correlated Health timeline:** Each Storefront drill-down presents a chronological timeline of representative success, failure, throttle, backoff, health transition, Integration change, and remediation evidence rather than only its latest label. Verbose diagnostics follow the accepted rolling 30-day retention window; compact reasoned transitions and causal envelopes remain permanent under the persistence policy.
 - **Decision — derived Healthy view is strict but non-authoritative:** An active Storefront appears in Healthy only when catalog and stock access are healthy, catalog coverage is currently certified and fresh, Stock Monitoring coverage is complete for eligible active Offers, and all applicable freshness obligations are met. The view is derived from those facts rather than stored as one health state. Optional presentation data, especially a missing product image, never affects health, certification, presence, classification, or stock.
+
+## Answer
+
+StockHawk keeps Storefront truth independent instead of storing one ambiguous health flag: Catalog Discovery access, Stock Monitoring access, catalog coverage and freshness, exact stock-answer coverage, status-specific freshness compliance, Listing Presence, Storefront disposition, and Candidate resolution each retain their own evidence-driven state. A derived Attention Severity and Healthy view support sorting and filtering without becoming authoritative state.
+
+Access uses `unassessed`, `healthy`, `degraded`, and strictly evidenced `blocked` independently for catalog and stock work. Ordinary degradation requires three representative non-throttle job failures spanning two expected cadences; structural failures degrade immediately, while rate limits affect safe capacity rather than access truth. Recovery requires representative success. Blocked, Dead, Dormant, and Non-Store outcomes have conservative evidence requirements and bounded rechecks.
+
+Active out-of-stock Offers target 15-minute restock detection; in-stock and preorder Offers target 60-minute verification; new unknowns target 15-minute recovery. Safe residential-IP pacing always wins, overdue work coalesces, inactive listings leave frequent stock monitoring, and partial or stale data remains searchable with explicit age and coverage warnings. Catalog change signals run hourly for active Storefronts with daily complete discovery; Dormant Storefronts use daily cheap signals when available plus weekly complete discovery.
+
+The Health Page shows every Storefront, buying-impact ordering, independent health facts, exact coverage and freshness scores, throughput and backlog trends, collection gaps, correlated 30-day diagnostics, permanent compact transitions, and idempotent safe remediation. Auto-recovering work is distinguished from Repair Required. Material delay also produces a concise Search-page warning. Optional product images never affect any health decision.
