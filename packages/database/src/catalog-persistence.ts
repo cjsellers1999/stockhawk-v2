@@ -263,7 +263,7 @@ export const createCatalogPersistence = (
         );
       }
 
-      first(
+      const lockedListing = first(
         await transaction
           .select()
           .from(retailerListing)
@@ -324,7 +324,7 @@ export const createCatalogPersistence = (
           .where(
             eq(currentListingState.retailerListingId, persistedListing.id),
           );
-        if (persistedListing.listingPresence === "inactive") {
+        if (lockedListing.listingPresence === "inactive") {
           first(
             await transaction
               .update(retailerListing)

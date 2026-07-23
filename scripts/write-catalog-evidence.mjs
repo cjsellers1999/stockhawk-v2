@@ -68,7 +68,7 @@ const evidence = {
       "current-state observation consistency",
       "current-listing immutable observation consistency",
       "populated current-listing state migration and atomic rejection",
-      "inactive-to-active listing reappearance with causal event",
+      "row-lock-safe inactive-to-active listing reappearance with causal event",
       "causal event uniqueness",
       "required Change Event rollback",
       "typed cross-batch Change Event causality",

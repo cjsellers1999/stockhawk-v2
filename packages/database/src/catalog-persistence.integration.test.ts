@@ -51,6 +51,30 @@ const waitForLockWaiters = async (
   await poll(0);
 };
 
+const waitForRetailerListingLockWaiter = async (
+  client: ReturnType<typeof postgres>,
+) => {
+  const poll = async (attempt: number): Promise<void> => {
+    const [result] = await client<{ waiting: number }[]>`
+      select count(*)::integer as waiting
+      from pg_stat_activity
+      where datname = current_database()
+        and wait_event_type = 'Lock'
+        and position('from "retailer_listing"' in query) > 0
+        and position('for update' in lower(query)) > 0
+    `;
+    if ((result?.waiting ?? 0) >= 1) {
+      return;
+    }
+    if (attempt === 199) {
+      throw new Error("Expected a Retailer Listing row-lock waiter");
+    }
+    await setTimeout(10);
+    await poll(attempt + 1);
+  };
+  await poll(0);
+};
+
 const command = {
   batchIdentity: "batch_synthetic_001",
   catalogMatchIdentity: "mat_synthetic_001",
@@ -874,6 +898,96 @@ describe("catalog Persistence Boundary", () => {
       `;
       await catalogDatabase.rebuildSearchDocuments();
       await sqlClient.end();
+    }
+  });
+
+  it("decides reappearance from Listing Presence read under the row lock", async () => {
+    const catalogDatabase = getDatabase();
+    const baseCommand = commandForListing("reappearance_lock");
+    const initialCommand = {
+      ...baseCommand,
+      listing: {
+        ...baseCommand.listing,
+        purchaseUrl: "https://liltulips.com/products/reappearance-lock-dragon",
+        rawTitle: "Reappearance Lock Dragon — Medium",
+      },
+    } satisfies CommitObservationBatchCommand;
+    const reappearanceCommand = nextObservation({
+      prior: initialCommand,
+      suffix: "reappearance_lock_newer",
+      observedAt: "2026-07-22T20:05:00.000Z",
+      observationOrder: 2,
+      status: "in_stock",
+    });
+    const lockClient = postgres(testUrl.toString(), { max: 1 });
+    const observerClient = postgres(testUrl.toString(), { max: 1 });
+    let concurrentCommit:
+      ReturnType<typeof catalogDatabase.commitObservationBatch> | undefined;
+
+    await catalogDatabase.commitObservationBatch(initialCommand);
+
+    try {
+      await lockClient.begin(async (transaction) => {
+        await transaction`
+          select id
+          from retailer_listing
+          where stockhawk_identity = ${initialCommand.listing.identity}
+          for update
+        `;
+        concurrentCommit =
+          catalogDatabase.commitObservationBatch(reappearanceCommand);
+        await waitForRetailerListingLockWaiter(observerClient);
+        await transaction`
+          update retailer_listing
+          set listing_presence = 'inactive'
+          where stockhawk_identity = ${initialCommand.listing.identity}
+        `;
+      });
+
+      await expect(concurrentCommit).resolves.toEqual({
+        batchIdentity: reappearanceCommand.batchIdentity,
+        outcome: "committed",
+      });
+      await expect(
+        catalogDatabase.searchOffers({
+          freshness: "all",
+          match: "all",
+          q: [initialCommand.listing.rawTitle],
+          stock: "all",
+          view: "flat",
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              listingIdentity: initialCommand.listing.identity,
+              listingPresence: "active",
+            }),
+          ],
+          total: 1,
+        }),
+      );
+      await expect(
+        catalogDatabase.readChangeEvents({
+          listingIdentity: initialCommand.listing.identity,
+        }),
+      ).resolves.toContainEqual(
+        expect.objectContaining({
+          eventType: "listing_reappeared",
+          newValue: "active",
+          previousValue: "inactive",
+        }),
+      );
+    } finally {
+      await concurrentCommit?.catch(() => undefined);
+      await observerClient`
+        update retailer_listing
+        set listing_presence = 'active'
+        where stockhawk_identity = ${initialCommand.listing.identity}
+      `;
+      await catalogDatabase.rebuildSearchDocuments();
+      await lockClient.end();
+      await observerClient.end();
     }
   });
 
