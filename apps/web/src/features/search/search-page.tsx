@@ -6,7 +6,7 @@ import {
 import { Badge } from "@stockhawk/ui/badge";
 import { Button } from "@stockhawk/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import { PackageSearch } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
@@ -14,13 +14,14 @@ import { OfferTable } from "./components/offer-table/offer-table";
 import { offersQueryOptions } from "./offers.query";
 
 const noOffers: Offer[] = [];
+const routeApi = getRouteApi("/");
 
 const offerCountLabel = (count: number) =>
   `${count.toLocaleString("en-US")} ${count === 1 ? "offer" : "offers"}`;
 
 export const SearchPage = () => {
-  const searchQuery = useSearch({ from: "/" });
-  const navigate = useNavigate({ from: "/" });
+  const searchQuery = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [searchError, setSearchError] = useState<string>();
   const offersQuery = useQuery(offersQueryOptions(searchQuery));
@@ -39,7 +40,10 @@ export const SearchPage = () => {
       return false;
     }
     setSearchError(undefined);
-    void navigate({ replace: true, search: nextQuery.data });
+    void navigate({
+      replace: true,
+      search: (previous) => ({ ...previous, ...patch }),
+    });
     return true;
   };
 
@@ -71,7 +75,7 @@ export const SearchPage = () => {
     <section aria-labelledby="search-title">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" id="search-title">
+          <h1 className="text-heading-1" id="search-title">
             Search offers
           </h1>
           <p className="mt-1 text-muted-foreground">
@@ -96,7 +100,7 @@ export const SearchPage = () => {
           />
           {searchQuery.q.map((term) => (
             <span
-              className="inline-flex items-center gap-1.25 rounded-sm bg-secondary px-1.75 py-0.75 text-xs whitespace-nowrap"
+              className="inline-flex items-center gap-1.25 rounded-sm bg-secondary px-1.75 py-0.75 text-caption whitespace-nowrap"
               key={term}
             >
               {term}
@@ -138,7 +142,7 @@ export const SearchPage = () => {
         >
           <Button
             aria-pressed={searchQuery.view === "flat"}
-            className={`h-7 rounded-sm border-0 px-2.5 text-xs font-semibold ${searchQuery.view === "flat" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
+            className={`h-7 rounded-sm border-0 px-2.5 text-label ${searchQuery.view === "flat" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
             onClick={() => commitSearch({ view: "flat" })}
             type="button"
             variant="ghost"
@@ -147,7 +151,7 @@ export const SearchPage = () => {
           </Button>
           <Button
             aria-pressed={searchQuery.view === "storefront"}
-            className={`h-7 rounded-sm border-0 px-2.5 text-xs font-semibold ${searchQuery.view === "storefront" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
+            className={`h-7 rounded-sm border-0 px-2.5 text-label ${searchQuery.view === "storefront" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
             onClick={() => commitSearch({ view: "storefront" })}
             type="button"
             variant="ghost"
@@ -158,7 +162,7 @@ export const SearchPage = () => {
       </form>
       {searchError === undefined ? null : (
         <p
-          className="mb-3 text-sm text-danger"
+          className="mb-3 text-body text-danger"
           id="offer-search-error"
           role="alert"
         >
@@ -169,7 +173,7 @@ export const SearchPage = () => {
       <div className="mb-4 flex items-center gap-2 max-sm:flex-col max-sm:items-stretch">
         <select
           aria-label="Stock status"
-          className="h-8.5 rounded-control border border-input bg-background py-0 pr-7 pl-2.5 text-xs"
+          className="h-8.5 rounded-sm border border-input bg-background py-0 pr-7 pl-2.5 text-caption"
           onChange={(event) =>
             commitSearch({
               stock: offerSearchQuerySchema.shape.stock.parse(
@@ -187,7 +191,7 @@ export const SearchPage = () => {
         </select>
         <select
           aria-label="Freshness"
-          className="h-8.5 rounded-control border border-input bg-background py-0 pr-7 pl-2.5 text-xs"
+          className="h-8.5 rounded-sm border border-input bg-background py-0 pr-7 pl-2.5 text-caption"
           onChange={(event) =>
             commitSearch({
               freshness: offerSearchQuerySchema.shape.freshness.parse(
@@ -201,7 +205,7 @@ export const SearchPage = () => {
           <option value="fresh">Fresh</option>
           <option value="stale">Stale</option>
         </select>
-        <span className="ml-auto text-xs text-muted-foreground max-sm:ml-0">
+        <span className="ml-auto text-caption text-muted-foreground max-sm:ml-0">
           {total.toLocaleString("en-US")} {total === 1 ? "result" : "results"}
           {" · freshest first"}
         </span>
@@ -214,11 +218,12 @@ export const SearchPage = () => {
           loading={offersQuery.isPending}
           view={searchQuery.view}
         />
-        <div className="flex min-h-13.5 items-center justify-between gap-3 border-t border-border px-3 py-2.5 text-xs text-muted-foreground">
+        <div className="flex min-h-13.5 items-center justify-between gap-3 border-t border-border px-3 py-2.5 text-caption text-muted-foreground">
           <span>
             Showing {offers.length.toLocaleString("en-US")} of{" "}
             {total.toLocaleString("en-US")} distinct offers
           </span>
+          {/* Ticket 2 returns every matching row; cursor controls are reserved by the locked design for the later pagination ticket. */}
           <nav aria-label="Pagination" className="flex gap-1">
             <Button
               aria-label="Previous page"

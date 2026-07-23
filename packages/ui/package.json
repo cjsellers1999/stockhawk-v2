@@ -55,7 +55,8 @@
     "./thumbnail": {
       "types": "./src/thumbnail.tsx",
       "default": "./src/thumbnail.tsx"
-    }
+    },
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "lint": "oxlint --type-aware --deny-warnings src",

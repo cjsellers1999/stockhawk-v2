@@ -530,7 +530,10 @@ export const createCatalogPersistence = (
       await transaction.delete(searchDocument);
       await transaction
         .insert(searchDocument)
-        .select(transaction.select().from(searchDocumentSource));
+        .select(transaction.select().from(searchDocumentSource))
+        .onConflictDoNothing({
+          target: searchDocument.retailerListingId,
+        });
       const countResult = first(
         await transaction
           .select({ count: sql<number>`count(*)::integer` })

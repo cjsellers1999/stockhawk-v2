@@ -71,7 +71,7 @@ export const OfferTable = ({
           <TableRow className="hover:bg-transparent" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
               <TableHead
-                className="h-auto px-3 py-2.75 text-2xs font-ui-strong text-muted-foreground"
+                className="h-auto px-3 py-2.75 text-label text-muted-foreground"
                 key={header.id}
               >
                 {header.isPlaceholder ? null : (
@@ -99,7 +99,7 @@ export const OfferTable = ({
             <Fragment key={key}>
               <TableRow className="bg-muted hover:bg-muted">
                 <TableCell
-                  className="px-3 py-2.25 font-ui-strong"
+                  className="px-3 py-2.25 text-label"
                   colSpan={offerTableColumns.length}
                 >
                   {group.label}{" "}

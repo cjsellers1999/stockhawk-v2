@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StockHawk schema as a story</title>
+    <link rel="stylesheet" href="../assets/course.css" />
+    <script src="../assets/quiz.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Lesson 0001 · 8 minutes</p>
+      <h1>The schema is a story, not a pile of SQL.</h1>
+      <p class="lede">
+        Your first design skill is not memorizing columns. It is recognizing the
+        job a table performs.
+      </p>
+
+      <div class="callout">
+        <strong>The whole story:</strong> StockHawk knows identities, records
+        evidence-backed history, points at the latest facts, and copies those
+        facts into a fast search shape.
+      </div>
+
+      <h2>Six roles hold the entire schema</h2>
+      <div class="role-grid">
+        <article class="role identity">
+          <strong>1. Identity</strong>
+          <p><code>storefront</code>, <code>product</code>, <code>retailer_listing</code></p>
+          <p class="small">Stable nouns: who or what is this?</p>
+        </article>
+        <article class="role intake">
+          <strong>2. Intake + proof</strong>
+          <p><code>observation_batch</code>, <code>source_evidence_artifact</code></p>
+          <p class="small">Where did this import and its evidence come from?</p>
+        </article>
+        <article class="role history">
+          <strong>3. History</strong>
+          <p><code>retailer_listing_observation</code>, <code>stock_observation</code>, <code>catalog_match</code>, <code>change_event</code></p>
+          <p class="small">What did we know or decide over time?</p>
+        </article>
+        <article class="role current">
+          <strong>4. Current pointers</strong>
+          <p><code>current_listing_state</code>, <code>current_stock_state</code></p>
+          <p class="small">Which historical fact counts as “now”?</p>
+        </article>
+        <article class="role read">
+          <strong>5. Search copy</strong>
+          <p><code>search_document</code> and the <code>search_document_source</code> view</p>
+          <p class="small">What shape makes the UI query easy and fast?</p>
+        </article>
+        <article class="role ops">
+          <strong>6. Operations</strong>
+          <p><code>service_heartbeat</code></p>
+          <p class="small">Is each backend service alive?</p>
+        </article>
+      </div>
+
+      <h2>Follow one retailer listing</h2>
+      <pre class="journey">STORE + PRODUCT are stable identities
+      │
+      ├── STORE has many RETAILER_LISTINGS
+      │                    │
+IMPORT BATCH ──────────────┼── LISTING_OBSERVATION  (title, URL, image, presence history)
+EVIDENCE ──────────────────┼── STOCK_OBSERVATION    (stock history)
+      │                    │
+      │                    ├── CURRENT_LISTING_STATE ─┐
+      │                    └── CURRENT_STOCK_STATE ────┤
+      │                                               │
+      └── CATALOG_MATCH: LISTING → PRODUCT ────────────┤
+                                                      ▼
+                                      SEARCH_DOCUMENT_SOURCE view
+                                                      │
+                                                      ▼
+                                          SEARCH_DOCUMENT copy
+                                                      │
+                                                      ▼
+                                                Offer search UI
+
+CHANGE_EVENT points back to the batch + observations that caused each important change.</pre>
+
+      <p>
+        The center of the story is <code>retailer_listing</code>: one product
+        page on one storefront. Most changing facts attach to it. A
+        <code>catalog_match</code> says which canonical product that page
+        represents.
+      </p>
+
+      <h2>The design rule to steal</h2>
+      <p>
+        Never overwrite history merely to answer “what is true now?”
+        StockHawk stores observations as history, then uses tiny current-state
+        tables as pointers. Search gets a separate denormalized copy.
+      </p>
+      <p class="small">
+        “Denormalized” means deliberately repeating selected facts in one
+        read-friendly row. The source remains the normalized tables.
+      </p>
+
+      <h2>Retrieval check</h2>
+      <div class="quiz-grid">
+        <section class="quiz" data-quiz>
+          <strong>Which role answers “what is stock now?”</strong>
+          <div class="quiz-options">
+            <button data-correct="true" data-success="Correct — it points to the winning historical fact." data-retry="Try again: this asks for now, not every past fact.">Latest stock state</button>
+            <button data-success="" data-retry="That stores the timeline. Which role selects the latest fact?">Stock event ledger</button>
+            <button data-success="" data-retry="That is optimized for reading after current state is known.">Search result copy</button>
+          </div>
+          <p data-feedback aria-live="polite"></p>
+        </section>
+        <section class="quiz" data-quiz>
+          <strong>What sits at the center of changing retailer facts?</strong>
+          <div class="quiz-options">
+            <button data-correct="true" data-success="Correct — observations and current pointers attach to the listing." data-retry="">Listing record</button>
+            <button data-success="" data-retry="A product may match many retailer pages; go one level closer to the store.">Product record</button>
+            <button data-success="" data-retry="A batch groups one import run, but it does not own a listing across time.">Batch grouping</button>
+          </div>
+          <p data-feedback aria-live="polite"></p>
+        </section>
+        <section class="quiz" data-quiz>
+          <strong>Which role should preserve facts instead of overwriting them?</strong>
+          <div class="quiz-options">
+            <button data-correct="true" data-success="Correct — observations form an append-only memory." data-retry="">History archive</button>
+            <button data-success="" data-retry="This selects a winner from history; it does not preserve the full timeline.">Current pointer</button>
+            <button data-success="" data-retry="This is a read-friendly copy derived from other tables.">Search shortcut</button>
+          </div>
+          <p data-feedback aria-live="polite"></p>
+        </section>
+      </div>
+
+      <div class="next">
+        <strong>Your tangible win:</strong> before designing any new table, name
+        its role: identity, intake, history, current pointer, read model, or
+        operations.
+        <p>
+          Next, open the
+          <a href="../reference/stockhawk-schema-map.html">complete printable table map</a>.
+          Ask me about anything that feels fuzzy.
+        </p>
+        <p class="small">
+          Primary reading:
+          <a href="https://www.postgresql.org/docs/current/ddl-constraints.html">PostgreSQL constraints</a>.
+          Repository source:
+          <a href="../packages/database/src/schema.ts">StockHawk schema</a>.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

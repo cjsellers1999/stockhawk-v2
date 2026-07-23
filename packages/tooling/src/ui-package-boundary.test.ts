@@ -51,9 +51,10 @@ describe("UI package boundary", () => {
     const exportKeys = decodeExportKeys(
       await readFile(join(repositoryRoot, "packages/ui/package.json"), "utf8"),
     );
-    const expectedExports = uiFiles
-      .map((file) => `./${basename(file, extname(file))}`)
-      .toSorted();
+    const expectedExports = [
+      ...uiFiles.map((file) => `./${basename(file, extname(file))}`),
+      "./styles.css",
+    ].toSorted();
 
     expect(exportKeys.toSorted()).toEqual(expectedExports);
     expect(sources.join("\n")).not.toMatch(

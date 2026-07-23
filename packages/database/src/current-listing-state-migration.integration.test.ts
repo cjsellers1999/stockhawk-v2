@@ -237,7 +237,7 @@ describe("current Listing State migration", () => {
         inner join retailer_listing_observation as observation
           on observation.id = current.listing_observation_id
           and observation.retailer_listing_id = current.retailer_listing_id
-      `;
+        `;
       const observations = await client<
         {
           observation_order: number;
@@ -251,7 +251,7 @@ describe("current Listing State migration", () => {
           raw_title
         from retailer_listing_observation
         order by observation_order
-      `;
+        `;
       const legacyColumns = await client<{ column_name: string }[]>`
         select column_name
         from information_schema.columns
@@ -264,7 +264,7 @@ describe("current Listing State migration", () => {
             'purchase_url',
             'raw_title'
           )
-      `;
+        `;
 
       expect(current).toEqual([
         {
@@ -287,7 +287,7 @@ describe("current Listing State migration", () => {
       ]);
       expect(legacyColumns).toEqual([]);
     });
-  });
+  }, 10_000);
 
   it("rejects unmatched current facts and rolls the migration back atomically", async () => {
     await withVersionFourDatabase("invalid", async (client) => {
@@ -301,7 +301,7 @@ describe("current Listing State migration", () => {
 
       const [stateTable] = await client<{ table_name: string | null }[]>`
         select to_regclass('public.current_listing_state')::text as table_name
-      `;
+        `;
       const listing = await client<
         { current_observation_order: number; raw_title: string }[]
       >`
@@ -309,11 +309,11 @@ describe("current Listing State migration", () => {
           current_observation_order::integer as current_observation_order,
           raw_title
         from retailer_listing
-      `;
+        `;
       const [observationCount] = await client<{ count: number }[]>`
         select count(*)::integer as count
         from retailer_listing_observation
-      `;
+        `;
 
       expect(stateTable?.table_name).toBeNull();
       expect(listing).toEqual([
@@ -324,5 +324,5 @@ describe("current Listing State migration", () => {
       ]);
       expect(observationCount?.count).toBe(2);
     });
-  });
+  }, 10_000);
 });

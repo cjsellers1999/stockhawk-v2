@@ -436,6 +436,13 @@ export const searchDocument = pgTable(
     variant: text("variant").notNull(),
   },
   (table) => [
+    index("search_document_product_id_idx").on(table.productId),
+    index("search_document_storefront_id_idx").on(table.storefrontId),
+    index("search_document_offer_freshness_idx")
+      .on(table.lastCheckedAt.desc(), table.retailerListingId)
+      .where(
+        sql`${table.classification} = 'offer' and ${table.matchStatus} = 'confirmed' and ${table.listingPresence} = 'active'`,
+      ),
     check(
       "search_document_classification_check",
       sql`${table.classification} = 'offer'`,

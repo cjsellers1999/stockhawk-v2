@@ -33,6 +33,13 @@ const searchResult = {
   total: 1,
 };
 
+const requestUrl = (input: Parameters<typeof fetch>[0]) => {
+  if (typeof input === "string") {
+    return input;
+  }
+  return input instanceof URL ? input.href : input.url;
+};
+
 const renderSearchPage = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -56,16 +63,11 @@ afterEach(() => {
 describe("Offer search table", () => {
   it("renders the authoritative Offer hierarchy and exact Purchase Handoff", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
-      const requestUrl =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.href
-            : input.url;
+      const url = requestUrl(input);
       return Promise.resolve(
         new Response(
           JSON.stringify(
-            requestUrl.startsWith("/api/offers")
+            url.startsWith("/api/offers")
               ? searchResult
               : { api: "ready", database: "ready", worker: "ready" },
           ),
@@ -120,13 +122,30 @@ describe("Offer search table", () => {
       "Sky Dragon{Enter}",
     );
     await user.selectOptions(screen.getByLabelText("Stock status"), "in_stock");
-    await user.click(screen.getByRole("button", { name: "By Storefront" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/offers?q=Sky+Dragon&stock=in_stock&view=storefront",
+        "/api/offers?q=Sky+Dragon&stock=in_stock",
       );
     });
+    const offerRequestCount = fetchMock.mock.calls.filter(([input]) =>
+      requestUrl(input).startsWith("/api/offers"),
+    ).length;
+
+    await user.click(screen.getByRole("button", { name: "By Storefront" }));
+
+    await waitFor(() => {
+      expect(router.state.location.search).toEqual({
+        q: ["Sky Dragon"],
+        stock: "in_stock",
+        view: "storefront",
+      });
+    });
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        requestUrl(input).startsWith("/api/offers"),
+      ),
+    ).toHaveLength(offerRequestCount);
     expect(router.state.location.search).toEqual({
       q: ["Sky Dragon"],
       stock: "in_stock",

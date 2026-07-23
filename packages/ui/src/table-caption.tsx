@@ -7,7 +7,7 @@ export const TableCaption = ({
   ...props
 }: ComponentProps<"caption">) => (
   <caption
-    className={cn("mt-4 text-sm text-muted-foreground", className)}
+    className={cn("mt-4 text-body text-muted-foreground", className)}
     data-slot="table-caption"
     {...props}
   />

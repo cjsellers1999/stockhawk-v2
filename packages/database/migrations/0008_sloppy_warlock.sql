@@ -1,0 +1,3 @@
+CREATE INDEX "search_document_product_id_idx" ON "search_document" USING btree ("product_id");--> statement-breakpoint
+CREATE INDEX "search_document_storefront_id_idx" ON "search_document" USING btree ("storefront_id");--> statement-breakpoint
+CREATE INDEX "search_document_offer_freshness_idx" ON "search_document" USING btree ("last_checked_at" DESC NULLS LAST,"retailer_listing_id") WHERE "search_document"."classification" = 'offer' and "search_document"."match_status" = 'confirmed' and "search_document"."listing_presence" = 'active';

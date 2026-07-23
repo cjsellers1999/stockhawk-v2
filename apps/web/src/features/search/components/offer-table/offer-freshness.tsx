@@ -40,14 +40,16 @@ export const OfferFreshness = ({ offer }: { offer: Offer }) => {
   const stale = ageMilliseconds > targetMinutes * 60_000;
 
   return (
-    <div className={`text-xs whitespace-nowrap ${stale ? "text-warning" : ""}`}>
+    <div
+      className={`text-caption whitespace-nowrap ${stale ? "text-warning" : ""}`}
+    >
       <time
         dateTime={offer.lastCheckedAt}
         title={checkedAtFormatter.format(checkedAt)}
       >
         {ageLabel(ageMinutes)}
       </time>
-      <span className="block text-2xs text-muted-foreground">
+      <span className="block text-caption text-muted-foreground">
         {stale
           ? "Overdue · prior status retained"
           : `Target ${targetMinutes} min`}

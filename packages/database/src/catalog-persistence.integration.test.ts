@@ -1048,6 +1048,88 @@ describe("catalog Persistence Boundary", () => {
     }
   });
 
+  it("rebuilds safely when a new listing commits between delete and insert", async () => {
+    const catalogDatabase = getDatabase();
+    const baseCommand = commandForListing("concurrent_rebuild");
+    const concurrentCommand = {
+      ...baseCommand,
+      listing: {
+        ...baseCommand.listing,
+        rawTitle: "Concurrent Rebuild Dragon — Medium",
+      },
+    } satisfies CommitObservationBatchCommand;
+    const blocker = postgres(testUrl.toString(), { max: 1 });
+    const observer = postgres(testUrl.toString(), { max: 1 });
+    const advisoryLockKey = 7_220_228;
+    let advisoryLockReleased = false;
+    let concurrentCommit:
+      ReturnType<typeof catalogDatabase.commitObservationBatch> | undefined;
+    let rebuild:
+      ReturnType<typeof catalogDatabase.rebuildSearchDocuments> | undefined;
+
+    await observer.unsafe(`
+      create function test_wait_after_search_document_delete()
+      returns trigger
+      language plpgsql
+      as $$
+      begin
+        perform pg_advisory_xact_lock(${advisoryLockKey});
+        return old;
+      end
+      $$;
+      create trigger test_wait_after_search_document_delete
+      after delete on search_document
+      for each row
+      execute function test_wait_after_search_document_delete();
+    `);
+    await blocker`select pg_advisory_lock(${advisoryLockKey})`;
+
+    try {
+      rebuild = catalogDatabase.rebuildSearchDocuments();
+      await waitForLockWaiters(observer, 1);
+      concurrentCommit =
+        catalogDatabase.commitObservationBatch(concurrentCommand);
+      await expect(concurrentCommit).resolves.toEqual({
+        batchIdentity: concurrentCommand.batchIdentity,
+        outcome: "committed",
+      });
+
+      await blocker`select pg_advisory_unlock(${advisoryLockKey})`;
+      advisoryLockReleased = true;
+
+      await expect(rebuild).resolves.toBeGreaterThan(0);
+      await expect(
+        catalogDatabase.searchOffers({
+          freshness: "all",
+          q: [concurrentCommand.listing.rawTitle],
+          stock: "all",
+          view: "flat",
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              listingIdentity: concurrentCommand.listing.identity,
+            }),
+          ],
+          total: 1,
+        }),
+      );
+    } finally {
+      if (!advisoryLockReleased) {
+        await blocker`select pg_advisory_unlock(${advisoryLockKey})`;
+      }
+      await concurrentCommit?.catch(() => undefined);
+      await rebuild?.catch(() => undefined);
+      await observer.unsafe(`
+        drop trigger if exists test_wait_after_search_document_delete on search_document;
+        drop function if exists test_wait_after_search_document_delete();
+      `);
+      await blocker.end();
+      await observer.end();
+    }
+  });
+
   it("rebuilds equivalent Search Documents from authoritative state", async () => {
     const catalogDatabase = getDatabase();
     const beforeRebuild = await catalogDatabase.searchOffers();

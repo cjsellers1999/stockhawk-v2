@@ -15,15 +15,7 @@ export const ThemeMenu = ({ dark, onThemeChange }: ThemeMenuProps) => {
 
   return (
     <Menu.Root onOpenChange={setOpen} open={open}>
-      <Menu.Trigger
-        render={
-          <Button
-            aria-label={label}
-            onClick={() => setOpen(true)}
-            variant="ghost"
-          />
-        }
-      >
+      <Menu.Trigger render={<Button aria-label={label} variant="ghost" />}>
         {dark ? (
           <Sun aria-hidden="true" size={16} />
         ) : (
@@ -38,7 +30,7 @@ export const ThemeMenu = ({ dark, onThemeChange }: ThemeMenuProps) => {
         >
           <Menu.Popup className="min-w-32 rounded-md border border-border bg-card p-1 text-card-foreground shadow-sm focus:outline-none">
             <Menu.Item
-              className="cursor-default rounded-sm px-2 py-1.5 text-sm outline-none data-highlighted:bg-accent"
+              className="cursor-default rounded-sm px-2 py-1.5 text-body outline-none data-highlighted:bg-accent"
               onClick={() => onThemeChange(!dark)}
             >
               {label}

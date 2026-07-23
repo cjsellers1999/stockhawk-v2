@@ -1,11 +1,13 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
 
 const execute = promisify(execFile);
+const repositoryRoot = resolve(process.cwd(), "../..");
+const uiSourceDirectory = resolve(repositoryRoot, "packages/ui/src");
 const webSourceDirectory = resolve(process.cwd(), "../../apps/web/src");
 
 const listStylesheets = async (directory: string): Promise<string[]> => {
@@ -20,6 +22,20 @@ const listStylesheets = async (directory: string): Promise<string[]> => {
     }),
   );
   return stylesheets.flat();
+};
+
+const listFrontendSources = async (directory: string): Promise<string[]> => {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const sources = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return listFrontendSources(path);
+      }
+      return /\.(?:ts|tsx)$/.test(path) ? [path] : [];
+    }),
+  );
+  return sources.flat();
 };
 
 const lintSource = async (source: string) => {
@@ -55,14 +71,68 @@ const lint = async (className: string) => {
 };
 
 describe("Tailwind policy", () => {
-  it("allows only the Tailwind entry stylesheet", async () => {
-    const stylesheets = await listStylesheets(webSourceDirectory);
+  it("allows only the UI theme and web Tailwind entrypoint stylesheets", async () => {
+    const [uiStylesheets, webStylesheets] = await Promise.all([
+      listStylesheets(uiSourceDirectory),
+      listStylesheets(webSourceDirectory),
+    ]);
 
     expect(
-      stylesheets
+      uiStylesheets
+        .map((stylesheet) => relative(uiSourceDirectory, stylesheet))
+        .toSorted(),
+    ).toEqual(["styles.css"]);
+    expect(
+      webStylesheets
         .map((stylesheet) => relative(webSourceDirectory, stylesheet))
         .toSorted(),
     ).toEqual(["styles.css"]);
+  });
+
+  it("keeps theme declarations in the UI package", async () => {
+    const webStyles = await readFile(
+      join(webSourceDirectory, "styles.css"),
+      "utf8",
+    );
+
+    expect(webStyles).toContain('@import "@stockhawk/ui/styles.css";');
+    expect(webStyles).not.toMatch(
+      /@theme|:root|--breakpoint-|--color-|--radius-|--text-/,
+    );
+  });
+
+  it("owns typography and breakpoints in the UI theme", async () => {
+    const uiStyles = await readFile(
+      join(uiSourceDirectory, "styles.css"),
+      "utf8",
+    );
+
+    expect(uiStyles).toMatch(/--breakpoint-sm:\s*40rem/);
+    expect(uiStyles).toMatch(/--breakpoint-md:\s*48rem/);
+    expect(uiStyles).toMatch(/--breakpoint-lg:\s*64rem/);
+    expect(uiStyles).toMatch(/--breakpoint-xl:\s*80rem/);
+    expect(uiStyles).toMatch(/--breakpoint-2xl:\s*96rem/);
+    expect(uiStyles).toContain("@utility text-display");
+    expect(uiStyles).toContain("@utility text-heading-1");
+    expect(uiStyles).toContain("@utility text-body");
+    expect(uiStyles).toContain("@utility text-label");
+    expect(uiStyles).toContain("@utility text-caption");
+  });
+
+  it("uses semantic typography classes in frontend components", async () => {
+    const sourcePaths = (
+      await Promise.all([
+        listFrontendSources(uiSourceDirectory),
+        listFrontendSources(webSourceDirectory),
+      ])
+    ).flat();
+    const sources = await Promise.all(
+      sourcePaths.map(async (path) => readFile(path, "utf8")),
+    );
+
+    expect(sources.join("\n")).not.toMatch(
+      /(?:^|[\s"'`])(?:[a-z-]+:)*(?:font-(?:black|bold|extralight|extrabold|light|medium|normal|semibold|thin)|leading-[a-z0-9.-]+|text-(?:2xs|xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl))(?=$|[\s"'`])/m,
+    );
   });
 
   it("rejects component stylesheet imports", async () => {

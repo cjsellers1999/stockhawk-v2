@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { validateOfferSearch } from "./offer-search";
+import { offerRouteSearchSchema } from "./offer-search";
 
 describe("Offer route search validation", () => {
   it("preserves independently valid fields when another field is malformed", () => {
     expect(
-      validateOfferSearch({
+      offerRouteSearchSchema.parse({
         q: "Sky Dragon",
         stock: "invented",
         unsupported: true,

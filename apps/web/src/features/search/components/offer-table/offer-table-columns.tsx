@@ -27,10 +27,10 @@ export const offerTableColumns = columnHelper.columns([
             imageUrl={offer.imageUrl}
           />
           <div className="min-w-0">
-            <div className="leading-tight font-ui-strong whitespace-normal">
+            <div className="text-heading-6 whitespace-normal">
               {offer.rawTitle}
             </div>
-            <div className="mt-0.75 text-2xs whitespace-normal text-muted-foreground">
+            <div className="mt-0.75 text-caption whitespace-normal text-muted-foreground">
               {secondaryLabel}
             </div>
           </div>
@@ -42,8 +42,8 @@ export const offerTableColumns = columnHelper.columns([
   columnHelper.accessor("storefrontName", {
     cell: ({ row }) => (
       <div className="min-w-36.25">
-        <div className="font-ui-label">{row.original.storefrontName}</div>
-        <div className="text-2xs text-muted-foreground">
+        <div className="text-heading-6">{row.original.storefrontName}</div>
+        <div className="text-caption text-muted-foreground">
           {row.original.storefrontHostname}
         </div>
       </div>
@@ -75,7 +75,7 @@ export const offerTableColumns = columnHelper.columns([
           : "View";
       return (
         <a
-          className="inline-flex h-8 items-center justify-center gap-1.75 rounded-control border border-input bg-background px-2.75 text-xs font-semibold shadow-sm transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="inline-flex h-8 items-center justify-center gap-1.75 rounded-sm border border-input bg-background px-2.75 text-label shadow-sm transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
           href={offer.purchaseUrl}
           rel="noopener noreferrer"
           target="_blank"

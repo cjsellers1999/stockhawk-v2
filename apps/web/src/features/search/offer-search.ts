@@ -1,50 +1,16 @@
-import {
-  offerSearchQuerySchema,
-  type OfferSearchQuery,
-} from "@stockhawk/contracts";
+import { offerSearchQuerySchema } from "@stockhawk/contracts";
 
 export const defaultOfferSearchQuery = offerSearchQuerySchema.parse({});
 
-type SearchFieldSchema<Output> = {
-  safeParse: (
-    value: unknown,
-  ) => { data: Output; success: true } | { success: false };
-};
-
-const parseSearchField = <Output>({
-  fallback,
-  schema,
-  value,
-}: {
-  fallback: Output;
-  schema: SearchFieldSchema<Output>;
-  value: unknown;
-}): Output => {
-  const result = schema.safeParse(value);
-  return result.success ? result.data : fallback;
-};
-
-export const validateOfferSearch = (
-  search: Record<string, unknown>,
-): OfferSearchQuery => ({
-  freshness: parseSearchField({
-    fallback: defaultOfferSearchQuery.freshness,
-    schema: offerSearchQuerySchema.shape.freshness,
-    value: search.freshness,
-  }),
-  q: parseSearchField({
-    fallback: defaultOfferSearchQuery.q,
-    schema: offerSearchQuerySchema.shape.q,
-    value: search.q,
-  }),
-  stock: parseSearchField({
-    fallback: defaultOfferSearchQuery.stock,
-    schema: offerSearchQuerySchema.shape.stock,
-    value: search.stock,
-  }),
-  view: parseSearchField({
-    fallback: defaultOfferSearchQuery.view,
-    schema: offerSearchQuerySchema.shape.view,
-    value: search.view,
-  }),
-});
+export const offerRouteSearchSchema = offerSearchQuerySchema
+  .extend({
+    freshness: offerSearchQuerySchema.shape.freshness.catch(
+      defaultOfferSearchQuery.freshness,
+    ),
+    q: offerSearchQuerySchema.shape.q.catch(defaultOfferSearchQuery.q),
+    stock: offerSearchQuerySchema.shape.stock.catch(
+      defaultOfferSearchQuery.stock,
+    ),
+    view: offerSearchQuerySchema.shape.view.catch(defaultOfferSearchQuery.view),
+  })
+  .strip();

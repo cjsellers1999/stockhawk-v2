@@ -11,7 +11,7 @@ import { App } from "./app";
 import { HealthPage } from "./features/health/health-page";
 import {
   defaultOfferSearchQuery,
-  validateOfferSearch,
+  offerRouteSearchSchema,
 } from "./features/search/offer-search";
 
 const rootRoute = createRootRoute({
@@ -31,7 +31,7 @@ const searchRoute = createRoute({
   search: {
     middlewares: [stripSearchParams(defaultOfferSearchQuery)],
   },
-  validateSearch: validateOfferSearch,
+  validateSearch: offerRouteSearchSchema,
 });
 
 const healthRoute = createRoute({

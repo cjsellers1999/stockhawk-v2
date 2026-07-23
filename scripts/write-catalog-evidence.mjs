@@ -26,6 +26,9 @@ const webManifest = JSON.parse(
 const databaseManifest = JSON.parse(
   await readFile(resolve(workspace, "packages/database/package.json"), "utf8"),
 );
+const uiManifest = JSON.parse(
+  await readFile(resolve(workspace, "packages/ui/package.json"), "utf8"),
+);
 
 const evidence = {
   commit,
@@ -52,10 +55,16 @@ const evidence = {
     listingReappearance: await sha256(
       "packages/database/migrations/0006_record_listing_reappearance.sql",
     ),
+    observationOrderUniqueness: await sha256(
+      "packages/database/migrations/0007_quiet_the_hunter.sql",
+    ),
+    searchDocumentIndexes: await sha256(
+      "packages/database/migrations/0008_sloppy_warlock.sql",
+    ),
   },
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0006_record_listing_reappearance",
+  schemaVersion: "0008_sloppy_warlock",
   testMetadata: {
     database: [
       "atomic rollback",
@@ -93,7 +102,7 @@ const evidence = {
     "DATABASE_URL=postgres://127.0.0.1:5432/stockhawk pnpm test:integration",
   ],
   versions: {
-    baseUi: webManifest.dependencies["@base-ui/react"],
+    baseUi: uiManifest.dependencies["@base-ui/react"],
     drizzleKit: databaseManifest.devDependencies["drizzle-kit"],
     drizzleOrm: databaseManifest.dependencies["drizzle-orm"],
     query: webManifest.dependencies["@tanstack/react-query"],
