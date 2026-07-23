@@ -1,16 +1,20 @@
 import { z } from "zod";
 
 const identitySchema = z.string().trim().min(1).max(128);
+const normalizedHttpOrigin = (value: string) =>
+  /^https?:\/\/[^/]+/.exec(value)?.[0] ?? "";
 const httpUrlSchema = z
-  .url()
+  .url({ normalize: true, protocol: /^https?$/ })
   .refine(
-    (value) => value.startsWith("http://") || value.startsWith("https://"),
-    "Expected an HTTP(S) URL",
+    (value) => !/^https?:\/\/[^/]*@/i.test(value),
+    "URL credentials are not allowed",
   );
-const originSchema = httpUrlSchema.regex(
-  /^https?:\/\/[^/?#]+$/,
-  "Expected an origin without a path, query, or fragment",
-);
+const originSchema = httpUrlSchema
+  .refine(
+    (value) => value === `${normalizedHttpOrigin(value)}/`,
+    "Expected an origin without a path, query, or fragment",
+  )
+  .transform(normalizedHttpOrigin);
 
 export const stockStatusSchema = z.enum([
   "in_stock",
@@ -72,7 +76,26 @@ export const commitObservationBatchCommandSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((command, context) => {
+    const storefrontOrigin = command.storefront.origin;
+    if (
+      normalizedHttpOrigin(command.listing.purchaseUrl) !== storefrontOrigin
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Purchase URL must use the Storefront origin",
+        path: ["listing", "purchaseUrl"],
+      });
+    }
+    if (normalizedHttpOrigin(command.evidence.sourceUrl) !== storefrontOrigin) {
+      context.addIssue({
+        code: "custom",
+        message: "Evidence source URL must use the Storefront origin",
+        path: ["evidence", "sourceUrl"],
+      });
+    }
+  });
 
 export type CommitObservationBatchCommand = z.infer<
   typeof commitObservationBatchCommandSchema
