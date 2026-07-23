@@ -2,20 +2,44 @@ import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import {
+  createCatalogPersistence,
+  type CatalogPersistence,
+} from "./catalog-persistence.js";
+import {
+  createChangeEventReader,
+  type ChangeEventReader,
+} from "./change-event-reader.js";
+import { createOfferSearch, type OfferSearch } from "./offer-search.js";
 import { schema, serviceHeartbeat } from "./schema.js";
+import {
+  createStockObservationReader,
+  type StockObservationReader,
+} from "./stock-observation-reader.js";
 
-export type Database = {
-  check: () => Promise<boolean>;
-  close: () => Promise<void>;
-  markWorkerReady: () => Promise<void>;
-  workerIsReady: () => Promise<boolean>;
-};
+export type Database = CatalogPersistence &
+  ChangeEventReader &
+  OfferSearch &
+  StockObservationReader & {
+    check: () => Promise<boolean>;
+    close: () => Promise<void>;
+    markWorkerReady: () => Promise<void>;
+    workerIsReady: () => Promise<boolean>;
+  };
 
 export const createDatabase = (url: string): Database => {
   const client = postgres(url, { max: 5 });
   const database = drizzle({ client, schema });
+  const catalogPersistence = createCatalogPersistence(database);
+  const changeEventReader = createChangeEventReader(database);
+  const offerSearch = createOfferSearch(database);
+  const stockObservationReader = createStockObservationReader(database);
 
   return {
+    ...catalogPersistence,
+    ...changeEventReader,
+    ...offerSearch,
+    ...stockObservationReader,
     check: async () => {
       try {
         await database.execute(sql`select 1`);

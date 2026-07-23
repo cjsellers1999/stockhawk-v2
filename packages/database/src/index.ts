@@ -1,5 +1,19 @@
+export type {
+  CatalogPersistence,
+  CommitObservationBatchResult,
+} from "./catalog-persistence.js";
+export type {
+  ChangeEventReader,
+  ChangeEventRecord,
+} from "./change-event-reader.js";
 export { decodeDatabaseConfig } from "./config.js";
 export type { DatabaseConfig } from "./config.js";
 export { createDatabase } from "./database.js";
 export type { Database } from "./database.js";
-export { schema, serviceHeartbeat } from "./schema.js";
+export { migrateDatabase } from "./migration.js";
+export type { OfferSearch } from "./offer-search.js";
+export type {
+  StockObservationReader,
+  StockObservationRecord,
+} from "./stock-observation-reader.js";
+export { syntheticOfferObservationBatch } from "./synthetic-offer.js";

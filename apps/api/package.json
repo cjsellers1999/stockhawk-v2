@@ -9,7 +9,7 @@
     "lint": "oxlint --type-aware --deny-warnings src",
     "lint:check": "pnpm lint",
     "start": "node dist/main.js",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'src/**/*.integration.test.ts'",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc -p tsconfig.json"
   },

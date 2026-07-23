@@ -1,13 +1,18 @@
 import { existsSync } from "node:fs";
 
 import fastifyStatic from "@fastify/static";
-import { readinessSchema } from "@stockhawk/contracts";
+import {
+  offerSearchResponseSchema,
+  readinessSchema,
+  type OfferSearchResponse,
+} from "@stockhawk/contracts";
 import Fastify from "fastify";
 
 type ReadinessCheck = { check: () => Promise<boolean> };
+type OfferSearch = { searchOffers: () => Promise<OfferSearchResponse> };
 
 type AppDependencies = {
-  database: ReadinessCheck;
+  database: OfferSearch & ReadinessCheck;
   webDistPath: string | undefined;
   worker: ReadinessCheck;
 };
@@ -46,6 +51,13 @@ export const buildApp = ({
     });
     const statusCode = databaseReady && workerReady ? 200 : 503;
     return reply.code(statusCode).send(readiness);
+  });
+
+  app.get("/api/offers", async (_request, reply) => {
+    const result = offerSearchResponseSchema.parse(
+      await database.searchOffers(),
+    );
+    return reply.send(result);
   });
 
   if (webDistPath !== undefined && existsSync(webDistPath)) {

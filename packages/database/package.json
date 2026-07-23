@@ -15,11 +15,13 @@
     "lint": "oxlint --type-aware --deny-warnings src",
     "lint:check": "pnpm lint",
     "migrate": "tsx src/migrate.ts",
+    "seed:synthetic": "tsx src/seed-synthetic.ts",
     "test": "vitest run --exclude 'src/**/*.integration.test.ts'",
     "test:integration": "vitest run --config vitest.integration.config.ts --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@stockhawk/contracts": "workspace:*",
     "drizzle-orm": "0.45.2",
     "postgres": "3.4.9",
     "zod": "4.4.3"

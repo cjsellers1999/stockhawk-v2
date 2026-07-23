@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { OfferSearchResponse } from "@stockhawk/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildApp, isBrowserNavigationRequest } from "./app.js";
@@ -11,6 +12,9 @@ describe("readiness endpoint", () => {
     const app = buildApp({
       database: {
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
+        searchOffers: vi
+          .fn<() => Promise<OfferSearchResponse>>()
+          .mockResolvedValue({ items: [], total: 0 }),
       },
       webDistPath: undefined,
       worker: {
@@ -29,6 +33,43 @@ describe("readiness endpoint", () => {
     await app.close();
   });
 
+  it("returns searchable Offers from the authoritative read model", async () => {
+    const searchResult = {
+      items: [
+        {
+          canonicalProductName: "Sky Dragon",
+          imageUrl: null,
+          lastCheckedAt: "2026-07-22T18:00:00.000Z",
+          listingIdentity: "lst_synthetic_sky_dragon",
+          matchStatus: "confirmed" as const,
+          purchaseUrl: "https://liltulips.com/products/sky-dragon-medium",
+          rawTitle: "Sky Dragon — Medium",
+          stockStatus: "in_stock" as const,
+          storefrontHostname: "liltulips.com",
+          storefrontName: "Lil’ Tulips",
+          variant: "Medium",
+        },
+      ],
+      total: 1,
+    };
+    const app = buildApp({
+      database: {
+        check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
+        searchOffers: vi
+          .fn<() => Promise<typeof searchResult>>()
+          .mockResolvedValue(searchResult),
+      },
+      webDistPath: undefined,
+      worker: { check: vi.fn<() => Promise<boolean>>() },
+    });
+
+    const response = await app.inject({ method: "GET", url: "/api/offers" });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(searchResult);
+    await app.close();
+  });
+
   it("uses the browser fallback only for HTML navigation", async () => {
     const webDistPath = await mkdtemp(join(tmpdir(), "stockhawk-web-"));
     await writeFile(
@@ -36,7 +77,12 @@ describe("readiness endpoint", () => {
       "<title>StockHawk</title>",
     );
     const app = buildApp({
-      database: { check: vi.fn<() => Promise<boolean>>() },
+      database: {
+        check: vi.fn<() => Promise<boolean>>(),
+        searchOffers: vi
+          .fn<() => Promise<OfferSearchResponse>>()
+          .mockResolvedValue({ items: [], total: 0 }),
+      },
       webDistPath,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
