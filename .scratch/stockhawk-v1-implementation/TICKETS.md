@@ -55,11 +55,11 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 ## Import Seed provenance and resume one Onboarding Case
 
-**What to build:** The immutable workbook becomes a reviewed Seed List whose source rows reconcile to Candidate Sites, and one durable Onboarding Case can pause and resume without losing work.
+**What to build:** Import the immutable `data/seed/stockhawk-sites.xlsx` workbook (worksheet `Sites`, 2,712 source records, SHA-256 `0c4d846c6547e4d36d49de7c4aff250b63ec2cec9b39bfa166aa648586f53bbf`) into a reviewed Seed List whose source rows reconcile to Candidate Sites, and let one durable Onboarding Case pause and resume without losing work.
 
 **Blocked by:** Persist and search one synthetic Offer; Secure one optimistic owner command.
 
-- [ ] Verify the source workbook hash and preserve every Seed Site Record unchanged as provenance.
+- [ ] Verify `data/seed/stockhawk-sites.xlsx` against its pinned SHA-256 and preserve every row from its `Sites` worksheet unchanged as Seed Site Record provenance.
 - [ ] Apply the approved endpoint-equivalence normalization while retaining audit-gated ambiguity.
 - [ ] Create deterministic Candidate Site identities and exact source-to-Candidate reconciliation totals.
 - [ ] Persist one Onboarding Case with stage, evidence, attempts, dependencies, next action, and terminal/nonterminal state.
