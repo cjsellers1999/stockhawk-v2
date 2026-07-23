@@ -1,0 +1,46 @@
+{
+  "commit": "b35c4af1e197ce83d648bd67d2dfd67349a6512a",
+  "lockfileSha256": "e9ae3fc5aa941cd95a5bbf0dd12cd9e438eeaa8ba3aaeec54bab5c4bc0aeb388",
+  "migrationSha256": {
+    "ownerCommand": "d53cec098ed176fca4e8d18879b4faaa5965bb861c86d812261f0899b713574b",
+    "pgBoss": "d72406c8c37aba0d39b6cc47b938d8a9fd1dfe1ba58390e97708c2d5dc812cca",
+    "refreshCheckpoint": "d7844f8cc5c706dad7272fd0019d08d273a867626699ddddcabdf1fc899e823e"
+  },
+  "node": "v24.11.1",
+  "packageManager": "pnpm@11.13.0",
+  "schemaVersion": "0004_health_refresh_checkpoint",
+  "testMetadata": {
+    "boundaries": [
+      "password hashing and throttled server sessions",
+      "exact-origin, Fetch-Metadata, and double-submit CSRF",
+      "atomic idempotent receipt and pg-boss wakeup",
+      "terminal job failure and transactional health-refresh checkpoint",
+      "optimistic refresh, duplicate clicks, overlap, and exact rollback",
+      "static mutation ownership and command registration",
+      "built Chromium login, queued intent, worker reconciliation, and axe"
+    ],
+    "runners": [
+      "vitest@4.1.10",
+      "playwright@1.61.1"
+    ]
+  },
+  "verificationCommands": [
+    "pnpm format:check",
+    "pnpm lint:check",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm build",
+    "pnpm validate:react-doctor",
+    "pnpm validate:shadscan",
+    "DATABASE_URL=postgres://127.0.0.1:5432/stockhawk pnpm test:integration",
+    "DATABASE_URL=postgres://127.0.0.1:5432/postgres pnpm test:e2e"
+  ],
+  "versions": {
+    "axePlaywright": "4.12.1",
+    "drizzleOrm": "0.45.2",
+    "pgBoss": "12.26.2",
+    "playwright": "1.61.1",
+    "query": "5.101.4",
+    "typescript": "7.0.2"
+  }
+}
