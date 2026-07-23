@@ -1,9 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { App } from "./app.js";
+import { createAppRouter } from "./router";
+
+vi.mock("./features/search/search-page.js", async (importOriginal) => {
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  return importOriginal();
+});
 
 const first = <ElementType,>(elements: ElementType[]): ElementType => {
   const element = elements[0];
@@ -13,15 +19,19 @@ const first = <ElementType,>(elements: ElementType[]): ElementType => {
   return element;
 };
 
-const renderApp = () => {
+const renderApp = (initialEntry = "/") => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const router = createAppRouter(
+    createMemoryHistory({ initialEntries: [initialEntry] }),
+  );
+  const view = render(
     <QueryClientProvider client={queryClient}>
-      <App />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { ...view, router };
 };
 
 afterEach(() => {
@@ -30,12 +40,21 @@ afterEach(() => {
 });
 
 describe("StockHawk shell", () => {
-  it("opens Search by default and navigates to Health", async () => {
-    window.history.replaceState({}, "", "/");
+  it("keeps route-level feedback visible while Search loads", async () => {
     renderApp();
 
+    expect(await screen.findByText("Loading page…")).toBeInTheDocument();
+    expect(screen.getByText("StockHawk")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Search offers" }),
+      await screen.findByRole("heading", { name: "Search offers" }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens Search by default and navigates to Health", async () => {
+    const { router } = renderApp();
+
+    expect(
+      await screen.findByRole("heading", { name: "Search offers" }),
     ).toBeInTheDocument();
 
     await userEvent.click(
@@ -43,17 +62,29 @@ describe("StockHawk shell", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Health" })).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/health");
+    expect(router.state.location.pathname).toBe("/health");
   });
 
   it("switches between the locked light and dark themes", async () => {
     const { container } = renderApp();
 
-    const themeControls = screen.getAllByRole("button", {
+    const themeControls = await screen.findAllByRole("button", {
       name: "Use dark theme",
     });
-    await userEvent.click(first(themeControls.slice(1)));
-    const darkMenuItem = screen.getByRole("menuitem", {
+    const themeControl = first(themeControls.slice(1));
+
+    await userEvent.click(themeControl);
+    expect(
+      await screen.findByRole("menuitem", { name: "Use dark theme" }),
+    ).toBeInTheDocument();
+    await userEvent.click(themeControl);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("menuitem", { name: "Use dark theme" }),
+      ).not.toBeInTheDocument();
+    });
+    await userEvent.click(themeControl);
+    const darkMenuItem = await screen.findByRole("menuitem", {
       name: "Use dark theme",
     });
 
@@ -67,7 +98,7 @@ describe("StockHawk shell", () => {
     await userEvent.click(
       first(screen.getAllByRole("button", { name: "Use light theme" })),
     );
-    const lightMenuItem = screen.getByRole("menuitem", {
+    const lightMenuItem = await screen.findByRole("menuitem", {
       name: "Use light theme",
     });
     await userEvent.keyboard("{ArrowDown}");

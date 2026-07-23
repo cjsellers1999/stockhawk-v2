@@ -1,0 +1,64 @@
+{
+  "commit": "6c332412960a77e00206dcc63559e413d6b51fa0",
+  "designSha256": "1b03f2a6bbe5b0d4cad972901c100057b658c1375540a283f2f90821a85cb23a",
+  "lockfileSha256": "0f97908986e4b6e43d95c5189003e51b94c2827ad29800c1757f05708e615d21",
+  "migrationSha256": {
+    "catalogPersistence": "86fae0165895163a34523cfcb9531ffa2e7bf5adcf0ecb55bfb059b48d88854c",
+    "catalogInvariants": "c213787c85b972237137374b0bada13478acf83e973c9af14db438832f69c6e4",
+    "searchDocumentSource": "a44ac9c67d5a8a6694ffbed0d6794f5b4756b59f3df5cdc3959bf336b9f62080",
+    "batchEventCausality": "e79791c9d0fa618913c12f04b2f7d9f587f33545e9371a0e55833c5f6a44daea",
+    "normalizedListingState": "56e2d665bdbac2854eeea11d36aab9e52c5ae60a1ae21a7d26c5bb733184d6c4",
+    "listingReappearance": "be5449bf67f0e0f9601f329f10cafa0ed9b939f128ad40e26231520c7cd999fa"
+  },
+  "node": "v24.11.1",
+  "packageManager": "pnpm@11.13.0",
+  "schemaVersion": "0006_record_listing_reappearance",
+  "testMetadata": {
+    "database": [
+      "atomic rollback",
+      "idempotent replay",
+      "globally unique Observation Batch identity",
+      "stale observation history",
+      "concurrent out-of-order serialization",
+      "one active catalog match",
+      "evidence-backed catalog match",
+      "current-state observation consistency",
+      "current-listing immutable observation consistency",
+      "populated current-listing state migration and atomic rejection",
+      "row-lock-safe inactive-to-active listing reappearance with causal event",
+      "causal event uniqueness",
+      "required Change Event rollback",
+      "typed cross-batch Change Event causality",
+      "search-document rebuild equivalence"
+    ],
+    "interfaces": [
+      "Fastify Offer API against PostgreSQL",
+      "server-backed match-any Offer search and filters",
+      "live Offer freshness refresh",
+      "durable Storefront identity grouping",
+      "typed TanStack Router navigation and URL search state",
+      "TanStack Table v9 Search composition"
+    ],
+    "runner": "vitest@4.1.10"
+  },
+  "verificationCommands": [
+    "pnpm format:check",
+    "pnpm lint:check",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm build",
+    "DATABASE_URL=postgres://127.0.0.1:5432/stockhawk pnpm test:integration"
+  ],
+  "versions": {
+    "baseUi": "1.6.0",
+    "drizzleKit": "0.31.10",
+    "drizzleOrm": "0.45.2",
+    "query": "5.101.4",
+    "router": "1.170.18",
+    "shadcn": "4.14.0",
+    "table": "9.0.0-beta.55",
+    "tailwind": "4.3.3",
+    "turbo": "2.10.6",
+    "typescript": "7.0.2"
+  }
+}

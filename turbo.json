@@ -33,8 +33,13 @@
       "cache": false,
       "env": ["DATABASE_URL"]
     },
+    "seed:synthetic": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
     "test:integration": {
       "cache": false,
+      "dependsOn": ["^build"],
       "env": ["DATABASE_URL"]
     },
     "test:e2e": {

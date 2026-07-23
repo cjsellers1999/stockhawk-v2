@@ -67,7 +67,7 @@
   },
   "overrides": [
     {
-      "files": ["apps/web/src/**/*.{ts,tsx}"],
+      "files": ["apps/web/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"],
       "jsPlugins": [
         {
           "name": "tailwindcss",
@@ -75,6 +75,12 @@
         }
       ],
       "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": ["**/*.css", "*.js", "**/*.js"]
+          }
+        ],
         "tailwindcss/classnames-order": "error",
         "tailwindcss/enforces-negative-arbitrary-values": "error",
         "tailwindcss/enforces-shorthand": "error",
@@ -86,7 +92,18 @@
       }
     },
     {
-      "files": ["apps/web/src/lib/cn.ts"],
+      "files": ["apps/web/src/main.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": ["*.js", "**/*.js"]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/ui/src/cn.ts"],
       "rules": {
         "tailwindcss/classnames-order": "off",
         "tailwindcss/enforces-negative-arbitrary-values": "off",

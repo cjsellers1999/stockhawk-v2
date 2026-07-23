@@ -1,0 +1,51 @@
+{
+  "commit": "5a8f8c4a873f293c7e8d7aa90cb9624caccfb03f",
+  "designSha256": "1b03f2a6bbe5b0d4cad972901c100057b658c1375540a283f2f90821a85cb23a",
+  "lockfileSha256": "ff687ee1715aa979b6e7afc6e3d71a16e8f353bc514c2d9215649f917b8cfa55",
+  "migrationSha256": {
+    "catalogPersistence": "86fae0165895163a34523cfcb9531ffa2e7bf5adcf0ecb55bfb059b48d88854c",
+    "catalogInvariants": "c213787c85b972237137374b0bada13478acf83e973c9af14db438832f69c6e4",
+    "searchDocumentSource": "a44ac9c67d5a8a6694ffbed0d6794f5b4756b59f3df5cdc3959bf336b9f62080"
+  },
+  "node": "v24.11.1",
+  "packageManager": "pnpm@11.13.0",
+  "schemaVersion": "0003_search_document_source",
+  "testMetadata": {
+    "database": [
+      "atomic rollback",
+      "idempotent replay",
+      "stale observation history",
+      "concurrent out-of-order serialization",
+      "one active catalog match",
+      "evidence-backed catalog match",
+      "current-state observation consistency",
+      "causal event uniqueness",
+      "search-document rebuild equivalence"
+    ],
+    "interfaces": [
+      "Fastify Offer API against PostgreSQL",
+      "server-backed match-any Offer search and filters",
+      "TanStack Table v9 Search composition"
+    ],
+    "runner": "vitest@4.1.10"
+  },
+  "verificationCommands": [
+    "pnpm format:check",
+    "pnpm lint:check",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm build",
+    "DATABASE_URL=postgres://127.0.0.1:5432/stockhawk pnpm test:integration"
+  ],
+  "versions": {
+    "baseUi": "1.6.0",
+    "drizzleKit": "0.31.10",
+    "drizzleOrm": "0.45.2",
+    "query": "5.101.4",
+    "shadcn": "4.14.0",
+    "table": "9.0.0-beta.55",
+    "tailwind": "4.3.3",
+    "turbo": "2.10.6",
+    "typescript": "7.0.2"
+  }
+}

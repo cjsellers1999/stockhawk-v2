@@ -1,5 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "types": ["vitest/globals"] },
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  },
   "include": ["src/**/*.ts"]
 }

@@ -1,6 +1,5 @@
+import { Button } from "@stockhawk/ui/button";
 import { RefreshCw } from "lucide-react";
-
-import { Button } from "../../components/ui/button.js";
 
 const summaries = [
   ["Monitoring coverage", "Unassessed"],
@@ -13,7 +12,7 @@ export const HealthPage = () => (
   <section aria-labelledby="health-title">
     <div className="mb-6 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold" id="health-title">
+        <h1 className="text-heading-1" id="health-title">
           Health
         </h1>
         <p className="mt-1 text-muted-foreground">
@@ -32,15 +31,17 @@ export const HealthPage = () => (
           className="rounded-xl border border-border bg-card p-4 shadow-sm"
           key={label}
         >
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="mt-1 text-lg font-semibold">{value}</div>
+          <div className="text-caption text-muted-foreground">{label}</div>
+          <div className="mt-1 text-heading-3">{value}</div>
         </div>
       ))}
     </div>
     <div className="rounded-xl border border-border bg-card shadow-sm">
       <div className="border-b border-border p-4">
-        <h2 className="font-semibold">Storefronts</h2>
-        <p className="text-xs text-muted-foreground">Ordered by owner impact</p>
+        <h2 className="text-heading-4">Storefronts</h2>
+        <p className="text-caption text-muted-foreground">
+          Ordered by owner impact
+        </p>
       </div>
       <p className="p-8 text-center text-muted-foreground">
         No Storefronts onboarded. Access, catalog, monitoring, freshness, and

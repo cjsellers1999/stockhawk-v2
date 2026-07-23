@@ -5,3 +5,15 @@ coverage/
 .env
 .DS_Store
 *.tsbuildinfo
+
+# Local teaching workspace
+/MISSION.md
+/NOTES.md
+/RESOURCES.md
+/assets/
+/learning-records/
+/lessons/
+/reference/
+
+# Generated PR closeout reports
+/.codex/reports/

@@ -1,13 +1,22 @@
 import { existsSync } from "node:fs";
 
 import fastifyStatic from "@fastify/static";
-import { readinessSchema } from "@stockhawk/contracts";
+import {
+  offerSearchQuerySchema,
+  offerSearchResponseSchema,
+  readinessSchema,
+  type OfferSearchQuery,
+  type OfferSearchResponse,
+} from "@stockhawk/contracts";
 import Fastify from "fastify";
 
 type ReadinessCheck = { check: () => Promise<boolean> };
+type OfferSearch = {
+  searchOffers: (query: OfferSearchQuery) => Promise<OfferSearchResponse>;
+};
 
 type AppDependencies = {
-  database: ReadinessCheck;
+  database: OfferSearch & ReadinessCheck;
   webDistPath: string | undefined;
   worker: ReadinessCheck;
 };
@@ -46,6 +55,21 @@ export const buildApp = ({
     });
     const statusCode = databaseReady && workerReady ? 200 : 503;
     return reply.code(statusCode).send(readiness);
+  });
+
+  app.get("/api/offers", async (request, reply) => {
+    const query = offerSearchQuerySchema.safeParse(request.query);
+    if (!query.success) {
+      return reply.code(400).send({
+        error: "Bad Request",
+        message: "Invalid Offer search query",
+        statusCode: 400,
+      });
+    }
+    const result = offerSearchResponseSchema.parse(
+      await database.searchOffers(query.data),
+    );
+    return reply.send(result);
   });
 
   if (webDistPath !== undefined && existsSync(webDistPath)) {

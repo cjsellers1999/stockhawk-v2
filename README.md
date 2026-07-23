@@ -14,6 +14,7 @@ Private, local-first Jellycat catalog and availability application.
 corepack pnpm install --frozen-lockfile
 createdb -h 127.0.0.1 stockhawk
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm migrate
+DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm seed:synthetic
 corepack pnpm build
 ```
 
@@ -24,7 +25,7 @@ DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm --filter @stockha
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm start
 ```
 
-Open `http://127.0.0.1:3100`. `GET /api/readiness` reports API, database, and worker independently.
+Open `http://127.0.0.1:3100`. `GET /api/readiness` reports API, database, and worker independently. `GET /api/offers` reads transactional Search Documents. The synthetic seed is idempotent and exists only to demonstrate the first exact-variant Offer tracer path.
 
 ## Verification
 

@@ -1,3 +1,6 @@
 # Evidence bundles
 
-`pnpm evidence` writes runtime, schema, lockfile, canonical-design, command, version, and test metadata under the current commit SHA. Deterministic release evidence is retained by commit; secrets and retailer response bodies are excluded.
+`pnpm evidence` writes bootstrap metadata. `pnpm evidence:catalog` writes the
+synthetic Offer tracer-path metadata. Both use the current commit SHA. Bundles
+retain deterministic release evidence and exclude secrets and retailer response
+bodies.

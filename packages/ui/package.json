@@ -1,0 +1,84 @@
+{
+  "name": "@stockhawk/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./badge": {
+      "types": "./src/badge.tsx",
+      "default": "./src/badge.tsx"
+    },
+    "./button": {
+      "types": "./src/button.tsx",
+      "default": "./src/button.tsx"
+    },
+    "./cn": {
+      "types": "./src/cn.ts",
+      "default": "./src/cn.ts"
+    },
+    "./table": {
+      "types": "./src/table.tsx",
+      "default": "./src/table.tsx"
+    },
+    "./table-body": {
+      "types": "./src/table-body.tsx",
+      "default": "./src/table-body.tsx"
+    },
+    "./table-caption": {
+      "types": "./src/table-caption.tsx",
+      "default": "./src/table-caption.tsx"
+    },
+    "./table-cell": {
+      "types": "./src/table-cell.tsx",
+      "default": "./src/table-cell.tsx"
+    },
+    "./table-footer": {
+      "types": "./src/table-footer.tsx",
+      "default": "./src/table-footer.tsx"
+    },
+    "./table-head": {
+      "types": "./src/table-head.tsx",
+      "default": "./src/table-head.tsx"
+    },
+    "./table-header": {
+      "types": "./src/table-header.tsx",
+      "default": "./src/table-header.tsx"
+    },
+    "./table-row": {
+      "types": "./src/table-row.tsx",
+      "default": "./src/table-row.tsx"
+    },
+    "./theme-menu": {
+      "types": "./src/theme-menu.tsx",
+      "default": "./src/theme-menu.tsx"
+    },
+    "./thumbnail": {
+      "types": "./src/thumbnail.tsx",
+      "default": "./src/thumbnail.tsx"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "lint": "oxlint --type-aware --deny-warnings src",
+    "lint:check": "pnpm lint",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.6.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.25.0",
+    "tailwind-merge": "3.6.0"
+  },
+  "peerDependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "7.0.2"
+  }
+}
