@@ -21,24 +21,48 @@ corepack pnpm build
 Run the API and worker in separate terminals. The API serves `apps/web/dist` and binds only to loopback.
 
 ```sh
+read -rs STOCKHAWK_ADMIN_PASSWORD
+export STOCKHAWK_ADMIN_PASSWORD
+export ADMIN_PASSWORD_HASH="$(
+  corepack pnpm --filter @stockhawk/api admin:hash-password
+)"
+unset STOCKHAWK_ADMIN_PASSWORD
+
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm --filter @stockhawk/worker start
-DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm start
+DATABASE_URL=postgres://127.0.0.1:5432/stockhawk \
+  APP_ORIGINS=http://127.0.0.1:3100 \
+  SESSION_COOKIE_SECURE=false \
+  corepack pnpm start
 ```
 
-Open `http://127.0.0.1:3100`. `GET /api/readiness` reports API, database, and worker independently. `GET /api/offers` reads transactional Search Documents. The synthetic seed is idempotent and exists only to demonstrate the first exact-variant Offer tracer path.
+Open `http://127.0.0.1:3100` and log in with the password used above. Keep the
+default secure session cookie behind HTTPS; disable it only for direct loopback
+HTTP. `APP_ORIGINS` is the comma-separated allowlist of exact public application
+origins.
+
+`GET /api/readiness` reports API, database, and worker independently.
+Authenticated `GET /api/offers` reads transactional Search Documents. The
+protected Health refresh command reports only queued intent until the worker
+completes its durable receipt. The synthetic seed is idempotent and exists only
+to demonstrate the first exact-variant Offer tracer path.
 
 ## Verification
 
 ```sh
 corepack pnpm verify
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm test:integration
+DATABASE_URL=postgres://127.0.0.1:5432/postgres corepack pnpm test:e2e
 ```
 
 `test:integration` migrates the configured database before running the real
-PostgreSQL suites. The catalog persistence suite creates its own temporary
-database to verify writes, transactions, rollbacks, row locks, and concurrency,
-then drops it after the run. The configured PostgreSQL user must be allowed to
-create databases.
+PostgreSQL suites. Persistence suites create temporary databases to verify
+writes, transactions, rollbacks, queues, row locks, and concurrency, then drop
+them after the run. The configured PostgreSQL user must be allowed to create
+databases.
+
+`test:e2e` builds the application, provisions another temporary database, and
+runs the authenticated owner-command flow plus axe checks through Chromium,
+Fastify, and the worker.
 
 Migrations, real-database integration, browser/live checks, backup/restore,
 evidence, and release tasks are intentionally never cached.
@@ -46,3 +70,8 @@ evidence, and release tasks are intentionally never cached.
 Database schema and queries use exact-pinned Drizzle ORM. `pnpm --filter @stockhawk/database db:generate` regenerates reviewed SQL migrations.
 
 TypeScript is exact-pinned at `7.0.2`. Oxlint owns TypeScript, React, Query, and Tailwind source checks. Strict peers remain enabled; pnpm allows only this exact TypeScript version for the ESLint-compatible Query/Tailwind rule packages whose published peer metadata predates TypeScript 7.
+
+pg-boss is exact-pinned at `12.26.2`, and its schema-37 migration is checked in.
+The bundled Drizzle adapter expects Drizzle 1's result shape, so StockHawk owns a
+narrow adapter for pinned Drizzle `0.45.2`; real-PostgreSQL integration tests
+cover the exact pair without weakening peer checks.

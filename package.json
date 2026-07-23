@@ -11,6 +11,7 @@
     "dev": "turbo run dev --parallel",
     "evidence": "node scripts/write-bootstrap-evidence.mjs",
     "evidence:catalog": "node scripts/write-catalog-evidence.mjs",
+    "evidence:owner-command": "node scripts/write-owner-command-evidence.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
@@ -19,6 +20,7 @@
     "seed:synthetic": "turbo run seed:synthetic --filter=@stockhawk/database",
     "start": "pnpm --filter @stockhawk/api start",
     "test": "turbo run test",
+    "test:e2e": "pnpm build && node scripts/run-owner-command-e2e.mjs",
     "test:integration": "pnpm migrate && turbo run test:integration",
     "typecheck": "turbo run typecheck",
     "validate:react-doctor": "react-doctor . --yes --project @stockhawk/web,@stockhawk/ui --scope full --blocking warning",
@@ -26,6 +28,8 @@
     "verify": "pnpm format:check && pnpm lint:check && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
     "@shadscan/cli": "0.1.1",
     "@tanstack/eslint-plugin-query": "5.101.4",
     "eslint-plugin-react-hooks": "7.1.1",

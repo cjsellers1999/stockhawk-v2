@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppRouter } from "./router";
 import { ThemeProvider } from "./features/shell/theme-provider";
@@ -19,6 +19,35 @@ const first = <ElementType,>(elements: ElementType[]): ElementType => {
   }
   return element;
 };
+
+const requestUrl = (input: Parameters<typeof fetch>[0]) => {
+  if (typeof input === "string") {
+    return input;
+  }
+  return input instanceof URL ? input.href : input.url;
+};
+
+const authenticatedFetch = () =>
+  vi.fn<typeof fetch>().mockImplementation((input) => {
+    const url = requestUrl(input);
+    let body: unknown = { items: [], total: 0 };
+    if (url === "/api/auth/session") {
+      body = {
+        authenticated: true,
+        expiresAt: "2026-07-24T05:00:00.000Z",
+      };
+    } else if (url === "/api/readiness") {
+      body = { api: "ready", database: "ready", worker: "ready" };
+    } else if (url === "/api/owner-commands/refresh-health") {
+      body = { receipt: null };
+    }
+    return Promise.resolve(
+      new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      }),
+    );
+  });
 
 const renderApp = (initialEntry = "/") => {
   const queryClient = new QueryClient({
@@ -37,13 +66,38 @@ const renderApp = (initialEntry = "/") => {
   return { ...view, router };
 };
 
+beforeEach(() => {
+  vi.stubGlobal("fetch", authenticatedFetch());
+});
+
 afterEach(() => {
   cleanup();
   document.documentElement.classList.remove("dark");
+  vi.unstubAllGlobals();
   window.localStorage.clear();
 });
 
 describe("StockHawk shell", () => {
+  it("keeps private data hidden without a server session", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify({ authenticated: false }), {
+          status: 200,
+        }),
+      ),
+    );
+
+    renderApp();
+
+    expect(
+      await screen.findByRole("heading", { name: "Private owner login" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Search" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps route-level feedback visible while Search loads", async () => {
     renderApp();
 

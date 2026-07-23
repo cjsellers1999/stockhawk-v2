@@ -46,9 +46,9 @@ createRoot(rootElement).render(
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <QueryClientProvider client={queryClient}>
           <RouterProvider router={router} />
+          <CommandMenu />
         </QueryClientProvider>
       </ErrorBoundary>
-      <CommandMenu />
       <Toaster position="bottom-right" />
     </ThemeProvider>
   </StrictMode>,

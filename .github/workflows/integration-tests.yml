@@ -40,3 +40,5 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:integration
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

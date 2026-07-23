@@ -9,7 +9,15 @@
     "dev": {
       "cache": false,
       "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "HOST", "PORT", "WEB_DIST_PATH"],
+      "env": [
+        "ADMIN_PASSWORD_HASH",
+        "APP_ORIGINS",
+        "DATABASE_URL",
+        "HOST",
+        "PORT",
+        "SESSION_COOKIE_SECURE",
+        "WEB_DIST_PATH"
+      ],
       "persistent": true
     },
     "lint": {

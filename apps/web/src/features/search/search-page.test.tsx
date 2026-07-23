@@ -33,6 +33,10 @@ const searchResult = {
   ],
   total: 1,
 };
+const authenticatedSession = {
+  authenticated: true,
+  expiresAt: "2026-07-24T05:00:00.000Z",
+};
 
 const requestUrl = (input: Parameters<typeof fetch>[0]) => {
   if (typeof input === "string") {
@@ -68,18 +72,21 @@ describe("Offer search table", () => {
   it("renders the authoritative Offer hierarchy and exact Purchase Handoff", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
       const url = requestUrl(input);
+      let body: unknown = {
+        api: "ready",
+        database: "ready",
+        worker: "ready",
+      };
+      if (url === "/api/auth/session") {
+        body = authenticatedSession;
+      } else if (url.startsWith("/api/offers")) {
+        body = searchResult;
+      }
       return Promise.resolve(
-        new Response(
-          JSON.stringify(
-            url.startsWith("/api/offers")
-              ? searchResult
-              : { api: "ready", database: "ready", worker: "ready" },
-          ),
-          {
-            headers: { "content-type": "application/json" },
-            status: 200,
-          },
-        ),
+        new Response(JSON.stringify(body), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        }),
       );
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -174,11 +181,20 @@ describe("Offer search table", () => {
   it("keeps invalid search terms editable and explains the limit", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn<typeof fetch>().mockResolvedValue(
-        new Response(JSON.stringify(searchResult), {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        }),
+      vi.fn<typeof fetch>().mockImplementation((input) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              requestUrl(input) === "/api/auth/session"
+                ? authenticatedSession
+                : searchResult,
+            ),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          ),
+        ),
       ),
     );
     const { router } = renderSearchPage();

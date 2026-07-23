@@ -3,22 +3,71 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type {
+  HealthRefreshCommand,
   OfferSearchQuery,
   OfferSearchResponse,
+  OwnerCommandReceipt,
 } from "@stockhawk/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildApp, isBrowserNavigationRequest } from "./app.js";
 
+const authenticatedSession = {
+  csrfTokenHash: "b".repeat(64),
+  expiresAt: new Date("2026-07-24T05:00:00.000Z"),
+  id: 1,
+  sessionTokenHash: "a".repeat(64),
+};
+const authenticatedDatabase = () => ({
+  createAdminSession: vi
+    .fn<
+      (
+        input: Omit<typeof authenticatedSession, "id">,
+      ) => Promise<typeof authenticatedSession>
+    >()
+    .mockResolvedValue(authenticatedSession),
+  enqueueOwnerCommand:
+    vi.fn<
+      (input: {
+        command: HealthRefreshCommand;
+        requestedBySessionId: number;
+      }) => Promise<OwnerCommandReceipt>
+    >(),
+  findActiveAdminSession: vi
+    .fn<
+      (input: {
+        now: Date;
+        sessionTokenHash: string;
+      }) => Promise<typeof authenticatedSession | null>
+    >()
+    .mockResolvedValue(authenticatedSession),
+  findLatestOwnerCommand: vi
+    .fn<() => Promise<OwnerCommandReceipt | null>>()
+    .mockResolvedValue(null),
+});
+const security = {
+  allowedOrigins: new Set(["https://stockhawk.test"]),
+  cookieSecure: true,
+  createOpaqueToken: () => "unused",
+  now: () => new Date("2026-07-23T17:00:00.000Z"),
+  passwordVerifier: vi
+    .fn<(password: string) => Promise<boolean>>()
+    .mockResolvedValue(true),
+  sessionTtlMs: 12 * 60 * 60 * 1_000,
+};
+const sessionHeaders = { cookie: "stockhawk_session=test-session" };
+
 describe("readiness endpoint", () => {
   it("reports the API, database, and worker truth independently", async () => {
     const app = buildApp({
       database: {
+        ...authenticatedDatabase(),
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
         searchOffers: vi
           .fn<() => Promise<OfferSearchResponse>>()
           .mockResolvedValue({ items: [], total: 0 }),
       },
+      security,
       webDistPath: undefined,
       worker: {
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -62,14 +111,17 @@ describe("readiness endpoint", () => {
       .mockResolvedValue(searchResult);
     const app = buildApp({
       database: {
+        ...authenticatedDatabase(),
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
         searchOffers,
       },
+      security,
       webDistPath: undefined,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
 
     const response = await app.inject({
+      headers: sessionHeaders,
       method: "GET",
       url: "/api/offers?q=Sky%20Dragon&q=liltulips.com&stock=in_stock&view=storefront",
     });
@@ -91,14 +143,17 @@ describe("readiness endpoint", () => {
       .mockResolvedValue({ items: [], total: 0 });
     const app = buildApp({
       database: {
+        ...authenticatedDatabase(),
         check: vi.fn<() => Promise<boolean>>(),
         searchOffers,
       },
+      security,
       webDistPath: undefined,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
 
     const response = await app.inject({
+      headers: sessionHeaders,
       method: "GET",
       url: "/api/offers?stock=invented",
     });
@@ -116,11 +171,13 @@ describe("readiness endpoint", () => {
     );
     const app = buildApp({
       database: {
+        ...authenticatedDatabase(),
         check: vi.fn<() => Promise<boolean>>(),
         searchOffers: vi
           .fn<() => Promise<OfferSearchResponse>>()
           .mockResolvedValue({ items: [], total: 0 }),
       },
+      security,
       webDistPath,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });

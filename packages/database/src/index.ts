@@ -9,11 +9,13 @@ export type {
 export { decodeDatabaseConfig } from "./config.js";
 export type { DatabaseConfig } from "./config.js";
 export { createDatabase } from "./database.js";
-export type { Database } from "./database.js";
+export type { CreateDatabaseOptions, Database } from "./database.js";
 export { migrateDatabase } from "./migration.js";
 export type { OfferSearch } from "./offer-search.js";
+export type { OwnerCommandPersistence } from "./owner-command-persistence.js";
 export type {
   StockObservationReader,
   StockObservationRecord,
 } from "./stock-observation-reader.js";
 export { syntheticOfferObservationBatch } from "./synthetic-offer.js";
+export type { AdminSessionRecord, AdminSessionStore } from "./admin-session.js";

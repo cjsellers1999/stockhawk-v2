@@ -12,6 +12,7 @@ import {
   timestamp,
   unique,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 const internalIdentity = (name: string) =>
@@ -26,6 +27,135 @@ export const serviceHeartbeat = pgTable("service_heartbeat", {
   }).notNull(),
   serviceName: text("service_name").primaryKey(),
 });
+
+export const adminSession = pgTable(
+  "admin_session",
+  {
+    createdAt: recordedAt("created_at"),
+    csrfTokenHash: text("csrf_token_hash").notNull(),
+    expiresAt: timestamp("expires_at", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
+    id: internalIdentity("id"),
+    sessionTokenHash: text("session_token_hash")
+      .notNull()
+      .unique("admin_session_token_hash_unique"),
+  },
+  (table) => [
+    check(
+      "admin_session_token_hash_check",
+      sql`${table.sessionTokenHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "admin_session_csrf_hash_check",
+      sql`${table.csrfTokenHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "admin_session_expiry_check",
+      sql`${table.expiresAt} > ${table.createdAt}`,
+    ),
+  ],
+);
+
+export const ownerCommandReceipt = pgTable(
+  "owner_command_receipt",
+  {
+    commandFamily: text("command_family").notNull(),
+    commandHash: text("command_hash").notNull(),
+    commandSchemaVersion: integer("command_schema_version").notNull(),
+    completedAt: timestamp("completed_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    failedAt: timestamp("failed_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    id: internalIdentity("id"),
+    idempotencyKey: uuid("idempotency_key")
+      .notNull()
+      .unique("owner_command_receipt_idempotency_key_unique"),
+    jobId: uuid("job_id")
+      .notNull()
+      .unique("owner_command_receipt_job_id_unique"),
+    requestedAt: recordedAt("requested_at"),
+    requestedBySessionId: bigint("requested_by_session_id", {
+      mode: "number",
+    }).notNull(),
+    status: text("status").notNull(),
+    stockhawkIdentity: uuid("stockhawk_identity")
+      .notNull()
+      .unique("owner_command_receipt_stockhawk_identity_unique"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.requestedBySessionId],
+      foreignColumns: [adminSession.id],
+      name: "owner_command_receipt_session_fk",
+    }).onDelete("restrict"),
+    index("owner_command_receipt_session_id_idx").on(
+      table.requestedBySessionId,
+    ),
+    index("owner_command_receipt_family_requested_idx").on(
+      table.commandFamily,
+      table.requestedAt.desc(),
+      table.id.desc(),
+    ),
+    check(
+      "owner_command_receipt_family_check",
+      sql`${table.commandFamily} = 'refresh_health'`,
+    ),
+    check(
+      "owner_command_receipt_command_hash_check",
+      sql`${table.commandHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "owner_command_receipt_schema_version_check",
+      sql`${table.commandSchemaVersion} = 1`,
+    ),
+    check(
+      "owner_command_receipt_status_check",
+      sql`${table.status} in ('queued', 'completed', 'failed')`,
+    ),
+    check(
+      "owner_command_receipt_completion_check",
+      sql`(${table.status} = 'queued' and ${table.completedAt} is null and ${table.failedAt} is null)
+        or (${table.status} = 'completed' and ${table.completedAt} is not null and ${table.failedAt} is null)
+        or (${table.status} = 'failed' and ${table.completedAt} is null and ${table.failedAt} is not null)`,
+    ),
+  ],
+);
+
+export const healthRefreshCheckpoint = pgTable(
+  "health_refresh_checkpoint",
+  {
+    identity: text("identity").primaryKey(),
+    lastReceiptIdentity: uuid("last_receipt_identity")
+      .notNull()
+      .unique("health_refresh_checkpoint_receipt_unique"),
+    refreshCount: bigint("refresh_count", { mode: "number" }).notNull(),
+    refreshedAt: timestamp("refreshed_at", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.lastReceiptIdentity],
+      foreignColumns: [ownerCommandReceipt.stockhawkIdentity],
+      name: "health_refresh_checkpoint_receipt_fk",
+    }).onDelete("restrict"),
+    check(
+      "health_refresh_checkpoint_identity_check",
+      sql`${table.identity} = 'owner'`,
+    ),
+    check(
+      "health_refresh_checkpoint_count_check",
+      sql`${table.refreshCount} > 0`,
+    ),
+  ],
+);
 
 export const storefront = pgTable("storefront", {
   createdAt: recordedAt("created_at"),
@@ -645,11 +775,14 @@ export const searchDocumentSource = pgView("search_document_source", {
 `);
 
 export const schema = {
+  adminSession,
   catalogMatch,
   changeEvent,
   currentListingState,
   currentStockState,
+  healthRefreshCheckpoint,
   observationBatch,
+  ownerCommandReceipt,
   product,
   retailerListing,
   retailerListingObservation,
