@@ -38,7 +38,7 @@ const NavigationLink = ({
 
   return destination === "search" ? (
     <Link
-      activeOptions={{ exact: true }}
+      activeOptions={{ exact: true, includeSearch: false }}
       aria-label={compact ? label : undefined}
       search={defaultOfferSearchQuery}
       to="/"

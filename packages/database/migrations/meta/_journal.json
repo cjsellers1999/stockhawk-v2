@@ -43,6 +43,13 @@
       "when": 1784776562408,
       "tag": "0005_normalize_current_listing_state",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784778009102,
+      "tag": "0006_record_listing_reappearance",
+      "breakpoints": true
     }
   ]
 }

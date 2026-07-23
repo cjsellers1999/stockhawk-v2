@@ -535,7 +535,7 @@ export const changeEvent = pgTable(
     index("change_event_stock_observation_id_idx").on(table.stockObservationId),
     check(
       "change_event_event_type_check",
-      sql`${table.eventType} in ('listing_discovered', 'stock_status_changed')`,
+      sql`${table.eventType} in ('listing_discovered', 'listing_reappeared', 'stock_status_changed')`,
     ),
     check(
       "change_event_payload_check",
@@ -544,6 +544,12 @@ export const changeEvent = pgTable(
         and ${table.listingObservationId} is not null
         and ${table.stockObservationId} is null
         and ${table.previousValue} is null
+        and ${table.newValue} = 'active'
+      ) or (
+        ${table.eventType} = 'listing_reappeared'
+        and ${table.listingObservationId} is not null
+        and ${table.stockObservationId} is null
+        and ${table.previousValue} = 'inactive'
         and ${table.newValue} = 'active'
       ) or (
         ${table.eventType} = 'stock_status_changed'

@@ -10,7 +10,11 @@ const changeEventRecordSchema = z
   .object({
     causalIdempotencyKey: z.string(),
     effectiveAt: z.iso.datetime({ offset: true }),
-    eventType: z.enum(["listing_discovered", "stock_status_changed"]),
+    eventType: z.enum([
+      "listing_discovered",
+      "listing_reappeared",
+      "stock_status_changed",
+    ]),
     newValue: z.string(),
     previousValue: z.string().nullable(),
     streamPosition: z.number().int().positive(),

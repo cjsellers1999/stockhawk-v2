@@ -49,10 +49,13 @@ const evidence = {
     normalizedListingState: await sha256(
       "packages/database/migrations/0005_normalize_current_listing_state.sql",
     ),
+    listingReappearance: await sha256(
+      "packages/database/migrations/0006_record_listing_reappearance.sql",
+    ),
   },
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0005_normalize_current_listing_state",
+  schemaVersion: "0006_record_listing_reappearance",
   testMetadata: {
     database: [
       "atomic rollback",
@@ -64,6 +67,8 @@ const evidence = {
       "evidence-backed catalog match",
       "current-state observation consistency",
       "current-listing immutable observation consistency",
+      "populated current-listing state migration and atomic rejection",
+      "inactive-to-active listing reappearance with causal event",
       "causal event uniqueness",
       "required Change Event rollback",
       "typed cross-batch Change Event causality",

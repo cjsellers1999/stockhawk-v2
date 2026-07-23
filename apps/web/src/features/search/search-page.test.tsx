@@ -141,6 +141,9 @@ describe("Offer search table", () => {
       stock: "in_stock",
       view: "storefront",
     });
+    for (const searchLink of screen.getAllByRole("link", { name: "Search" })) {
+      expect(searchLink).toHaveAttribute("aria-current", "page");
+    }
     expect(
       screen.getByRole("button", { name: "Remove Sky Dragon" }),
     ).toBeInTheDocument();

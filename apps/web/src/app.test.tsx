@@ -2,9 +2,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createAppRouter } from "./router.js";
+
+vi.mock("./features/search/search-page.js", async (importOriginal) => {
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  return importOriginal();
+});
 
 const first = <ElementType,>(elements: ElementType[]): ElementType => {
   const element = elements[0];
@@ -35,6 +40,16 @@ afterEach(() => {
 });
 
 describe("StockHawk shell", () => {
+  it("keeps route-level feedback visible while Search loads", async () => {
+    renderApp();
+
+    expect(await screen.findByText("Loading page…")).toBeInTheDocument();
+    expect(screen.getByText("StockHawk")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Search offers" }),
+    ).toBeInTheDocument();
+  });
+
   it("opens Search by default and navigates to Health", async () => {
     const { router } = renderApp();
 

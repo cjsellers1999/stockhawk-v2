@@ -26,6 +26,8 @@ const searchRoute = createRoute({
   ),
   getParentRoute: () => rootRoute,
   path: "/",
+  pendingComponent: () => <p>Loading page…</p>,
+  pendingMs: 0,
   search: {
     middlewares: [stripSearchParams(defaultOfferSearchQuery)],
   },

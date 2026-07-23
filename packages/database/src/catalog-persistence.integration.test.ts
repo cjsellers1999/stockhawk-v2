@@ -800,6 +800,83 @@ describe("catalog Persistence Boundary", () => {
     }
   });
 
+  it("reactivates a listing from a newer positive observation with a causal event", async () => {
+    const catalogDatabase = getDatabase();
+    const baseCommand = commandForListing("reappearance");
+    const initialCommand = {
+      ...baseCommand,
+      listing: {
+        ...baseCommand.listing,
+        purchaseUrl: "https://liltulips.com/products/reappearance-dragon",
+        rawTitle: "Reappearance Dragon — Medium",
+      },
+    } satisfies CommitObservationBatchCommand;
+    const reappearanceCommand = nextObservation({
+      prior: initialCommand,
+      suffix: "reappearance_newer",
+      observedAt: "2026-07-22T20:00:00.000Z",
+      observationOrder: 2,
+      status: "in_stock",
+    });
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    await catalogDatabase.commitObservationBatch(initialCommand);
+
+    try {
+      await sqlClient`
+        update retailer_listing
+        set listing_presence = 'inactive'
+        where stockhawk_identity = ${initialCommand.listing.identity}
+      `;
+      await catalogDatabase.rebuildSearchDocuments();
+
+      await expect(
+        catalogDatabase.commitObservationBatch(reappearanceCommand),
+      ).resolves.toEqual({
+        batchIdentity: reappearanceCommand.batchIdentity,
+        outcome: "committed",
+      });
+      await expect(
+        catalogDatabase.searchOffers({
+          freshness: "all",
+          match: "all",
+          q: [initialCommand.listing.rawTitle],
+          stock: "all",
+          view: "flat",
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              listingIdentity: initialCommand.listing.identity,
+              listingPresence: "active",
+            }),
+          ],
+          total: 1,
+        }),
+      );
+      await expect(
+        catalogDatabase.readChangeEvents({
+          listingIdentity: initialCommand.listing.identity,
+        }),
+      ).resolves.toContainEqual(
+        expect.objectContaining({
+          eventType: "listing_reappeared",
+          newValue: "active",
+          previousValue: "inactive",
+        }),
+      );
+    } finally {
+      await sqlClient`
+        update retailer_listing
+        set listing_presence = 'active'
+        where stockhawk_identity = ${initialCommand.listing.identity}
+      `;
+      await catalogDatabase.rebuildSearchDocuments();
+      await sqlClient.end();
+    }
+  });
+
   it("rebuilds equivalent Search Documents from authoritative state", async () => {
     const catalogDatabase = getDatabase();
     const beforeRebuild = await catalogDatabase.searchOffers();

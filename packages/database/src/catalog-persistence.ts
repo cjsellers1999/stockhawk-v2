@@ -290,6 +290,7 @@ export const createCatalogPersistence = (
           .returning(),
         "Retailer Listing Observation identity conflict",
       );
+      let listingReappeared = false;
 
       const existingCurrentListingState = (
         await transaction
@@ -323,6 +324,17 @@ export const createCatalogPersistence = (
           .where(
             eq(currentListingState.retailerListingId, persistedListing.id),
           );
+        if (persistedListing.listingPresence === "inactive") {
+          first(
+            await transaction
+              .update(retailerListing)
+              .set({ listingPresence: "active" })
+              .where(eq(retailerListing.id, persistedListing.id))
+              .returning(),
+            "Retailer Listing reactivation failed",
+          );
+          listingReappeared = true;
+        }
       }
 
       const insertedCatalogMatches = await transaction
@@ -431,6 +443,24 @@ export const createCatalogPersistence = (
           listingObservationId: persistedListingObservation.id,
           newValue: "active",
           previousValue: null,
+          productId: persistedProduct.id,
+          retailerListingId: persistedListing.id,
+          schemaVersion: 1,
+          stockObservationId: null,
+          stockhawkIdentity: eventIdentity(causalIdempotencyKey),
+        });
+      }
+
+      if (listingReappeared) {
+        const causalIdempotencyKey = `${command.idempotencyKey}:listing_reappeared`;
+        await transaction.insert(changeEvent).values({
+          batchId: insertedBatch.id,
+          causalIdempotencyKey,
+          effectiveAt: observedAt,
+          eventType: "listing_reappeared",
+          listingObservationId: persistedListingObservation.id,
+          newValue: "active",
+          previousValue: "inactive",
           productId: persistedProduct.id,
           retailerListingId: persistedListing.id,
           schemaVersion: 1,
