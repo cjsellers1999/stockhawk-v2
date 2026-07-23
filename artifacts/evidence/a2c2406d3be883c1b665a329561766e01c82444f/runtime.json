@@ -1,0 +1,30 @@
+{
+  "command": "corepack pnpm verify",
+  "commit": "a2c2406d3be883c1b665a329561766e01c82444f",
+  "designSha256": "1b03f2a6bbe5b0d4cad972901c100057b658c1375540a283f2f90821a85cb23a",
+  "lockfileSha256": "9b95686c6c11e42cbe8cdb36bfa498542b4c3d9c5b4fac9b55045b17665df564",
+  "migrationSha256": "4c176074d5b864fc925986cbc57c28de48736d46db5819418e4d7470e9ff97fa",
+  "node": "v24.11.1",
+  "packageManager": "pnpm@11.13.0",
+  "schemaVersion": "0001_bootstrap",
+  "testMetadata": {
+    "runner": "vitest@4.1.10",
+    "suites": [
+      "contracts",
+      "startup-config",
+      "readiness",
+      "shell",
+      "tooling",
+      "database"
+    ]
+  },
+  "versions": {
+    "baseUi": "1.6.0",
+    "query": "5.101.4",
+    "shadcn": "4.14.0",
+    "table": "9.0.0-beta.55",
+    "tailwind": "4.3.3",
+    "turbo": "2.10.6",
+    "typescript": "6.0.3"
+  }
+}
