@@ -1,0 +1,40 @@
+{
+  "name": "stockhawk",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "evidence": "node scripts/write-bootstrap-evidence.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "lint:check": "turbo run lint:check && eslint . --max-warnings 0",
+    "migrate": "turbo run migrate --filter=@stockhawk/database",
+    "start": "pnpm --filter @stockhawk/api start",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "typecheck": "turbo run typecheck",
+    "verify": "pnpm format:check && pnpm lint:check && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@tanstack/eslint-plugin-query": "5.101.4",
+    "eslint": "10.0.1",
+    "eslint-plugin-tailwindcss": "4.2.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.7.0",
+    "oxlint": "1.75.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "prettier": "3.9.6",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "tailwindcss": "4.3.3",
+    "turbo": "2.10.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.65.0"
+  }
+}

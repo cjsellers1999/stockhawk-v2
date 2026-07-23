@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "jsx-a11y",
+    "vitest",
+    "promise"
+  ],
+  "jsPlugins": [
+    {
+      "name": "query",
+      "specifier": "@tanstack/eslint-plugin-query"
+    },
+    {
+      "name": "react-compiler",
+      "specifier": "eslint-plugin-react-hooks"
+    }
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "no-console": "error",
+    "prefer-const": "error",
+    "query/exhaustive-deps": "error",
+    "query/infinite-query-property-order": "error",
+    "query/mutation-property-order": "error",
+    "query/no-rest-destructuring": "error",
+    "query/no-unstable-deps": "error",
+    "query/no-void-query-fn": "error",
+    "query/prefer-query-options": "error",
+    "query/stable-query-client": "error",
+    "react-compiler/config": "error",
+    "react-compiler/error-boundaries": "error",
+    "react-compiler/exhaustive-deps": "error",
+    "react-compiler/gating": "error",
+    "react-compiler/globals": "error",
+    "react-compiler/immutability": "error",
+    "react-compiler/incompatible-library": "error",
+    "react-compiler/preserve-manual-memoization": "error",
+    "react-compiler/purity": "error",
+    "react-compiler/refs": "error",
+    "react-compiler/rules-of-hooks": "error",
+    "react-compiler/set-state-in-effect": "error",
+    "react-compiler/set-state-in-render": "error",
+    "react-compiler/static-components": "error",
+    "react-compiler/unsupported-syntax": "error",
+    "react-compiler/use-memo": "error",
+    "react-compiler/void-use-memo": "error",
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-assertion": "error"
+  },
+  "env": {
+    "builtin": true
+  },
+  "ignorePatterns": ["**/dist/**", "**/coverage/**", ".scratch/**"]
+}

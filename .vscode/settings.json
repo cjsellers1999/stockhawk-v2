@@ -1,0 +1,14 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "tailwindCSS.classFunctions": [
+    "classNames",
+    "clsx",
+    "cn",
+    "cva",
+    "tw",
+    "twJoin",
+    "twMerge"
+  ],
+  "tailwindCSS.experimental.configFile": "apps/web/src/styles.css"
+}
