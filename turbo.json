@@ -1,0 +1,59 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL", "HOST", "PORT", "WEB_DIST_PATH"],
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint:check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "migrate": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "test:integration": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "test:e2e": {
+      "cache": false
+    },
+    "test:live": {
+      "cache": false
+    },
+    "backup": {
+      "cache": false
+    },
+    "restore": {
+      "cache": false
+    },
+    "release": {
+      "cache": false
+    },
+    "evidence": {
+      "cache": false
+    }
+  }
+}

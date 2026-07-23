@@ -1,0 +1,25 @@
+packages:
+  - apps/*
+  - packages/*
+
+strictPeerDependencies: true
+
+peerDependencyRules:
+  allowedVersions:
+    typescript: 7.0.2
+
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - "@fastify/static@10.1.2"
+  - "@turbo/darwin-64@2.10.6"
+  - "@turbo/darwin-arm64@2.10.6"
+  - "@turbo/linux-64@2.10.6"
+  - "@turbo/linux-arm64@2.10.6"
+  - "@turbo/windows-64@2.10.6"
+  - "@turbo/windows-arm64@2.10.6"
+  - "@vitejs/plugin-react@6.0.4"
+  - shadcn@4.14.0
+  - turbo@2.10.6

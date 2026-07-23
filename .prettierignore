@@ -1,0 +1,6 @@
+.scratch/
+artifacts/evidence/*/runtime.json
+coverage/
+docs/agents/
+dist/
+node_modules/
