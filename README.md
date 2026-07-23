@@ -34,7 +34,14 @@ corepack pnpm verify
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm test:integration
 ```
 
-Migrations, real-database integration, browser/live checks, backup/restore, evidence, and release tasks are intentionally never cached.
+`test:integration` migrates the configured database before running the real
+PostgreSQL suites. The catalog persistence suite creates its own temporary
+database to verify writes, transactions, rollbacks, row locks, and concurrency,
+then drops it after the run. The configured PostgreSQL user must be allowed to
+create databases.
+
+Migrations, real-database integration, browser/live checks, backup/restore,
+evidence, and release tasks are intentionally never cached.
 
 Database schema and queries use exact-pinned Drizzle ORM. `pnpm --filter @stockhawk/database db:generate` regenerates reviewed SQL migrations.
 

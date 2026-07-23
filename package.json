@@ -19,7 +19,7 @@
     "seed:synthetic": "turbo run seed:synthetic --filter=@stockhawk/database",
     "start": "pnpm --filter @stockhawk/api start",
     "test": "turbo run test",
-    "test:integration": "turbo run test:integration",
+    "test:integration": "pnpm migrate && turbo run test:integration",
     "typecheck": "turbo run typecheck",
     "validate:react-doctor": "react-doctor . --yes --project @stockhawk/web,@stockhawk/ui --scope full --blocking warning",
     "validate:shadscan": "shadscan apps/web --fail-under 100 --no-interactive --no-roast",
