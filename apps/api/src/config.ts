@@ -6,6 +6,7 @@ import { z } from "zod";
 const loopbackHostSchema = z.enum(["127.0.0.1", "::1", "localhost"], {
   error: "API host must be loopback-only",
 });
+const loopbackOriginHosts = new Set(["127.0.0.1", "[::1]", "localhost"]);
 const allowedOriginsSchema = z
   .string()
   .default("http://127.0.0.1:3100")
@@ -16,6 +17,8 @@ const allowedOriginsSchema = z
         const url = new URL(candidate.trim());
         if (
           (url.protocol !== "http:" && url.protocol !== "https:") ||
+          (url.protocol === "http:" &&
+            !loopbackOriginHosts.has(url.hostname)) ||
           url.username !== "" ||
           url.password !== "" ||
           url.pathname !== "/" ||
@@ -30,7 +33,8 @@ const allowedOriginsSchema = z
       } catch {
         context.addIssue({
           code: "custom",
-          message: "APP_ORIGINS must contain exact HTTP origins",
+          message:
+            "APP_ORIGINS must contain exact HTTPS or loopback HTTP origins",
         });
         return z.NEVER;
       }
@@ -56,9 +60,28 @@ const apiEnvironmentSchema = z
       .enum(["true", "false"])
       .default("true")
       .transform((value) => value === "true"),
+    TRUST_LOOPBACK_PROXY: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
     WEB_DIST_PATH: z.string().min(1).optional(),
   })
-  .loose();
+  .loose()
+  .superRefine((value, context) => {
+    if (
+      !value.SESSION_COOKIE_SECURE &&
+      value.APP_ORIGINS.some(
+        (origin) => !loopbackOriginHosts.has(new URL(origin).hostname),
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "SESSION_COOKIE_SECURE=false requires loopback-only APP_ORIGINS",
+        path: ["SESSION_COOKIE_SECURE"],
+      });
+    }
+  });
 
 export type ApiConfig = {
   adminPasswordHash: string;
@@ -68,6 +91,7 @@ export type ApiConfig = {
   host: "127.0.0.1" | "::1" | "localhost";
   port: number;
   sessionTtlMs: number;
+  trustLoopbackProxy: boolean;
   webDistPath: string;
 };
 
@@ -84,6 +108,7 @@ export const decodeApiConfig = (
     host: parsed.HOST,
     port: parsed.PORT,
     sessionTtlMs: 12 * 60 * 60 * 1_000,
+    trustLoopbackProxy: parsed.TRUST_LOOPBACK_PROXY,
     webDistPath: resolve(process.cwd(), parsed.WEB_DIST_PATH ?? "../web/dist"),
   };
 };

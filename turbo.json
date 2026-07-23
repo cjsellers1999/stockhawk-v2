@@ -16,6 +16,7 @@
         "HOST",
         "PORT",
         "SESSION_COOKIE_SECURE",
+        "TRUST_LOOPBACK_PROXY",
         "WEB_DIST_PATH"
       ],
       "persistent": true

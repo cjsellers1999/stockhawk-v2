@@ -33,9 +33,10 @@ const app = buildApp({
       }
       return token;
     },
-    now: () => new Date("2026-07-23T17:00:00.000Z"),
+    now: () => new Date(),
     passwordVerifier: async () => true,
     sessionTtlMs: 12 * 60 * 60 * 1_000,
+    trustLoopbackProxy: false,
   },
   webDistPath: undefined,
   worker: { check: async () => true },

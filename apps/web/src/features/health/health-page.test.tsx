@@ -52,6 +52,39 @@ const renderWithQuery = (view: React.ReactNode) => {
   };
 };
 
+const OverlapHarness = () => {
+  const command = useOptimisticOwnerCommand();
+  return (
+    <>
+      <button
+        onClick={() =>
+          command.execute({
+            family: "refresh_health",
+            idempotencyKey: firstIdempotencyKey,
+            schemaVersion: 1,
+          })
+        }
+        type="button"
+      >
+        First
+      </button>
+      <button
+        onClick={() =>
+          command.execute({
+            family: "refresh_health",
+            idempotencyKey: secondIdempotencyKey,
+            schemaVersion: 1,
+          })
+        }
+        type="button"
+      >
+        Second
+      </button>
+      <output>{command.isQueued ? "Queued" : "Idle"}</output>
+    </>
+  );
+};
+
 afterEach(() => {
   cleanup();
   document.cookie = "stockhawk_csrf=; Max-Age=0; Path=/";
@@ -59,6 +92,72 @@ afterEach(() => {
 });
 
 describe("optimistic Health refresh", () => {
+  it("blocks refresh until authoritative command state is known", async () => {
+    let resolveRead: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQuery(<HealthPage />);
+    const user = userEvent.setup();
+
+    const checking = screen.getByRole("button", { name: "Checking" });
+    expect(checking).toBeDisabled();
+    await user.click(checking);
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => requestMethod(init) === "POST"),
+    ).toHaveLength(0);
+
+    resolveRead?.(jsonResponse({ receipt: null }));
+    expect(
+      await screen.findByRole("button", { name: "Refresh" }),
+    ).toBeEnabled();
+  });
+
+  it("keeps refresh unavailable after authoritative state cannot load", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(new Error("Injected receipt outage")),
+    );
+    renderWithQuery(<HealthPage />);
+
+    expect(
+      await screen.findByRole("button", { name: "Unavailable" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Refresh state is unavailable.",
+    );
+  });
+
+  it("surfaces terminal command failure before offering a retry", async () => {
+    const command: HealthRefreshCommand = {
+      family: "refresh_health",
+      idempotencyKey: firstIdempotencyKey,
+      schemaVersion: 1,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          jsonResponse({ receipt: receiptFor(command, "failed") }),
+        ),
+    );
+    renderWithQuery(<HealthPage />);
+
+    expect(
+      await screen.findByRole("button", { name: "Retry refresh" }),
+    ).toBeEnabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Latest health refresh failed.",
+    );
+  });
+
   it("restores authoritative queued intent after a browser refresh", async () => {
     const command: HealthRefreshCommand = {
       family: "refresh_health",
@@ -177,38 +276,6 @@ describe("optimistic Health refresh", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const OverlapHarness = () => {
-      const command = useOptimisticOwnerCommand();
-      return (
-        <>
-          <button
-            onClick={() =>
-              command.execute({
-                family: "refresh_health",
-                idempotencyKey: firstIdempotencyKey,
-                schemaVersion: 1,
-              })
-            }
-            type="button"
-          >
-            First
-          </button>
-          <button
-            onClick={() =>
-              command.execute({
-                family: "refresh_health",
-                idempotencyKey: secondIdempotencyKey,
-                schemaVersion: 1,
-              })
-            }
-            type="button"
-          >
-            Second
-          </button>
-          <output>{command.isQueued ? "Queued" : "Idle"}</output>
-        </>
-      );
-    };
     const { queryClient } = renderWithQuery(<OverlapHarness />);
     const user = userEvent.setup();
 
@@ -243,5 +310,65 @@ describe("optimistic Health refresh", () => {
     resolvers[1]?.(jsonResponse(receiptFor(secondCommand), 202));
 
     expect(await screen.findByText("Idle")).toBeInTheDocument();
+  });
+
+  it("ignores an older success that resolves after a newer command", async () => {
+    const resolvers: Array<(response: Response) => void> = [];
+    let rejectAuthoritativeReads = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockImplementation((_input, init) => {
+        if (requestMethod(init) === "POST") {
+          return new Promise<Response>((resolve) => {
+            resolvers.push(resolve);
+          });
+        }
+        return rejectAuthoritativeReads
+          ? Promise.reject(new Error("Injected reconciliation outage"))
+          : Promise.resolve(jsonResponse({ receipt: null }));
+      }),
+    );
+    const { queryClient } = renderWithQuery(<OverlapHarness />);
+    const user = userEvent.setup();
+    await screen.findByText("Idle");
+
+    await user.click(screen.getByRole("button", { name: "First" }));
+    await user.click(screen.getByRole("button", { name: "Second" }));
+    const firstCommand: HealthRefreshCommand = {
+      family: "refresh_health",
+      idempotencyKey: firstIdempotencyKey,
+      schemaVersion: 1,
+    };
+    const secondCommand: HealthRefreshCommand = {
+      family: "refresh_health",
+      idempotencyKey: secondIdempotencyKey,
+      schemaVersion: 1,
+    };
+
+    rejectAuthoritativeReads = true;
+    resolvers[1]?.(jsonResponse(receiptFor(secondCommand), 202));
+    await waitFor(() => {
+      expect(
+        queryClient.getQueryData<OwnerCommandReceipt>(
+          ownerCommandQueryKeys.healthRefresh(),
+        )?.command,
+      ).toEqual(secondCommand);
+    });
+    expect(
+      queryClient.getQueryData(ownerCommandQueryKeys.healthRefreshPending()),
+    ).toMatchObject([{ idempotencyKey: firstIdempotencyKey }]);
+    expect(screen.getByText("Queued")).toBeInTheDocument();
+
+    resolvers[0]?.(jsonResponse(receiptFor(firstCommand), 202));
+    await waitFor(() => {
+      expect(
+        queryClient.getQueryData(ownerCommandQueryKeys.healthRefreshPending()),
+      ).toEqual([]);
+    });
+    expect(
+      queryClient.getQueryData<OwnerCommandReceipt>(
+        ownerCommandQueryKeys.healthRefresh(),
+      )?.command,
+    ).toEqual(secondCommand);
   });
 });

@@ -55,31 +55,102 @@ export const serializeCookie = ({
 
 export const createLoginThrottle = ({
   maxFailures,
+  maxTrackedCallers,
   windowMs,
 }: {
   maxFailures: number;
+  maxTrackedCallers: number;
   windowMs: number;
 }) => {
-  let attempts: number[] = [];
-  const prune = (now: number) => {
-    attempts = attempts.filter((attempt) => attempt > now - windowMs);
+  const attemptsByCaller = new Map<
+    string,
+    Array<{ id: symbol; recordedAt: number }>
+  >();
+  let nextGlobalPruneAt = 0;
+  const prune = (caller: string, now: number) => {
+    const attempts = (attemptsByCaller.get(caller) ?? []).filter(
+      (attempt) => attempt.recordedAt > now - windowMs,
+    );
+    if (attempts.length === 0) {
+      attemptsByCaller.delete(caller);
+    } else {
+      attemptsByCaller.set(caller, attempts);
+    }
+    return attempts;
+  };
+  const pruneAll = (now: number) => {
+    for (const caller of attemptsByCaller.keys()) {
+      prune(caller, now);
+    }
+    nextGlobalPruneAt = now + windowMs;
+  };
+  const pruneGloballyWhenDueOrFull = (caller: string, now: number) => {
+    if (
+      now >= nextGlobalPruneAt ||
+      (!attemptsByCaller.has(caller) &&
+        attemptsByCaller.size >= maxTrackedCallers)
+    ) {
+      pruneAll(now);
+    }
+  };
+  const capacityRetryAfterSeconds = (now: number) => {
+    let earliestExpiry = Number.POSITIVE_INFINITY;
+    for (const attempts of attemptsByCaller.values()) {
+      const firstAttempt = attempts[0];
+      if (firstAttempt !== undefined) {
+        earliestExpiry = Math.min(
+          earliestExpiry,
+          firstAttempt.recordedAt + windowMs,
+        );
+      }
+    }
+    return Math.max(1, Math.ceil((earliestExpiry - now) / 1_000));
   };
 
   return {
-    clear: () => {
-      attempts = [];
+    clearAttempt: (caller: string, attemptId: symbol) => {
+      const attempts = (attemptsByCaller.get(caller) ?? []).filter(
+        (attempt) => attempt.id !== attemptId,
+      );
+      if (attempts.length === 0) {
+        attemptsByCaller.delete(caller);
+      } else {
+        attemptsByCaller.set(caller, attempts);
+      }
     },
-    recordAttempt: (now: number) => {
-      prune(now);
-      attempts.push(now);
+    recordAttempt: (caller: string, now: number) => {
+      pruneGloballyWhenDueOrFull(caller, now);
+      const attempts = prune(caller, now);
+      if (
+        attempts.length === 0 &&
+        !attemptsByCaller.has(caller) &&
+        attemptsByCaller.size >= maxTrackedCallers
+      ) {
+        throw new Error("Login throttle caller capacity was exceeded");
+      }
+      const attemptId = Symbol();
+      attempts.push({ id: attemptId, recordedAt: now });
+      attemptsByCaller.set(caller, attempts);
+      return attemptId;
     },
-    retryAfterSeconds: (now: number) => {
-      prune(now);
+    retryAfterSeconds: (caller: string, now: number) => {
+      pruneGloballyWhenDueOrFull(caller, now);
+      const attempts = prune(caller, now);
+      if (
+        attempts.length === 0 &&
+        !attemptsByCaller.has(caller) &&
+        attemptsByCaller.size >= maxTrackedCallers
+      ) {
+        return capacityRetryAfterSeconds(now);
+      }
       const firstAttempt = attempts[0];
       if (attempts.length < maxFailures || firstAttempt === undefined) {
         return null;
       }
-      return Math.max(1, Math.ceil((firstAttempt + windowMs - now) / 1_000));
+      return Math.max(
+        1,
+        Math.ceil((firstAttempt.recordedAt + windowMs - now) / 1_000),
+      );
     },
   };
 };

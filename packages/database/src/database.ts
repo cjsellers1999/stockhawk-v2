@@ -42,7 +42,7 @@ export type Database = AdminSessionStore &
 
 type OwnerCommandQueueOptions = Pick<
   QueueOptions,
-  "retryBackoff" | "retryDelay" | "retryLimit"
+  "expireInSeconds" | "retryBackoff" | "retryDelay" | "retryLimit"
 >;
 
 export type CreateDatabaseOptions = {
@@ -124,7 +124,7 @@ export const createDatabase = (
       await boss.start();
       await boss.createQueue(OWNER_COMMAND_QUEUE, {
         deleteAfterSeconds: 60 * 60 * 24 * 30,
-        expireInSeconds: 60,
+        expireInSeconds: options.ownerCommandQueue?.expireInSeconds ?? 60,
         retryBackoff: options.ownerCommandQueue?.retryBackoff ?? true,
         retryDelay: options.ownerCommandQueue?.retryDelay ?? 5,
         retryLimit: options.ownerCommandQueue?.retryLimit ?? 5,

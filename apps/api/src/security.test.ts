@@ -5,13 +5,15 @@ import type {
   OfferSearchResponse,
   OwnerCommandReceipt,
 } from "@stockhawk/contracts";
+import { OwnerCommandInFlightError } from "@stockhawk/database";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
+import { createLoginThrottle } from "./request-security.js";
 
 const now = new Date("2026-07-23T17:00:00.000Z");
-const sessionToken = "session_token_0123456789";
-const csrfToken = "csrf_token_0123456789";
+const sessionToken = "test-session-token";
+const csrfToken = "test-csrf-token";
 const sessionTokenHash = createHash("sha256")
   .update(sessionToken)
   .digest("hex");
@@ -44,8 +46,10 @@ const unsafeHeaders = {
 
 const appFixture = ({
   passwordAccepted = true,
+  trustLoopbackProxy = false,
 }: {
   passwordAccepted?: boolean;
+  trustLoopbackProxy?: boolean;
 } = {}) => {
   const createAdminSession = vi
     .fn<(input: Omit<typeof session, "id">) => Promise<typeof session>>()
@@ -97,6 +101,7 @@ const appFixture = ({
       now: () => now,
       passwordVerifier,
       sessionTtlMs: 12 * 60 * 60 * 1_000,
+      trustLoopbackProxy,
     },
     webDistPath: undefined,
     worker: { check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true) },
@@ -111,11 +116,20 @@ const appFixture = ({
   };
 };
 
-const login = async (app: ReturnType<typeof buildApp>) =>
+const login = async (
+  app: ReturnType<typeof buildApp>,
+  forwardedFor?: string,
+  password = "test-password",
+) =>
   app.inject({
-    headers: unsafeHeaders,
+    headers: {
+      ...unsafeHeaders,
+      ...(forwardedFor === undefined
+        ? {}
+        : { "x-forwarded-for": forwardedFor }),
+    },
     method: "POST",
-    payload: { password: "owner password" },
+    payload: { password },
     url: "/api/auth/login",
   });
 
@@ -131,6 +145,22 @@ const responseCookieHeader = (response: Awaited<ReturnType<typeof login>>) => {
 };
 
 describe("admin security boundary", () => {
+  it("bounds caller partitions and reclaims them after expiry", () => {
+    const throttle = createLoginThrottle({
+      maxFailures: 5,
+      maxTrackedCallers: 2,
+      windowMs: 1_000,
+    });
+    for (const caller of ["192.0.2.1", "192.0.2.2"]) {
+      expect(throttle.retryAfterSeconds(caller, 0)).toBeNull();
+      throttle.recordAttempt(caller, 0);
+    }
+
+    expect(throttle.retryAfterSeconds("192.0.2.3", 0)).toBe(1);
+    expect(throttle.retryAfterSeconds("192.0.2.3", 1_000)).toBeNull();
+    expect(() => throttle.recordAttempt("192.0.2.3", 1_000)).not.toThrow();
+  });
+
   it("creates a durable session with hardened cookies and survives refresh", async () => {
     const fixture = appFixture();
     const response = await login(fixture.app);
@@ -173,7 +203,10 @@ describe("admin security boundary", () => {
   });
 
   it("requires exact same-origin browser metadata and throttles failures", async () => {
-    const fixture = appFixture({ passwordAccepted: false });
+    const fixture = appFixture({
+      passwordAccepted: false,
+      trustLoopbackProxy: true,
+    });
     const crossSite = await fixture.app.inject({
       headers: {
         origin: "https://attacker.test",
@@ -215,6 +248,48 @@ describe("admin security boundary", () => {
     const throttled = await login(fixture.app);
     expect(throttled.statusCode).toBe(429);
     expect(throttled.headers["retry-after"]).toBe("900");
+
+    const differentCaller = await login(
+      fixture.app,
+      "203.0.113.1, 198.51.100.20",
+    );
+    expect(differentCaller.statusCode).toBe(401);
+    await fixture.app.close();
+  });
+
+  it("ignores forwarded caller addresses in direct mode", async () => {
+    const fixture = appFixture({ passwordAccepted: false });
+
+    const responses = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        login(fixture.app, `203.0.113.${index + 1}`),
+      ),
+    );
+
+    expect(
+      responses.filter((response) => response.statusCode === 401),
+    ).toHaveLength(5);
+    expect(
+      responses.filter((response) => response.statusCode === 429),
+    ).toHaveLength(1);
+    await fixture.app.close();
+  });
+
+  it("retains caller failures across a successful login", async () => {
+    const fixture = appFixture({ passwordAccepted: false });
+    fixture.passwordVerifier.mockImplementation(
+      async (password) => password === "test-password",
+    );
+
+    expect((await login(fixture.app, undefined, "wrong")).statusCode).toBe(401);
+    expect((await login(fixture.app)).statusCode).toBe(200);
+    const retainedFailures = await Promise.all(
+      Array.from({ length: 4 }, () => login(fixture.app, undefined, "wrong")),
+    );
+    expect(retainedFailures.map((response) => response.statusCode)).toEqual([
+      401, 401, 401, 401,
+    ]);
+    expect((await login(fixture.app, undefined, "wrong")).statusCode).toBe(429);
     await fixture.app.close();
   });
 
@@ -252,6 +327,29 @@ describe("admin security boundary", () => {
     expect(fixture.enqueueOwnerCommand).toHaveBeenCalledWith({
       command: receipt.command,
       requestedBySessionId: session.id,
+    });
+
+    fixture.enqueueOwnerCommand.mockRejectedValueOnce(
+      new OwnerCommandInFlightError(),
+    );
+    const concurrentCommand = await fixture.app.inject({
+      headers: {
+        ...unsafeHeaders,
+        cookie,
+        "x-csrf-token": csrfToken,
+      },
+      method: "POST",
+      payload: {
+        ...receipt.command,
+        idempotencyKey: "1e9b8871-2b68-4369-bb56-2061f80d87f9",
+      },
+      url: "/api/owner-commands/refresh-health",
+    });
+    expect(concurrentCommand.statusCode).toBe(409);
+    expect(concurrentCommand.json()).toEqual({
+      error: "Conflict",
+      message: "A health refresh command is already queued",
+      statusCode: 409,
     });
 
     const latest = await fixture.app.inject({

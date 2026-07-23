@@ -38,7 +38,7 @@ describe("admin login", () => {
     const queryClient = renderLogin();
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("Admin password"), "owner password");
+    await user.type(screen.getByLabelText("Admin password"), "test-password");
     await user.click(screen.getByRole("button", { name: "Log in" }));
 
     await waitFor(() => {
@@ -47,7 +47,7 @@ describe("admin login", () => {
       );
     });
     expect(fetchMock).toHaveBeenCalledWith("/api/auth/login", {
-      body: JSON.stringify({ password: "owner password" }),
+      body: JSON.stringify({ password: "test-password" }),
       headers: { "content-type": "application/json" },
       method: "POST",
     });

@@ -12,7 +12,8 @@ describe("API startup configuration", () => {
     expect(
       decodeApiConfig({
         ADMIN_PASSWORD_HASH: adminPasswordHash,
-        APP_ORIGINS: "https://stockhawk.tailnet.example,http://stockhawk.local",
+        APP_ORIGINS:
+          "https://stockhawk.tailnet.example,https://stockhawk.local",
         DATABASE_URL: "postgres://127.0.0.1:5432/stockhawk",
         HOST: "127.0.0.1",
         PORT: "3100",
@@ -23,15 +24,26 @@ describe("API startup configuration", () => {
       adminPasswordHash,
       allowedOrigins: [
         "https://stockhawk.tailnet.example",
-        "http://stockhawk.local",
+        "https://stockhawk.local",
       ],
       cookieSecure: true,
       databaseUrl: "postgres://127.0.0.1:5432/stockhawk",
       host: "127.0.0.1",
       port: 3100,
       sessionTtlMs: 12 * 60 * 60 * 1_000,
+      trustLoopbackProxy: false,
       webDistPath: "/tmp/stockhawk-web",
     });
+  });
+
+  it("requires explicit loopback proxy trust", () => {
+    expect(
+      decodeApiConfig({
+        ADMIN_PASSWORD_HASH: adminPasswordHash,
+        DATABASE_URL: "postgres://127.0.0.1:5432/stockhawk",
+        TRUST_LOOPBACK_PROXY: "true",
+      }).trustLoopbackProxy,
+    ).toBe(true);
   });
 
   it("rejects an unsafe public bind", () => {
@@ -73,5 +85,36 @@ describe("API startup configuration", () => {
         DATABASE_URL: "postgres://127.0.0.1:5432/stockhawk",
       }),
     ).toThrow(/origin/i);
+  });
+
+  it("rejects non-loopback HTTP application origins", () => {
+    expect(() =>
+      decodeApiConfig({
+        ADMIN_PASSWORD_HASH: adminPasswordHash,
+        APP_ORIGINS: "http://stockhawk.local",
+        DATABASE_URL: "postgres://127.0.0.1:5432/stockhawk",
+      }),
+    ).toThrow(/HTTPS/i);
+  });
+
+  it("allows insecure cookies only for direct loopback origins", () => {
+    expect(
+      decodeApiConfig({
+        ADMIN_PASSWORD_HASH: adminPasswordHash,
+        APP_ORIGINS:
+          "http://127.0.0.1:3100,http://localhost:3100,http://[::1]:3100",
+        DATABASE_URL: "postgres://127.0.0.1:5432/stockhawk",
+        SESSION_COOKIE_SECURE: "false",
+      }).cookieSecure,
+    ).toBe(false);
+
+    expect(() =>
+      decodeApiConfig({
+        ADMIN_PASSWORD_HASH: adminPasswordHash,
+        APP_ORIGINS: "https://stockhawk.local",
+        DATABASE_URL: "postgres://127.0.0.1:5432/stockhawk",
+        SESSION_COOKIE_SECURE: "false",
+      }),
+    ).toThrow(/loopback/i);
   });
 });

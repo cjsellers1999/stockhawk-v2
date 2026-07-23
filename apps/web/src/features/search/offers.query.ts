@@ -37,7 +37,7 @@ export const offersQueryOptions = (query: OfferSearchQuery) => {
 
   return queryOptions({
     queryFn: async () => {
-      const response = await fetch(offerSearchUrl(filters));
+      const response = await fetch(offerSearchUrl(filters), { method: "GET" });
       if (!response.ok) {
         throw new Error(`Offer search failed with status ${response.status}`);
       }

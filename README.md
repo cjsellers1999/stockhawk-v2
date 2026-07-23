@@ -38,7 +38,10 @@ DATABASE_URL=postgres://127.0.0.1:5432/stockhawk \
 Open `http://127.0.0.1:3100` and log in with the password used above. Keep the
 default secure session cookie behind HTTPS; disable it only for direct loopback
 HTTP. `APP_ORIGINS` is the comma-separated allowlist of exact public application
-origins.
+origins; every non-loopback origin must use HTTPS. Forwarded caller addresses
+key per-caller login throttling only when `TRUST_LOOPBACK_PROXY=true`; leave it
+disabled for direct access. When enabled, only loopback reverse proxies are
+trusted.
 
 `GET /api/readiness` reports API, database, and worker independently.
 Authenticated `GET /api/offers` reads transactional Search Documents. The

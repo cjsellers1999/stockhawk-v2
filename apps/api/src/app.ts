@@ -15,6 +15,7 @@ import {
   type OfferSearchResponse,
   type OwnerCommandReceipt,
 } from "@stockhawk/contracts";
+import { OwnerCommandInFlightError } from "@stockhawk/database";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 
 import {
@@ -58,6 +59,7 @@ type SecurityDependencies = {
   now: () => Date;
   passwordVerifier: (password: string) => Promise<boolean>;
   sessionTtlMs: number;
+  trustLoopbackProxy: boolean;
 };
 
 type AppDependencies = {
@@ -111,9 +113,13 @@ export const buildApp = ({
         "body.password",
       ],
     },
+    trustProxy: security.trustLoopbackProxy
+      ? (address) => address === "127.0.0.1" || address === "::1"
+      : false,
   });
   const loginThrottle = createLoginThrottle({
     maxFailures: 5,
+    maxTrackedCallers: 10_000,
     windowMs: 15 * 60 * 1_000,
   });
   const sessionTtlSeconds = Math.floor(security.sessionTtlMs / 1_000);
@@ -148,7 +154,10 @@ export const buildApp = ({
     }
 
     const requestTime = security.now();
-    const retryAfter = loginThrottle.retryAfterSeconds(requestTime.getTime());
+    const retryAfter = loginThrottle.retryAfterSeconds(
+      request.ip,
+      requestTime.getTime(),
+    );
     if (retryAfter !== null) {
       return reply.header("retry-after", String(retryAfter)).code(429).send({
         error: "Too Many Requests",
@@ -156,12 +165,15 @@ export const buildApp = ({
         statusCode: 429,
       });
     }
-    loginThrottle.recordAttempt(requestTime.getTime());
+    const attemptId = loginThrottle.recordAttempt(
+      request.ip,
+      requestTime.getTime(),
+    );
     if (!(await security.passwordVerifier(command.data.password))) {
       return unauthorized(reply);
     }
 
-    loginThrottle.clear();
+    loginThrottle.clearAttempt(request.ip, attemptId);
     const sessionToken = security.createOpaqueToken();
     const csrfToken = security.createOpaqueToken();
     const expiresAt = new Date(requestTime.getTime() + security.sessionTtlMs);
@@ -282,12 +294,24 @@ export const buildApp = ({
         statusCode: 400,
       });
     }
-    const receipt = ownerCommandReceiptSchema.parse(
-      await database.enqueueOwnerCommand({
-        command: command.data,
-        requestedBySessionId: session.id,
-      }),
-    );
+    let receipt: OwnerCommandReceipt;
+    try {
+      receipt = ownerCommandReceiptSchema.parse(
+        await database.enqueueOwnerCommand({
+          command: command.data,
+          requestedBySessionId: session.id,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof OwnerCommandInFlightError) {
+        return reply.code(409).send({
+          error: "Conflict",
+          message: error.message,
+          statusCode: 409,
+        });
+      }
+      throw error;
+    }
     return reply.code(202).send(receipt);
   });
 

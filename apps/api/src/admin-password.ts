@@ -66,17 +66,17 @@ const parsePasswordHash = (encoded: string): ParsedPasswordHash => {
   return { digest, salt };
 };
 
-export const hashAdminPassword = async (
+export async function hashAdminPassword(
   password: string,
   options: { salt?: Buffer } = {},
-) => {
+) {
   const salt = options.salt ?? randomBytes(16);
   if (password.length === 0 || salt.length < 16) {
     throw new Error("Admin password and a 16-byte salt are required");
   }
   const digest = await derive(password, salt);
   return `${prefix}$${salt.toString("base64url")}$${digest.toString("base64url")}`;
-};
+}
 
 export const createAdminPasswordVerifier = (encoded: string) => {
   const { digest, salt } = parsePasswordHash(encoded);

@@ -10,6 +10,14 @@ const summaries = [
   ["Repair required", "0"],
 ] as const;
 
+const refreshLabels = {
+  checking: "Checking",
+  failed: "Retry refresh",
+  queued: "Queued",
+  ready: "Refresh",
+  unavailable: "Unavailable",
+} as const;
+
 export const HealthPage = () => {
   const refresh = useHealthRefreshCommand();
 
@@ -25,15 +33,27 @@ export const HealthPage = () => {
             repair leverage.
           </p>
         </div>
-        <Button
-          disabled={refresh.isQueued}
-          onClick={refresh.queue}
-          type="button"
-          variant="ghost"
-        >
-          <RefreshCw aria-hidden="true" data-icon="inline-start" size={16} />
-          {refresh.isQueued ? "Queued" : "Refresh"}
-        </Button>
+        <div className="flex flex-col items-end gap-2">
+          <Button
+            disabled={!refresh.canQueue}
+            onClick={refresh.queue}
+            type="button"
+            variant="ghost"
+          >
+            <RefreshCw aria-hidden="true" data-icon="inline-start" size={16} />
+            {refreshLabels[refresh.status]}
+          </Button>
+          {refresh.status === "failed" ? (
+            <p className="text-caption text-danger" role="alert">
+              Latest health refresh failed.
+            </p>
+          ) : null}
+          {refresh.status === "unavailable" ? (
+            <p className="text-caption text-danger" role="alert">
+              Refresh state is unavailable.
+            </p>
+          ) : null}
+        </div>
       </div>
       <div className="mb-6 grid grid-cols-4 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
         {summaries.map(([label, value]) => (

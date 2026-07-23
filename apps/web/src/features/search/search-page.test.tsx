@@ -123,7 +123,7 @@ describe("Offer search table", () => {
       "target",
       "_blank",
     );
-    expect(fetchMock).toHaveBeenCalledWith("/api/offers");
+    expect(fetchMock).toHaveBeenCalledWith("/api/offers", { method: "GET" });
 
     const user = userEvent.setup();
     await user.type(
@@ -137,6 +137,7 @@ describe("Offer search table", () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         "/api/offers?q=Sky+Dragon&stock=in_stock",
+        { method: "GET" },
       );
     });
     const offerRequestCount = fetchMock.mock.calls.filter(([input]) =>

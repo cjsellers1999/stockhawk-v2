@@ -39,6 +39,7 @@ describe("Offer query refresh", () => {
     expect(storefrontOptions.queryKey).toEqual(flatOptions.queryKey);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/offers?q=Sky+Dragon&stock=in_stock",
+      { method: "GET" },
     );
   });
 });

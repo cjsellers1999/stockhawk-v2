@@ -18,6 +18,7 @@ const app = buildApp({
     now: () => new Date(),
     passwordVerifier: createAdminPasswordVerifier(config.adminPasswordHash),
     sessionTtlMs: config.sessionTtlMs,
+    trustLoopbackProxy: config.trustLoopbackProxy,
   },
   webDistPath: config.webDistPath,
   worker: { check: database.workerIsReady },

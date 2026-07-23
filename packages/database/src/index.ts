@@ -12,6 +12,7 @@ export { createDatabase } from "./database.js";
 export type { CreateDatabaseOptions, Database } from "./database.js";
 export { migrateDatabase } from "./migration.js";
 export type { OfferSearch } from "./offer-search.js";
+export { OwnerCommandInFlightError } from "./owner-command-persistence.js";
 export type { OwnerCommandPersistence } from "./owner-command-persistence.js";
 export type {
   StockObservationReader,

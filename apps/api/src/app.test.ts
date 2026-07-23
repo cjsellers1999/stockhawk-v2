@@ -54,6 +54,7 @@ const security = {
     .fn<(password: string) => Promise<boolean>>()
     .mockResolvedValue(true),
   sessionTtlMs: 12 * 60 * 60 * 1_000,
+  trustLoopbackProxy: false,
 };
 const sessionHeaders = { cookie: "stockhawk_session=test-session" };
 

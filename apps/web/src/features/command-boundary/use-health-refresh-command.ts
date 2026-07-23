@@ -7,7 +7,7 @@ export const useHealthRefreshCommand = () => {
   const submitting = useRef(false);
 
   const queue = () => {
-    if (submitting.current || command.isQueued) {
+    if (submitting.current || !command.canExecute) {
       return;
     }
     submitting.current = true;
@@ -25,5 +25,10 @@ export const useHealthRefreshCommand = () => {
     );
   };
 
-  return { isQueued: command.isQueued, queue };
+  return {
+    canQueue: command.canExecute,
+    isQueued: command.isQueued,
+    queue,
+    status: command.status,
+  };
 };

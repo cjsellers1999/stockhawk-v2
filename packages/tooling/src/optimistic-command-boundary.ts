@@ -18,7 +18,7 @@ type AstNode = {
   [key: string]: unknown;
 };
 
-const mutationMethods = new Set(["DELETE", "PATCH", "POST", "PUT"]);
+const readOnlyFetchMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const wrapperTypes = new Set([
   "ParenthesizedExpression",
   "TSAsExpression",
@@ -85,15 +85,121 @@ const unwrapExpression = (node: AstNode): AstNode => {
   return node;
 };
 
-const variableInitializers = (program: AstNode) => {
+const collectBindingNames = (node: unknown, names: string[]) => {
+  if (!isNode(node)) {
+    return;
+  }
+  const name = identifierName(node);
+  if (name !== undefined) {
+    names.push(name);
+    return;
+  }
+  if (
+    (node.type === "AssignmentPattern" || node.type === "RestElement") &&
+    isNode(node.type === "AssignmentPattern" ? node.left : node.argument)
+  ) {
+    collectBindingNames(
+      node.type === "AssignmentPattern" ? node.left : node.argument,
+      names,
+    );
+    return;
+  }
+  if (node.type === "ArrayPattern") {
+    const elements = Array.isArray(node.elements) ? node.elements : [];
+    for (const element of elements) {
+      collectBindingNames(element, names);
+    }
+    return;
+  }
+  if (node.type === "ObjectPattern") {
+    const properties = Array.isArray(node.properties) ? node.properties : [];
+    for (const property of properties) {
+      if (!isNode(property)) {
+        continue;
+      }
+      collectBindingNames(
+        property.type === "Property" ? property.value : property.argument,
+        names,
+      );
+    }
+    return;
+  }
+  if (node.type === "TSParameterProperty") {
+    collectBindingNames(node.parameter, names);
+  }
+};
+
+const bindingCounts = (program: AstNode) => {
+  const counts = new Map<string, number>();
+  const addBindings = (pattern: unknown) => {
+    const names: string[] = [];
+    collectBindingNames(pattern, names);
+    for (const name of names) {
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  };
+
+  walk(program, (node) => {
+    if (node.type === "VariableDeclarator") {
+      addBindings(node.id);
+    } else if (
+      node.type === "FunctionDeclaration" ||
+      node.type === "FunctionExpression" ||
+      node.type === "ArrowFunctionExpression"
+    ) {
+      if (node.type !== "ArrowFunctionExpression") {
+        addBindings(node.id);
+      }
+      const parameters = Array.isArray(node.params) ? node.params : [];
+      for (const parameter of parameters) {
+        addBindings(parameter);
+      }
+    } else if (
+      node.type === "ClassDeclaration" ||
+      node.type === "ClassExpression"
+    ) {
+      addBindings(node.id);
+    } else if (
+      node.type === "ImportSpecifier" ||
+      node.type === "ImportDefaultSpecifier" ||
+      node.type === "ImportNamespaceSpecifier"
+    ) {
+      addBindings(node.local);
+    } else if (node.type === "CatchClause") {
+      addBindings(node.param);
+    }
+  });
+  return counts;
+};
+
+const variableInitializers = (
+  program: AstNode,
+  { immutableOnly = false }: { immutableOnly?: boolean } = {},
+) => {
+  const counts = bindingCounts(program);
   const initializers = new Map<string, AstNode>();
   walk(program, (node) => {
-    if (node.type !== "VariableDeclarator") {
+    if (
+      node.type !== "VariableDeclaration" ||
+      (immutableOnly && node.kind !== "const")
+    ) {
       return;
     }
-    const name = identifierName(node.id);
-    if (name !== undefined && isNode(node.init)) {
-      initializers.set(name, node.init);
+    const declarations = Array.isArray(node.declarations)
+      ? node.declarations
+      : [];
+    for (const declaration of declarations) {
+      if (!isNode(declaration) || declaration.type !== "VariableDeclarator") {
+        continue;
+      }
+      const name = identifierName(declaration.id);
+      if (
+        name !== undefined &&
+        counts.get(name) === 1 &&
+        isNode(declaration.init)
+      ) {
+        initializers.set(name, declaration.init);
+      }
     }
   });
   return initializers;
@@ -115,6 +221,243 @@ const resolveExpression = (
   }
   seen.add(name);
   return resolveExpression(initializer, initializers, seen);
+};
+
+const resolvedKeyName = (node: AstNode, initializers: Map<string, AstNode>) => {
+  const key = node.type === "MemberExpression" ? node.property : node.key;
+  if (!isNode(key)) {
+    return undefined;
+  }
+  return node.computed === true
+    ? literalText(resolveExpression(key, initializers))
+    : propertyName(key);
+};
+
+const isFetchReference = (
+  node: AstNode,
+  initializers: Map<string, AstNode>,
+  seen = new Set<string>(),
+): boolean => {
+  const unwrapped = unwrapExpression(node);
+  const name = identifierName(unwrapped);
+  if (name !== undefined) {
+    if (name === "fetch") {
+      return true;
+    }
+    if (seen.has(name)) {
+      return false;
+    }
+    const initializer = initializers.get(name);
+    if (initializer === undefined) {
+      return false;
+    }
+    seen.add(name);
+    return isFetchReference(initializer, initializers, seen);
+  }
+  if (
+    unwrapped.type === "MemberExpression" &&
+    resolvedKeyName(unwrapped, initializers) === "fetch"
+  ) {
+    return true;
+  }
+  if (unwrapped.type !== "CallExpression" || !isNode(unwrapped.callee)) {
+    return false;
+  }
+  const callee = unwrapExpression(unwrapped.callee);
+  return (
+    callee.type === "MemberExpression" &&
+    resolvedKeyName(callee, initializers) === "bind" &&
+    isNode(callee.object) &&
+    isFetchReference(callee.object, initializers, seen)
+  );
+};
+
+const resolvesToBinding = (
+  node: AstNode,
+  bindings: Set<string>,
+  initializers: Map<string, AstNode>,
+) => {
+  const directName = identifierName(unwrapExpression(node));
+  if (directName !== undefined && bindings.has(directName)) {
+    return true;
+  }
+  const resolvedName = identifierName(resolveExpression(node, initializers));
+  return resolvedName !== undefined && bindings.has(resolvedName);
+};
+
+const destructuredFetchAliases = (
+  program: AstNode,
+  initializers: Map<string, AstNode>,
+) => {
+  const aliases = new Set<string>();
+  walk(program, (node) => {
+    if (
+      node.type !== "VariableDeclarator" ||
+      !isNode(node.id) ||
+      node.id.type !== "ObjectPattern"
+    ) {
+      return;
+    }
+    const properties = Array.isArray(node.id.properties)
+      ? node.id.properties
+      : [];
+    for (const property of properties) {
+      if (
+        isNode(property) &&
+        property.type === "Property" &&
+        resolvedKeyName(property, initializers) === "fetch"
+      ) {
+        const alias = identifierName(property.value);
+        if (alias !== undefined) {
+          aliases.add(alias);
+        }
+      }
+    }
+  });
+  return aliases;
+};
+
+const isKnownFetchReference = (
+  node: AstNode,
+  initializers: Map<string, AstNode>,
+  aliases: Set<string>,
+) => {
+  const name = identifierName(unwrapExpression(node));
+  return (
+    (name !== undefined && aliases.has(name)) ||
+    isFetchReference(node, initializers)
+  );
+};
+
+const reassignedFetchAliases = (
+  program: AstNode,
+  initializers: Map<string, AstNode>,
+  initialAliases: Set<string>,
+) => {
+  const aliases = new Set(initialAliases);
+  const assignments: AstNode[] = [];
+  walk(program, (node) => {
+    if (
+      node.type === "AssignmentExpression" &&
+      node.operator === "=" &&
+      isNode(node.left) &&
+      isNode(node.right) &&
+      identifierName(node.left) !== undefined
+    ) {
+      assignments.push(node);
+    }
+  });
+
+  let addedAlias = true;
+  while (addedAlias) {
+    addedAlias = false;
+    for (const assignment of assignments) {
+      const alias = identifierName(assignment.left);
+      if (
+        alias !== undefined &&
+        !aliases.has(alias) &&
+        isNode(assignment.right) &&
+        isKnownFetchReference(assignment.right, initializers, aliases)
+      ) {
+        aliases.add(alias);
+        addedAlias = true;
+      }
+    }
+  }
+  return aliases;
+};
+
+const reassignedBindingAliases = (
+  program: AstNode,
+  initializers: Map<string, AstNode>,
+  initialBindings: Set<string>,
+) => {
+  const bindings = new Set(initialBindings);
+  const assignments: AstNode[] = [];
+  walk(program, (node) => {
+    if (
+      node.type === "AssignmentExpression" &&
+      node.operator === "=" &&
+      isNode(node.left) &&
+      isNode(node.right) &&
+      identifierName(node.left) !== undefined
+    ) {
+      assignments.push(node);
+    }
+  });
+
+  let addedBinding = true;
+  while (addedBinding) {
+    addedBinding = false;
+    for (const assignment of assignments) {
+      const alias = identifierName(assignment.left);
+      if (
+        alias !== undefined &&
+        !bindings.has(alias) &&
+        isNode(assignment.right) &&
+        resolvesToBinding(assignment.right, bindings, initializers)
+      ) {
+        bindings.add(alias);
+        addedBinding = true;
+      }
+    }
+  }
+  return bindings;
+};
+
+const mutationExportBindings = (program: AstNode) => {
+  const bindings = new Set<string>();
+  walk(program, (node) => {
+    if (
+      node.type !== "ImportDeclaration" ||
+      literalText(node.source) !== "@tanstack/react-query"
+    ) {
+      return;
+    }
+    const specifiers = Array.isArray(node.specifiers) ? node.specifiers : [];
+    for (const specifier of specifiers) {
+      if (!isNode(specifier)) {
+        continue;
+      }
+      if (
+        specifier.type === "ImportSpecifier" &&
+        identifierName(specifier.imported) === "useMutation"
+      ) {
+        const localName = identifierName(specifier.local);
+        if (localName !== undefined) {
+          bindings.add(localName);
+        }
+      } else if (specifier.type === "ImportNamespaceSpecifier") {
+        const localName = identifierName(specifier.local);
+        if (localName !== undefined) {
+          bindings.add(localName);
+        }
+      }
+    }
+  });
+  return bindings;
+};
+
+const reactQueryNamespaceBindings = (program: AstNode) => {
+  const bindings = new Set<string>();
+  walk(program, (node) => {
+    if (
+      node.type !== "ImportDeclaration" ||
+      literalText(node.source) !== "@tanstack/react-query"
+    ) {
+      return;
+    }
+    const specifiers = Array.isArray(node.specifiers) ? node.specifiers : [];
+    for (const specifier of specifiers) {
+      if (isNode(specifier) && specifier.type === "ImportNamespaceSpecifier") {
+        const localName = identifierName(specifier.local);
+        if (localName !== undefined) {
+          bindings.add(localName);
+        }
+      }
+    }
+  });
+  return bindings;
 };
 
 const resolveText = (node: AstNode, initializers: Map<string, AstNode>) =>
@@ -160,42 +503,167 @@ const registeredFamilies = (
   return families;
 };
 
-const isFetchCall = (callee: unknown) => {
+type FetchInvocation = "direct" | "indirect";
+
+const fetchInvocation = (
+  callee: unknown,
+  initializers: Map<string, AstNode>,
+  destructuredAliases: Set<string>,
+): FetchInvocation | undefined => {
   if (!isNode(callee)) {
-    return false;
+    return undefined;
   }
-  if (identifierName(callee) === "fetch") {
+  const resolvedCallee = unwrapExpression(callee);
+  if (
+    isKnownFetchReference(resolvedCallee, initializers, destructuredAliases)
+  ) {
+    return "direct";
+  }
+  if (
+    resolvedCallee.type === "MemberExpression" &&
+    ["apply", "call"].includes(
+      resolvedKeyName(resolvedCallee, initializers) ?? "",
+    ) &&
+    isNode(resolvedCallee.object)
+  ) {
+    if (
+      isKnownFetchReference(
+        resolvedCallee.object,
+        initializers,
+        destructuredAliases,
+      )
+    ) {
+      return "indirect";
+    }
+  }
+  return undefined;
+};
+
+const containsEscapedFetchReference = (
+  node: AstNode,
+  initializers: Map<string, AstNode>,
+  aliases: Set<string>,
+): boolean => {
+  if (isKnownFetchReference(node, initializers, aliases)) {
     return true;
   }
-  return (
-    callee.type === "MemberExpression" &&
-    propertyName(callee.property) === "fetch"
+  if (node.type === "CallExpression") {
+    if (fetchInvocation(node.callee, initializers, aliases) !== undefined) {
+      return false;
+    }
+    const callArguments = Array.isArray(node.arguments) ? node.arguments : [];
+    return callArguments.some(
+      (argument) =>
+        isNode(argument) &&
+        containsEscapedFetchReference(argument, initializers, aliases),
+    );
+  }
+  return childNodes(node).some((child) =>
+    containsEscapedFetchReference(child, initializers, aliases),
   );
 };
 
-const mutationMethod = (call: AstNode, initializers: Map<string, AstNode>) => {
-  const callArguments = Array.isArray(call.arguments) ? call.arguments : [];
-  const optionsArgument = callArguments[1];
-  if (!isNode(optionsArgument)) {
-    return undefined;
-  }
-  const options = resolveExpression(optionsArgument, initializers);
+type FetchMethodResolution = "read-only" | "unsafe" | "unspecified";
+
+const requestInitMethod = (
+  optionsArgument: AstNode,
+  initializers: Map<string, AstNode>,
+): FetchMethodResolution => {
+  const options = unwrapExpression(optionsArgument);
   if (options.type !== "ObjectExpression") {
-    return undefined;
+    return "unsafe";
   }
   const properties = Array.isArray(options.properties)
     ? options.properties
     : [];
-  const methodProperty = properties.find(
+  if (
+    properties.some(
+      (property) =>
+        !isNode(property) ||
+        property.type === "SpreadElement" ||
+        (property.type === "Property" &&
+          property.computed === true &&
+          literalText(property.key) === undefined),
+    )
+  ) {
+    return "unsafe";
+  }
+  const methodProperties = properties.filter(
     (property) =>
       isNode(property) &&
       property.type === "Property" &&
       propertyName(property.key) === "method",
   );
-  if (!isNode(methodProperty) || !isNode(methodProperty.value)) {
-    return undefined;
+  if (methodProperties.length === 0) {
+    return "unspecified";
   }
-  return resolveText(methodProperty.value, initializers)?.toUpperCase();
+  if (methodProperties.length !== 1) {
+    return "unsafe";
+  }
+  const [methodProperty] = methodProperties;
+  if (!isNode(methodProperty) || !isNode(methodProperty.value)) {
+    return "unsafe";
+  }
+  const method = resolveText(methodProperty.value, initializers)?.toUpperCase();
+  return method !== undefined && readOnlyFetchMethods.has(method)
+    ? "read-only"
+    : "unsafe";
+};
+
+const requestInputMethod = (
+  input: AstNode,
+  initializers: Map<string, AstNode>,
+  seen = new Set<AstNode>(),
+): FetchMethodResolution => {
+  const resolved = resolveExpression(input, initializers);
+  if (seen.has(resolved)) {
+    return "unsafe";
+  }
+  seen.add(resolved);
+  if (
+    literalText(resolved) !== undefined ||
+    resolved.type === "TemplateLiteral" ||
+    (resolved.type === "NewExpression" &&
+      identifierName(resolved.callee) === "URL")
+  ) {
+    return "read-only";
+  }
+  if (
+    resolved.type !== "NewExpression" ||
+    identifierName(resolved.callee) !== "Request"
+  ) {
+    return "unsafe";
+  }
+  const requestArguments = Array.isArray(resolved.arguments)
+    ? resolved.arguments
+    : [];
+  const requestOptions = requestArguments[1];
+  if (isNode(requestOptions)) {
+    const configuredMethod = requestInitMethod(requestOptions, initializers);
+    if (configuredMethod !== "unspecified") {
+      return configuredMethod;
+    }
+  }
+  const requestInput = requestArguments[0];
+  return isNode(requestInput)
+    ? requestInputMethod(requestInput, initializers, seen)
+    : "unsafe";
+};
+
+const fetchMethod = (
+  call: AstNode,
+  initializers: Map<string, AstNode>,
+): FetchMethodResolution => {
+  const callArguments = Array.isArray(call.arguments) ? call.arguments : [];
+  const optionsArgument = callArguments[1];
+  if (isNode(optionsArgument)) {
+    const configuredMethod = requestInitMethod(optionsArgument, initializers);
+    if (configuredMethod !== "unspecified") {
+      return configuredMethod;
+    }
+  }
+  const input = callArguments[0];
+  return isNode(input) ? requestInputMethod(input, initializers) : "unsafe";
 };
 
 export const auditOptimisticCommandBoundary = ({
@@ -216,11 +684,24 @@ export const auditOptimisticCommandBoundary = ({
 
   for (const source of sources) {
     const program = parseSource(source);
-    const initializers = variableInitializers(program);
+    const fetchInitializers = variableInitializers(program);
+    const fetchAliases = reassignedFetchAliases(
+      program,
+      fetchInitializers,
+      destructuredFetchAliases(program, fetchInitializers),
+    );
+    const initializers = variableInitializers(program, {
+      immutableOnly: true,
+    });
+    const mutationBindings = mutationExportBindings(program);
+    const namespaceImports = reassignedBindingAliases(
+      program,
+      fetchInitializers,
+      reactQueryNamespaceBindings(program),
+    );
     const insideBoundary = resolve(source.file).startsWith(
       `${resolve(boundaryDirectory)}/`,
     );
-    const namespaceImports = new Set<string>();
     const displayPath = relative(repositoryRoot, source.file);
 
     walk(program, (node) => {
@@ -242,39 +723,162 @@ export const auditOptimisticCommandBoundary = ({
           ) {
             mutationImports.add(displayPath);
           }
-          if (specifier.type === "ImportNamespaceSpecifier") {
-            const localName = identifierName(specifier.local);
-            if (localName !== undefined) {
-              namespaceImports.add(localName);
-            }
-          }
+        }
+      }
+      if (
+        node.type === "ExportAllDeclaration" &&
+        literalText(node.source) === "@tanstack/react-query"
+      ) {
+        mutationImports.add(displayPath);
+      }
+      if (
+        !insideBoundary &&
+        node.type === "ImportExpression" &&
+        literalText(node.source) === "@tanstack/react-query"
+      ) {
+        mutationImports.add(displayPath);
+      }
+      if (node.type === "ExportNamedDeclaration") {
+        const specifiers = Array.isArray(node.specifiers)
+          ? node.specifiers
+          : [];
+        const exportsMutation = specifiers.some(
+          (specifier) =>
+            isNode(specifier) &&
+            specifier.type === "ExportSpecifier" &&
+            (literalText(node.source) === "@tanstack/react-query"
+              ? identifierName(specifier.local) === "useMutation"
+              : isNode(specifier.local) &&
+                resolvesToBinding(
+                  specifier.local,
+                  mutationBindings,
+                  fetchInitializers,
+                )),
+        );
+        if (exportsMutation) {
+          mutationImports.add(displayPath);
         }
       }
       if (
         !insideBoundary &&
         node.type === "MemberExpression" &&
         isNode(node.object) &&
-        namespaceImports.has(identifierName(node.object) ?? "") &&
-        propertyName(node.property) === "useMutation"
+        resolvesToBinding(node.object, namespaceImports, fetchInitializers) &&
+        (resolvedKeyName(node, fetchInitializers) === "useMutation" ||
+          (node.computed === true &&
+            resolvedKeyName(node, fetchInitializers) === undefined))
       ) {
         mutationImports.add(displayPath);
       }
       if (
         !insideBoundary &&
-        node.type === "CallExpression" &&
-        isFetchCall(node.callee)
+        node.type === "VariableDeclarator" &&
+        isNode(node.id) &&
+        node.id.type === "ObjectPattern" &&
+        isNode(node.init) &&
+        resolvesToBinding(node.init, namespaceImports, fetchInitializers)
       ) {
-        const method = mutationMethod(node, initializers);
-        if (method !== undefined && mutationMethods.has(method)) {
+        const properties = Array.isArray(node.id.properties)
+          ? node.id.properties
+          : [];
+        if (
+          properties.some(
+            (property) =>
+              isNode(property) &&
+              property.type === "Property" &&
+              (resolvedKeyName(property, fetchInitializers) === "useMutation" ||
+                (property.computed === true &&
+                  resolvedKeyName(property, fetchInitializers) === undefined)),
+          )
+        ) {
+          mutationImports.add(displayPath);
+        }
+      }
+      if (!insideBoundary) {
+        const escapedExpression =
+          node.type === "VariableDeclarator" && isNode(node.init)
+            ? node.init
+            : node.type === "AssignmentExpression" && isNode(node.right)
+              ? node.right
+              : node.type === "ReturnStatement" && isNode(node.argument)
+                ? node.argument
+                : node.type === "ExportDefaultDeclaration" &&
+                    isNode(node.declaration)
+                  ? node.declaration
+                  : undefined;
+        if (
+          escapedExpression !== undefined &&
+          containsEscapedFetchReference(
+            escapedExpression,
+            fetchInitializers,
+            fetchAliases,
+          )
+        ) {
           mutationFetches.add(displayPath);
         }
       }
-      if (
-        node.type === "Property" &&
-        propertyName(node.key) === "family" &&
-        isNode(node.value)
-      ) {
-        const family = resolveText(node.value, initializers);
+      if (!insideBoundary && node.type === "CallExpression") {
+        const invocation = fetchInvocation(
+          node.callee,
+          fetchInitializers,
+          fetchAliases,
+        );
+        if (
+          invocation === "indirect" ||
+          (invocation === "direct" &&
+            fetchMethod(node, initializers) !== "read-only")
+        ) {
+          mutationFetches.add(displayPath);
+        }
+        if (
+          invocation === undefined &&
+          ((isNode(node.callee) &&
+            containsEscapedFetchReference(
+              node.callee,
+              fetchInitializers,
+              fetchAliases,
+            )) ||
+            (Array.isArray(node.arguments) ? node.arguments : []).some(
+              (argument) =>
+                isNode(argument) &&
+                containsEscapedFetchReference(
+                  argument,
+                  fetchInitializers,
+                  fetchAliases,
+                ),
+            ))
+        ) {
+          mutationFetches.add(displayPath);
+        }
+      }
+      const assignedFamily =
+        node.type === "AssignmentExpression" &&
+        isNode(node.left) &&
+        node.left.type === "MemberExpression" &&
+        isNode(node.right)
+          ? {
+              key: resolvedKeyName(node.left, initializers),
+              keyIsDynamic:
+                node.left.computed === true &&
+                resolvedKeyName(node.left, initializers) === undefined,
+              value: node.right,
+            }
+          : undefined;
+      const propertyFamily =
+        node.type === "Property" && isNode(node.value)
+          ? {
+              key: resolvedKeyName(node, initializers),
+              keyIsDynamic:
+                node.computed === true &&
+                resolvedKeyName(node, initializers) === undefined,
+              value: node.value,
+            }
+          : undefined;
+      const familyCandidate = assignedFamily ?? propertyFamily;
+      if (familyCandidate?.keyIsDynamic === true) {
+        unregisteredFamilies.add(`${displayPath}:<dynamic>`);
+      } else if (familyCandidate?.key === "family") {
+        const family = resolveText(familyCandidate.value, initializers);
         if (family === undefined) {
           unregisteredFamilies.add(`${displayPath}:<dynamic>`);
         } else if (!registrations.has(family)) {

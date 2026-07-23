@@ -14,8 +14,8 @@ const receiptId = "2e847567-14e4-49a9-a08c-92151429be8e";
 describe("owner command contracts", () => {
   it("decodes the login and authenticated-session boundaries strictly", () => {
     expect(
-      adminLoginCommandSchema.parse({ password: "owner password" }),
-    ).toEqual({ password: "owner password" });
+      adminLoginCommandSchema.parse({ password: "test-password" }),
+    ).toEqual({ password: "test-password" });
     expect(
       adminSessionResponseSchema.parse({
         authenticated: true,
@@ -30,7 +30,7 @@ describe("owner command contracts", () => {
     });
     expect(() =>
       adminLoginCommandSchema.parse({
-        password: "owner password",
+        password: "test-password",
         role: "admin",
       }),
     ).toThrow(/unrecognized/i);

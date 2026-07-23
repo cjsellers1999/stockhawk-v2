@@ -22,6 +22,15 @@ import {
 type StockHawkDatabase = PostgresJsDatabase<typeof schema>;
 
 export const OWNER_COMMAND_QUEUE = "owner-health-refresh";
+const ownerCommandAdvisoryLockNamespace = 1_397_700_001;
+const terminalJobStates = new Set(["cancelled", "completed", "failed"]);
+
+export class OwnerCommandInFlightError extends Error {
+  constructor() {
+    super("A health refresh command is already queued");
+    this.name = "OwnerCommandInFlightError";
+  }
+}
 
 export type OwnerCommandPersistence = {
   enqueueOwnerCommand: (input: {
@@ -77,6 +86,36 @@ export const createOwnerCommandPersistence = ({
     return receipt === undefined ? null : toReceipt(receipt);
   };
 
+  const reconcileTerminalReceipts = async () => {
+    const queuedReceipts = await database
+      .select({
+        jobId: ownerCommandReceipt.jobId,
+        receiptId: ownerCommandReceipt.stockhawkIdentity,
+      })
+      .from(ownerCommandReceipt)
+      .where(eq(ownerCommandReceipt.status, "queued"));
+
+    await Promise.all(
+      queuedReceipts.map(async (receipt) => {
+        const [job] = await boss.findJobs(OWNER_COMMAND_QUEUE, {
+          id: receipt.jobId,
+        });
+        if (job !== undefined && !terminalJobStates.has(job.state)) {
+          return;
+        }
+        await database
+          .update(ownerCommandReceipt)
+          .set({ failedAt: sql`now()`, status: "failed" })
+          .where(
+            and(
+              eq(ownerCommandReceipt.stockhawkIdentity, receipt.receiptId),
+              eq(ownerCommandReceipt.status, "queued"),
+            ),
+          );
+      }),
+    );
+  };
+
   return {
     enqueueOwnerCommand: async ({
       command: unparsedCommand,
@@ -86,6 +125,36 @@ export const createOwnerCommandPersistence = ({
       const commandHash = fingerprint(command);
 
       return database.transaction(async (transaction) => {
+        await transaction.execute(
+          sql`select pg_advisory_xact_lock(${ownerCommandAdvisoryLockNamespace}, 1)`,
+        );
+        const [existing] = await transaction
+          .select()
+          .from(ownerCommandReceipt)
+          .where(eq(ownerCommandReceipt.idempotencyKey, command.idempotencyKey))
+          .limit(1);
+        if (existing !== undefined) {
+          if (existing.commandHash !== commandHash) {
+            throw new PersistenceConflictError(
+              "Owner command idempotency key was reused with different input",
+            );
+          }
+          return toReceipt(existing);
+        }
+        const [inFlight] = await transaction
+          .select({ id: ownerCommandReceipt.id })
+          .from(ownerCommandReceipt)
+          .where(
+            and(
+              eq(ownerCommandReceipt.commandFamily, command.family),
+              eq(ownerCommandReceipt.status, "queued"),
+            ),
+          )
+          .limit(1);
+        if (inFlight !== undefined) {
+          throw new OwnerCommandInFlightError();
+        }
+
         const receiptId = randomUUID();
         const jobId = randomUUID();
         const [inserted] = await transaction
@@ -104,19 +173,9 @@ export const createOwnerCommandPersistence = ({
           .returning();
 
         if (inserted === undefined) {
-          const [existing] = await transaction
-            .select()
-            .from(ownerCommandReceipt)
-            .where(
-              eq(ownerCommandReceipt.idempotencyKey, command.idempotencyKey),
-            )
-            .limit(1);
-          if (existing === undefined || existing.commandHash !== commandHash) {
-            throw new PersistenceConflictError(
-              "Owner command idempotency key was reused with different input",
-            );
-          }
-          return toReceipt(existing);
+          throw new PersistenceConflictError(
+            "Owner command receipt could not be inserted",
+          );
         }
 
         const queuedJobId = await boss.send(
@@ -160,6 +219,7 @@ export const createOwnerCommandPersistence = ({
     },
     findOwnerCommandByIdempotencyKey: findByIdempotencyKey,
     processNextOwnerCommand: async () => {
+      await reconcileTerminalReceipts();
       const [job] = await boss.fetch<unknown>(OWNER_COMMAND_QUEUE, {
         includeMetadata: true,
       });
@@ -215,12 +275,17 @@ export const createOwnerCommandPersistence = ({
           if (completed === undefined && existing.status !== "completed") {
             throw new Error("Owner command receipt is not queued");
           }
-          await boss.complete(
+          const completion = await boss.complete(
             OWNER_COMMAND_QUEUE,
             job.id,
             { receiptId: payload.receiptId },
             { db: fromStockHawkDrizzle(transaction) },
           );
+          if (!("affected" in completion) || completion.affected !== 1) {
+            throw new Error(
+              "Owner command job completion was not acknowledged",
+            );
+          }
         });
         return true;
       } catch (error) {
