@@ -78,7 +78,6 @@ describe("readiness endpoint", () => {
     expect(response.json()).toEqual(searchResult);
     expect(searchOffers).toHaveBeenCalledWith({
       freshness: "all",
-      match: "all",
       q: ["Sky Dragon", "liltulips.com"],
       stock: "in_stock",
       view: "storefront",

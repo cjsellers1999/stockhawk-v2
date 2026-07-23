@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@source "../../../packages/ui/src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -88,10 +89,18 @@
   --color-information: var(--information);
   --color-information-background: var(--information-background);
   --shadow-sm: var(--shadow);
+  --breakpoint-compact: 26.9375rem;
+  --breakpoint-mobile: 47.5625rem;
+  --container-stockhawk: 93.75rem;
+  --font-weight-ui-label: 550;
+  --font-weight-ui-strong: 650;
+  --radius-control: 6px;
   --radius-sm: 5px;
   --radius-md: 7px;
   --radius-lg: 8px;
   --radius-xl: 12px;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;

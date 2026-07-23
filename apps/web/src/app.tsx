@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { AppShell } from "./features/shell/app-shell.js";
-import { readinessQueryOptions } from "./features/shell/readiness.query.js";
+import { AppShell } from "./features/shell/app-shell";
+import { readinessQueryOptions } from "./features/shell/readiness.query";
 
 export const App = () => {
   const [dark, setDark] = useState(false);

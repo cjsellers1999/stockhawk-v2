@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateOfferSearch } from "./offer-search.js";
+import { validateOfferSearch } from "./offer-search";
 
 describe("Offer route search validation", () => {
   it("preserves independently valid fields when another field is malformed", () => {
@@ -13,7 +13,6 @@ describe("Offer route search validation", () => {
       }),
     ).toEqual({
       freshness: "all",
-      match: "all",
       q: ["Sky Dragon"],
       stock: "all",
       view: "storefront",

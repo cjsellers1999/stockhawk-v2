@@ -32,11 +32,6 @@ export const validateOfferSearch = (
     schema: offerSearchQuerySchema.shape.freshness,
     value: search.freshness,
   }),
-  match: parseSearchField({
-    fallback: defaultOfferSearchQuery.match,
-    schema: offerSearchQuerySchema.shape.match,
-    value: search.match,
-  }),
   q: parseSearchField({
     fallback: defaultOfferSearchQuery.q,
     schema: offerSearchQuerySchema.shape.q,

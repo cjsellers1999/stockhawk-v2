@@ -95,7 +95,7 @@ describe("catalog contracts", () => {
         listing: {
           ...command.listing,
           purchaseUrl:
-            "https://owner:secret@liltulips.com/products/sky-dragon-medium",
+            "https://owner:fake@liltulips.com/products/sky-dragon-medium",
         },
       }),
     ).toThrow(/credentials/i);
@@ -144,21 +144,18 @@ describe("catalog contracts", () => {
     expect(
       offerSearchQuerySchema.parse({
         freshness: "fresh",
-        match: "confirmed",
         q: ["Sky Dragon", "liltulips.com"],
         stock: "in_stock",
         view: "storefront",
       }),
     ).toEqual({
       freshness: "fresh",
-      match: "confirmed",
       q: ["Sky Dragon", "liltulips.com"],
       stock: "in_stock",
       view: "storefront",
     });
     expect(offerSearchQuerySchema.parse({})).toEqual({
       freshness: "all",
-      match: "all",
       q: [],
       stock: "all",
       view: "flat",

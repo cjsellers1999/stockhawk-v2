@@ -1,6 +1,5 @@
+import { Button } from "@stockhawk/ui/button";
 import { RefreshCw } from "lucide-react";
-
-import { Button } from "../../components/ui/button.js";
 
 const summaries = [
   ["Monitoring coverage", "Unassessed"],

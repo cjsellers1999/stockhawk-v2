@@ -1,22 +1,25 @@
-import type { Offer } from "@stockhawk/contracts";
 import { useState } from "react";
 
-import styles from "./offer-thumbnail.module.css";
+type ThumbnailProps = {
+  fallbackAlt: string;
+  imageAlt: string;
+  imageUrl: null | string;
+};
 
-type OfferThumbnailProps = Pick<Offer, "imageUrl" | "rawTitle">;
-
-const ThumbnailContent = ({ imageUrl, rawTitle }: OfferThumbnailProps) => {
+const ThumbnailContent = ({
+  fallbackAlt,
+  imageAlt,
+  imageUrl,
+}: ThumbnailProps) => {
   const [imageFailed, setImageFailed] = useState(false);
   const showFallback = imageUrl === null || imageFailed;
 
   return (
-    <span
-      className={`${styles.thumbnail} relative grid shrink-0 place-items-center overflow-hidden border border-border bg-muted text-muted-foreground`}
-    >
+    <span className="relative grid size-10.5 flex-none place-items-center overflow-hidden rounded-md border border-border bg-muted text-muted-foreground">
       {showFallback ? (
         <svg
-          aria-label={`No image available for ${rawTitle}`}
-          className={styles.placeholder}
+          aria-label={fallbackAlt}
+          className="size-5.5"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
@@ -31,7 +34,7 @@ const ThumbnailContent = ({ imageUrl, rawTitle }: OfferThumbnailProps) => {
         </svg>
       ) : (
         <img
-          alt={`Retailer listing: ${rawTitle}`}
+          alt={imageAlt}
           className="absolute inset-0 size-full object-cover"
           loading="lazy"
           onError={() => setImageFailed(true)}
@@ -42,6 +45,6 @@ const ThumbnailContent = ({ imageUrl, rawTitle }: OfferThumbnailProps) => {
   );
 };
 
-export const OfferThumbnail = (props: OfferThumbnailProps) => (
+export const Thumbnail = (props: ThumbnailProps) => (
   <ThumbnailContent key={props.imageUrl ?? "fallback"} {...props} />
 );

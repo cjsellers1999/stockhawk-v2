@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "module": "Preserve",
+    "noEmit": true,
     "types": ["node"]
   },
   "include": ["vite.config.ts"]

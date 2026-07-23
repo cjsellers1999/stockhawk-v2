@@ -3,16 +3,15 @@ import {
   type Offer,
   type OfferSearchQuery,
 } from "@stockhawk/contracts";
+import { Badge } from "@stockhawk/ui/badge";
+import { Button } from "@stockhawk/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { PackageSearch } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
-import { Button } from "../../components/ui/button.js";
-import badgeStyles from "./components/offer-badge.module.css";
-import { OfferTable } from "./components/offer-table/offer-table.js";
-import { offersQueryOptions } from "./offers.query.js";
-import styles from "./search-page.module.css";
+import { OfferTable } from "./components/offer-table/offer-table";
+import { offersQueryOptions } from "./offers.query";
 
 const noOffers: Offer[] = [];
 
@@ -23,16 +22,25 @@ export const SearchPage = () => {
   const searchQuery = useSearch({ from: "/" });
   const navigate = useNavigate({ from: "/" });
   const [searchInput, setSearchInput] = useState("");
+  const [searchError, setSearchError] = useState<string>();
   const offersQuery = useQuery(offersQueryOptions(searchQuery));
   const offers = offersQuery.data?.items ?? noOffers;
   const total = offersQuery.data?.total ?? 0;
 
   const commitSearch = (patch: Partial<OfferSearchQuery>) => {
-    const nextQuery = offerSearchQuerySchema.parse({
+    const nextQuery = offerSearchQuerySchema.safeParse({
       ...searchQuery,
       ...patch,
     });
-    void navigate({ replace: true, search: nextQuery });
+    if (!nextQuery.success) {
+      setSearchError(
+        "Use up to 20 search terms, each 200 characters or fewer.",
+      );
+      return false;
+    }
+    setSearchError(undefined);
+    void navigate({ replace: true, search: nextQuery.data });
+    return true;
   };
 
   const commitSearchInput = () => {
@@ -41,7 +49,9 @@ export const SearchPage = () => {
       return;
     }
     if (!searchQuery.q.includes(term)) {
-      commitSearch({ q: [...searchQuery.q, term] });
+      if (!commitSearch({ q: [...searchQuery.q, term] })) {
+        return;
+      }
     }
     setSearchInput("");
   };
@@ -69,20 +79,16 @@ export const SearchPage = () => {
             page.
           </p>
         </div>
-        <span
-          className={`${badgeStyles.badge} inline-flex items-center bg-secondary text-secondary-foreground`}
-        >
+        <Badge className="bg-secondary text-secondary-foreground">
           {offerCountLabel(total)}
-        </span>
+        </Badge>
       </div>
 
       <form
         className="mb-3 flex gap-3 max-sm:flex-col"
         onSubmit={addSearchTerm}
       >
-        <div
-          className={`${styles.searchBox} flex flex-1 flex-wrap items-center border border-input bg-background`}
-        >
+        <div className="flex min-h-10.5 flex-1 flex-wrap items-center gap-2 rounded-md border border-input bg-background py-1.25 pr-2 pl-3 focus-within:outline-1 focus-within:outline-ring">
           <PackageSearch
             aria-hidden="true"
             className="text-muted-foreground"
@@ -90,13 +96,13 @@ export const SearchPage = () => {
           />
           {searchQuery.q.map((term) => (
             <span
-              className={`${styles.chip} inline-flex items-center bg-secondary whitespace-nowrap`}
+              className="inline-flex items-center gap-1.25 rounded-sm bg-secondary px-1.75 py-0.75 text-xs whitespace-nowrap"
               key={term}
             >
               {term}
               <button
                 aria-label={`Remove ${term}`}
-                className={`${styles.chipButton} cursor-pointer border-0 bg-transparent text-muted-foreground`}
+                className="size-4 cursor-pointer border-0 bg-transparent p-0 text-muted-foreground"
                 onClick={() => removeSearchTerm(term)}
                 type="button"
               >
@@ -108,6 +114,10 @@ export const SearchPage = () => {
             Match any product, retailer, or URL
           </label>
           <input
+            aria-describedby={
+              searchError === undefined ? undefined : "offer-search-error"
+            }
+            aria-invalid={searchError === undefined ? undefined : true}
             className="min-w-24 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
             id="offer-search-input"
             onChange={(event) => setSearchInput(event.currentTarget.value)}
@@ -124,11 +134,11 @@ export const SearchPage = () => {
         </div>
         <fieldset
           aria-label="View mode"
-          className={`${styles.segmented} inline-flex self-start border border-input bg-background`}
+          className="inline-flex self-start rounded-md border border-input bg-background p-0.5"
         >
           <Button
             aria-pressed={searchQuery.view === "flat"}
-            className={`${styles.segmentedButton} ${searchQuery.view === "flat" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
+            className={`h-7 rounded-sm border-0 px-2.5 text-xs font-semibold ${searchQuery.view === "flat" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
             onClick={() => commitSearch({ view: "flat" })}
             type="button"
             variant="ghost"
@@ -137,7 +147,7 @@ export const SearchPage = () => {
           </Button>
           <Button
             aria-pressed={searchQuery.view === "storefront"}
-            className={`${styles.segmentedButton} ${searchQuery.view === "storefront" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
+            className={`h-7 rounded-sm border-0 px-2.5 text-xs font-semibold ${searchQuery.view === "storefront" ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground shadow-none"}`}
             onClick={() => commitSearch({ view: "storefront" })}
             type="button"
             variant="ghost"
@@ -146,11 +156,20 @@ export const SearchPage = () => {
           </Button>
         </fieldset>
       </form>
+      {searchError === undefined ? null : (
+        <p
+          className="mb-3 text-sm text-danger"
+          id="offer-search-error"
+          role="alert"
+        >
+          {searchError}
+        </p>
+      )}
 
       <div className="mb-4 flex items-center gap-2 max-sm:flex-col max-sm:items-stretch">
         <select
           aria-label="Stock status"
-          className={`${styles.filterField} border border-input bg-background`}
+          className="h-8.5 rounded-control border border-input bg-background py-0 pr-7 pl-2.5 text-xs"
           onChange={(event) =>
             commitSearch({
               stock: offerSearchQuerySchema.shape.stock.parse(
@@ -167,24 +186,8 @@ export const SearchPage = () => {
           <option value="unknown">Unknown</option>
         </select>
         <select
-          aria-label="Match status"
-          className={`${styles.filterField} border border-input bg-background`}
-          onChange={(event) =>
-            commitSearch({
-              match: offerSearchQuerySchema.shape.match.parse(
-                event.currentTarget.value,
-              ),
-            })
-          }
-          value={searchQuery.match}
-        >
-          <option value="all">Confirmed + Provisional</option>
-          <option value="confirmed">Confirmed only</option>
-          <option value="provisional">Provisional only</option>
-        </select>
-        <select
           aria-label="Freshness"
-          className={`${styles.filterField} border border-input bg-background`}
+          className="h-8.5 rounded-control border border-input bg-background py-0 pr-7 pl-2.5 text-xs"
           onChange={(event) =>
             commitSearch({
               freshness: offerSearchQuerySchema.shape.freshness.parse(
@@ -211,9 +214,7 @@ export const SearchPage = () => {
           loading={offersQuery.isPending}
           view={searchQuery.view}
         />
-        <div
-          className={`${styles.tableFoot} flex items-center justify-between border-t border-border text-xs text-muted-foreground`}
-        >
+        <div className="flex min-h-13.5 items-center justify-between gap-3 border-t border-border px-3 py-2.5 text-xs text-muted-foreground">
           <span>
             Showing {offers.length.toLocaleString("en-US")} of{" "}
             {total.toLocaleString("en-US")} distinct offers
@@ -221,23 +222,19 @@ export const SearchPage = () => {
           <nav aria-label="Pagination" className="flex gap-1">
             <Button
               aria-label="Previous page"
-              className={`${styles.pagerButton} h-8`}
+              className="size-8 p-0"
               disabled
               type="button"
               variant="ghost"
             >
               ‹
             </Button>
-            <Button
-              aria-current="page"
-              className={`${styles.pagerButton} h-8`}
-              type="button"
-            >
+            <Button aria-current="page" className="size-8 p-0" type="button">
               1
             </Button>
             <Button
               aria-label="Next page"
-              className={`${styles.pagerButton} h-8`}
+              className="size-8 p-0"
               disabled
               type="button"
               variant="ghost"

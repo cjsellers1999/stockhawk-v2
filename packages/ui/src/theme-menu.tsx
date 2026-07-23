@@ -2,7 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Moon, Sun } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "./button.js";
+import { Button } from "./button";
 
 type ThemeMenuProps = {
   dark: boolean;

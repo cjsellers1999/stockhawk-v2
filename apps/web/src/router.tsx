@@ -7,12 +7,12 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 
-import { App } from "./app.js";
-import { HealthPage } from "./features/health/health-page.js";
+import { App } from "./app";
+import { HealthPage } from "./features/health/health-page";
 import {
   defaultOfferSearchQuery,
   validateOfferSearch,
-} from "./features/search/offer-search.js";
+} from "./features/search/offer-search";
 
 const rootRoute = createRootRoute({
   component: App,
@@ -21,7 +21,7 @@ const rootRoute = createRootRoute({
 
 const searchRoute = createRoute({
   component: lazyRouteComponent(
-    () => import("./features/search/search-page.js"),
+    () => import("./features/search/search-page"),
     "SearchPage",
   ),
   getParentRoute: () => rootRoute,

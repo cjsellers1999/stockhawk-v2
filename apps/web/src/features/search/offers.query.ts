@@ -4,7 +4,7 @@ import {
 } from "@stockhawk/contracts";
 import { queryOptions } from "@tanstack/react-query";
 
-import { searchQueryKeys } from "./search.query-keys.js";
+import { searchQueryKeys } from "./search.query-keys";
 
 const encodeOfferApiQuery = (query: OfferSearchQuery) => {
   const parameters = new URLSearchParams();
@@ -13,9 +13,6 @@ const encodeOfferApiQuery = (query: OfferSearchQuery) => {
   }
   if (query.freshness !== "all") {
     parameters.set("freshness", query.freshness);
-  }
-  if (query.match !== "all") {
-    parameters.set("match", query.match);
   }
   if (query.stock !== "all") {
     parameters.set("stock", query.stock);

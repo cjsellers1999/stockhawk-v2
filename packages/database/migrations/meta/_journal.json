@@ -50,6 +50,13 @@
       "when": 1784778009102,
       "tag": "0006_record_listing_reappearance",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784786756565,
+      "tag": "0007_quiet_the_hunter",
+      "breakpoints": true
     }
   ]
 }

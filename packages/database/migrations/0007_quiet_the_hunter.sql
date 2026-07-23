@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "retailer_listing_observation_listing_order_unique" ON "retailer_listing_observation" USING btree ("retailer_listing_id","observation_order");--> statement-breakpoint
+CREATE UNIQUE INDEX "stock_observation_listing_order_unique" ON "stock_observation" USING btree ("retailer_listing_id","observation_order");

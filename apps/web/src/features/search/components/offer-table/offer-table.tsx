@@ -1,21 +1,15 @@
 import type { Offer, OfferSearchQuery } from "@stockhawk/contracts";
+import { Badge } from "@stockhawk/ui/badge";
+import { Table } from "@stockhawk/ui/table";
+import { TableBody } from "@stockhawk/ui/table-body";
+import { TableCell } from "@stockhawk/ui/table-cell";
+import { TableHead } from "@stockhawk/ui/table-head";
+import { TableHeader } from "@stockhawk/ui/table-header";
+import { TableRow } from "@stockhawk/ui/table-row";
 import { FlexRender, useTable, type Row } from "@tanstack/react-table";
 import { Fragment } from "react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../../components/ui/table.js";
-import badgeStyles from "../offer-badge.module.css";
-import {
-  offerTableColumns,
-  offerTableFeatures,
-} from "./offer-table-columns.js";
-import styles from "./offer-table.module.css";
+import { offerTableColumns, offerTableFeatures } from "./offer-table-columns";
 
 type OfferTableProps = {
   data: Offer[];
@@ -30,10 +24,7 @@ const offerCountLabel = (count: number) =>
 const renderOfferRow = (row: Row<typeof offerTableFeatures, Offer>) => (
   <TableRow key={row.id}>
     {row.getAllCells().map((cell) => (
-      <TableCell
-        className={`${styles.bodyCell} whitespace-normal`}
-        key={cell.id}
-      >
+      <TableCell className="px-3 py-2.75 whitespace-normal" key={cell.id}>
         <FlexRender cell={cell} />
       </TableCell>
     ))}
@@ -80,7 +71,7 @@ export const OfferTable = ({
           <TableRow className="hover:bg-transparent" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
               <TableHead
-                className={`${styles.headerCell} h-auto text-muted-foreground`}
+                className="h-auto px-3 py-2.75 text-2xs font-ui-strong text-muted-foreground"
                 key={header.id}
               >
                 {header.isPlaceholder ? null : (
@@ -108,15 +99,13 @@ export const OfferTable = ({
             <Fragment key={key}>
               <TableRow className="bg-muted hover:bg-muted">
                 <TableCell
-                  className={styles.groupCell}
+                  className="px-3 py-2.25 font-ui-strong"
                   colSpan={offerTableColumns.length}
                 >
                   {group.label}{" "}
-                  <span
-                    className={`${badgeStyles.badge} inline-flex items-center bg-secondary text-secondary-foreground`}
-                  >
+                  <Badge className="bg-secondary text-secondary-foreground">
                     {offerCountLabel(group.rows.length)}
-                  </span>
+                  </Badge>
                 </TableCell>
               </TableRow>
               {group.rows.map(renderOfferRow)}

@@ -114,7 +114,6 @@ const searchTermsSchema = z.preprocess(
 export const offerSearchQuerySchema = z
   .object({
     freshness: z.enum(["all", "fresh", "stale"]).default("all"),
-    match: z.enum(["all", "confirmed", "provisional"]).default("all"),
     q: searchTermsSchema,
     stock: z
       .enum(["all", "in_stock", "out_of_stock", "preorder", "unknown"])

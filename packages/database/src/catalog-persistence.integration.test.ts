@@ -305,6 +305,66 @@ describe("catalog Persistence Boundary", () => {
     ).resolves.toHaveLength(2);
   });
 
+  it("rejects conflicting facts at the same listing observation order", async () => {
+    const catalogDatabase = getDatabase();
+    const baseCommand = commandForListing("duplicate_order");
+    const initialCommand = {
+      ...baseCommand,
+      listing: {
+        ...baseCommand.listing,
+        rawTitle: "Duplicate Order Dragon — Medium",
+      },
+      observationOrder: 10,
+    } satisfies CommitObservationBatchCommand;
+    const conflictingCommand = {
+      ...nextObservation({
+        observedAt: "2026-07-22T20:00:00.000Z",
+        observationOrder: 10,
+        prior: initialCommand,
+        status: "out_of_stock",
+        suffix: "duplicate_order_conflict",
+      }),
+      listing: {
+        ...initialCommand.listing,
+        rawTitle: "Conflicting Dragon — Medium",
+      },
+    } satisfies CommitObservationBatchCommand;
+
+    await catalogDatabase.commitObservationBatch(initialCommand);
+
+    await expect(
+      catalogDatabase.commitObservationBatch(conflictingCommand),
+    ).rejects.toThrow(/Retailer Listing Observation identity conflict/);
+    await expect(
+      catalogDatabase.readStockObservationHistory({
+        listingIdentity: initialCommand.listing.identity,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        observationOrder: 10,
+        status: initialCommand.stock.status,
+      }),
+    ]);
+    await expect(
+      catalogDatabase.searchOffers({
+        freshness: "all",
+        q: [initialCommand.listing.rawTitle],
+        stock: "all",
+        view: "flat",
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            rawTitle: initialCommand.listing.rawTitle,
+            stockStatus: initialCommand.stock.status,
+          }),
+        ],
+        total: 1,
+      }),
+    );
+  });
+
   it("serializes concurrent out-of-order listing facts without regressing current truth", async () => {
     const catalogDatabase = getDatabase();
     const initialCommand = {
@@ -803,7 +863,6 @@ describe("catalog Persistence Boundary", () => {
 
       const result = await catalogDatabase.searchOffers({
         freshness: "all",
-        match: "all",
         q: ["liltulips.com"],
         stock: "all",
         view: "flat",
@@ -863,7 +922,6 @@ describe("catalog Persistence Boundary", () => {
       await expect(
         catalogDatabase.searchOffers({
           freshness: "all",
-          match: "all",
           q: [initialCommand.listing.rawTitle],
           stock: "all",
           view: "flat",
@@ -951,7 +1009,6 @@ describe("catalog Persistence Boundary", () => {
       await expect(
         catalogDatabase.searchOffers({
           freshness: "all",
-          match: "all",
           q: [initialCommand.listing.rawTitle],
           stock: "all",
           view: "flat",

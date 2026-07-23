@@ -10,7 +10,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createAppRouter } from "../../router.js";
+import { createAppRouter } from "../../router";
 
 const searchResult = {
   items: [
@@ -136,7 +136,6 @@ describe("Offer search table", () => {
       router.state.matches.find((match) => match.routeId === "/")?.search,
     ).toEqual({
       freshness: "all",
-      match: "all",
       q: ["Sky Dragon"],
       stock: "in_stock",
       view: "storefront",
@@ -147,5 +146,31 @@ describe("Offer search table", () => {
     expect(
       screen.getByRole("button", { name: "Remove Sky Dragon" }),
     ).toBeInTheDocument();
+  });
+
+  it("keeps invalid search terms editable and explains the limit", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify(searchResult), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        }),
+      ),
+    );
+    const { router } = renderSearchPage();
+    const user = userEvent.setup();
+    const searchbox = await screen.findByRole("searchbox", {
+      name: "Match any product, retailer, or URL",
+    });
+    const oversizedTerm = "x".repeat(201);
+
+    await user.type(searchbox, `${oversizedTerm}{Enter}`);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Use up to 20 search terms, each 200 characters or fewer.",
+    );
+    expect(searchbox).toHaveValue(oversizedTerm);
+    expect(router.state.location.search).toEqual({});
   });
 });

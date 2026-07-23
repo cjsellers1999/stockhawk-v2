@@ -178,6 +178,10 @@ export const retailerListingObservation = pgTable(
       table.batchId,
       table.retailerListingId,
     ),
+    uniqueIndex("retailer_listing_observation_listing_order_unique").on(
+      table.retailerListingId,
+      table.observationOrder,
+    ),
     unique("retailer_listing_observation_event_facts_unique").on(
       table.id,
       table.batchId,
@@ -318,6 +322,10 @@ export const stockObservation = pgTable(
     uniqueIndex("stock_observation_batch_listing_unique").on(
       table.batchId,
       table.retailerListingId,
+    ),
+    uniqueIndex("stock_observation_listing_order_unique").on(
+      table.retailerListingId,
+      table.observationOrder,
     ),
     unique("stock_observation_current_state_facts_unique").on(
       table.id,

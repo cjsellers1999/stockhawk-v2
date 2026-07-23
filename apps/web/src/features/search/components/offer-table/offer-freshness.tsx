@@ -1,8 +1,6 @@
 import type { Offer } from "@stockhawk/contracts";
 import { useEffect, useState } from "react";
 
-import styles from "./offer-table.module.css";
-
 const checkedAtFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -42,14 +40,14 @@ export const OfferFreshness = ({ offer }: { offer: Offer }) => {
   const stale = ageMilliseconds > targetMinutes * 60_000;
 
   return (
-    <div className={`${styles.fresh} ${stale ? "text-warning" : ""}`}>
+    <div className={`text-xs whitespace-nowrap ${stale ? "text-warning" : ""}`}>
       <time
         dateTime={offer.lastCheckedAt}
         title={checkedAtFormatter.format(checkedAt)}
       >
         {ageLabel(ageMinutes)}
       </time>
-      <span className={`${styles.freshDetail} text-muted-foreground`}>
+      <span className="block text-2xs text-muted-foreground">
         {stale
           ? "Overdue · prior status retained"
           : `Target ${targetMinutes} min`}

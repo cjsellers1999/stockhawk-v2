@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { StockBadge } from "./stock-badge.js";
+import { StockBadge } from "./stock-badge";
 
 afterEach(cleanup);
 

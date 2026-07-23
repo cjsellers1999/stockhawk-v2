@@ -44,9 +44,6 @@ export const createOfferSearch = (
     if (query.stock !== "all") {
       conditions.push(eq(searchDocument.stockStatus, query.stock));
     }
-    if (query.match === "provisional") {
-      conditions.push(sql`false`);
-    }
     if (query.freshness === "fresh") {
       conditions.push(sql`not (${isStale})`);
     } else if (query.freshness === "stale") {

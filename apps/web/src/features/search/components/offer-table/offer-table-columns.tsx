@@ -1,12 +1,11 @@
 import type { Offer } from "@stockhawk/contracts";
+import { Badge } from "@stockhawk/ui/badge";
+import { Thumbnail } from "@stockhawk/ui/thumbnail";
 import { createColumnHelper, tableFeatures } from "@tanstack/react-table";
 import { ExternalLink } from "lucide-react";
 
-import badgeStyles from "../offer-badge.module.css";
-import { OfferThumbnail } from "../offer-thumbnail/offer-thumbnail.js";
-import { StockBadge } from "../stock-badge.js";
-import { OfferFreshness } from "./offer-freshness.js";
-import styles from "./offer-table.module.css";
+import { StockBadge } from "../stock-badge";
+import { OfferFreshness } from "./offer-freshness";
 
 export const offerTableFeatures = tableFeatures({});
 const columnHelper = createColumnHelper<typeof offerTableFeatures, Offer>();
@@ -21,15 +20,17 @@ export const offerTableColumns = columnHelper.columns([
           ? exactVariant
           : `${offer.canonicalProductName} · ${exactVariant}`;
       return (
-        <div className={`${styles.product} flex items-center`}>
-          <OfferThumbnail imageUrl={offer.imageUrl} rawTitle={offer.rawTitle} />
+        <div className="flex min-w-62.5 items-center gap-2.5">
+          <Thumbnail
+            fallbackAlt={`No image available for ${offer.rawTitle}`}
+            imageAlt={`Retailer listing: ${offer.rawTitle}`}
+            imageUrl={offer.imageUrl}
+          />
           <div className="min-w-0">
-            <div className={`${styles.productTitle} whitespace-normal`}>
+            <div className="leading-tight font-ui-strong whitespace-normal">
               {offer.rawTitle}
             </div>
-            <div
-              className={`${styles.canonical} whitespace-normal text-muted-foreground`}
-            >
+            <div className="mt-0.75 text-2xs whitespace-normal text-muted-foreground">
               {secondaryLabel}
             </div>
           </div>
@@ -40,9 +41,9 @@ export const offerTableColumns = columnHelper.columns([
   }),
   columnHelper.accessor("storefrontName", {
     cell: ({ row }) => (
-      <div className={styles.store}>
-        <div className={styles.storeName}>{row.original.storefrontName}</div>
-        <div className={`${styles.storeUrl} text-muted-foreground`}>
+      <div className="min-w-36.25">
+        <div className="font-ui-label">{row.original.storefrontName}</div>
+        <div className="text-2xs text-muted-foreground">
           {row.original.storefrontHostname}
         </div>
       </div>
@@ -55,11 +56,9 @@ export const offerTableColumns = columnHelper.columns([
   }),
   columnHelper.accessor("matchStatus", {
     cell: () => (
-      <span
-        className={`${badgeStyles.badge} inline-flex items-center bg-secondary text-secondary-foreground`}
-      >
+      <Badge className="bg-secondary text-secondary-foreground">
         Confirmed
-      </span>
+      </Badge>
     ),
     header: "Match",
   }),
@@ -76,7 +75,7 @@ export const offerTableColumns = columnHelper.columns([
           : "View";
       return (
         <a
-          className={`${styles.actionLink} inline-flex items-center justify-center border border-input bg-background shadow-sm transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none`}
+          className="inline-flex h-8 items-center justify-center gap-1.75 rounded-control border border-input bg-background px-2.75 text-xs font-semibold shadow-sm transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
           href={offer.purchaseUrl}
           rel="noopener noreferrer"
           target="_blank"
