@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { format } from "prettier";
+
 const workspace = resolve(import.meta.dirname, "..");
 const git = (...arguments_) =>
   execFileSync("git", arguments_, { cwd: workspace, encoding: "utf8" }).trim();
@@ -78,8 +80,11 @@ const evidence = {
 };
 
 await mkdir(evidenceDirectory, { recursive: true });
+const formattedEvidence = await format(JSON.stringify(evidence), {
+  parser: "json",
+});
 await writeFile(
   resolve(evidenceDirectory, "owner-command.json"),
-  `${JSON.stringify(evidence, null, 2)}\n`,
+  formattedEvidence,
   "utf8",
 );

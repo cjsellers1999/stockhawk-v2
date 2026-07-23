@@ -19,10 +19,7 @@
       "static mutation ownership and command registration",
       "built Chromium login, queued intent, worker reconciliation, and axe"
     ],
-    "runners": [
-      "vitest@4.1.10",
-      "playwright@1.61.1"
-    ]
+    "runners": ["vitest@4.1.10", "playwright@1.61.1"]
   },
   "verificationCommands": [
     "pnpm format:check",
