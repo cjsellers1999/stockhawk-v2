@@ -1,5 +1,6 @@
 CREATE TABLE "catalog_match" (
 	"active" boolean DEFAULT true NOT NULL,
+	"evidence_artifact_id" bigint NOT NULL,
 	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "catalog_match_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
 	"match_authority" text NOT NULL,
 	"matched_at" timestamp with time zone NOT NULL,
@@ -28,8 +29,35 @@ CREATE TABLE "change_event" (
 	"stream_position" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "change_event_stream_position_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
 	CONSTRAINT "change_event_causal_idempotency_key_unique" UNIQUE("causal_idempotency_key"),
 	CONSTRAINT "change_event_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
-	CONSTRAINT "change_event_event_type_check" CHECK ("change_event"."event_type" in ('listing_discovered', 'stock_status_changed')),
+	CONSTRAINT "change_event_event_type_check" CHECK ("change_event"."event_type" in ('listing_discovered', 'listing_reappeared', 'stock_status_changed')),
+	CONSTRAINT "change_event_payload_check" CHECK ((
+        "change_event"."event_type" = 'listing_discovered'
+        and "change_event"."listing_observation_id" is not null
+        and "change_event"."stock_observation_id" is null
+        and "change_event"."previous_value" is null
+        and "change_event"."new_value" = 'active'
+      ) or (
+        "change_event"."event_type" = 'listing_reappeared'
+        and "change_event"."listing_observation_id" is not null
+        and "change_event"."stock_observation_id" is null
+        and "change_event"."previous_value" = 'inactive'
+        and "change_event"."new_value" = 'active'
+      ) or (
+        "change_event"."event_type" = 'stock_status_changed'
+        and "change_event"."listing_observation_id" is not null
+        and "change_event"."stock_observation_id" is not null
+        and "change_event"."previous_value" is not null
+        and "change_event"."previous_value" in ('in_stock', 'out_of_stock', 'preorder', 'unknown')
+        and "change_event"."new_value" in ('in_stock', 'out_of_stock', 'preorder', 'unknown')
+        and "change_event"."previous_value" <> "change_event"."new_value"
+      )),
 	CONSTRAINT "change_event_schema_version_check" CHECK ("change_event"."schema_version" = 1)
+);
+--> statement-breakpoint
+CREATE TABLE "current_listing_state" (
+	"listing_observation_id" bigint NOT NULL,
+	"retailer_listing_id" bigint PRIMARY KEY NOT NULL,
+	CONSTRAINT "current_listing_state_listing_observation_id_unique" UNIQUE("listing_observation_id")
 );
 --> statement-breakpoint
 CREATE TABLE "current_stock_state" (
@@ -52,6 +80,7 @@ CREATE TABLE "observation_batch" (
 	"schema_version" integer NOT NULL,
 	"stockhawk_identity" text NOT NULL,
 	CONSTRAINT "observation_batch_idempotency_key_unique" UNIQUE("idempotency_key"),
+	CONSTRAINT "observation_batch_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
 	CONSTRAINT "observation_batch_command_hash_check" CHECK ("observation_batch"."command_hash" ~ '^[a-f0-9]{64}$'),
 	CONSTRAINT "observation_batch_schema_version_check" CHECK ("observation_batch"."schema_version" = 1)
 );
@@ -66,13 +95,8 @@ CREATE TABLE "product" (
 );
 --> statement-breakpoint
 CREATE TABLE "retailer_listing" (
-	"current_observation_order" bigint NOT NULL,
-	"current_observed_at" timestamp with time zone NOT NULL,
 	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "retailer_listing_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
-	"image_url" text,
 	"listing_presence" text NOT NULL,
-	"purchase_url" text NOT NULL,
-	"raw_title" text NOT NULL,
 	"source_identity_namespace" text NOT NULL,
 	"source_identity_rule_version" integer NOT NULL,
 	"source_identity_value" text NOT NULL,
@@ -80,8 +104,7 @@ CREATE TABLE "retailer_listing" (
 	"storefront_id" bigint NOT NULL,
 	CONSTRAINT "retailer_listing_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
 	CONSTRAINT "retailer_listing_presence_check" CHECK ("retailer_listing"."listing_presence" in ('active', 'inactive')),
-	CONSTRAINT "retailer_listing_source_rule_version_check" CHECK ("retailer_listing"."source_identity_rule_version" > 0),
-	CONSTRAINT "retailer_listing_observation_order_check" CHECK ("retailer_listing"."current_observation_order" >= 0)
+	CONSTRAINT "retailer_listing_source_rule_version_check" CHECK ("retailer_listing"."source_identity_rule_version" > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "retailer_listing_observation" (
@@ -96,6 +119,8 @@ CREATE TABLE "retailer_listing_observation" (
 	"retailer_listing_id" bigint NOT NULL,
 	"stockhawk_identity" text NOT NULL,
 	CONSTRAINT "retailer_listing_observation_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
+	CONSTRAINT "retailer_listing_observation_event_facts_unique" UNIQUE("id","batch_id","retailer_listing_id","observed_at"),
+	CONSTRAINT "retailer_listing_observation_id_listing_unique" UNIQUE("id","retailer_listing_id"),
 	CONSTRAINT "retailer_listing_observation_order_check" CHECK ("retailer_listing_observation"."observation_order" >= 0)
 );
 --> statement-breakpoint
@@ -147,7 +172,8 @@ CREATE TABLE "stock_observation" (
 	"status" text NOT NULL,
 	"stockhawk_identity" text NOT NULL,
 	CONSTRAINT "stock_observation_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
-	CONSTRAINT "stock_observation_id_listing_unique" UNIQUE("id","retailer_listing_id"),
+	CONSTRAINT "stock_observation_current_state_facts_unique" UNIQUE("id","retailer_listing_id","observation_order","observed_at","status"),
+	CONSTRAINT "stock_observation_event_facts_unique" UNIQUE("id","batch_id","retailer_listing_id","observed_at","status"),
 	CONSTRAINT "stock_observation_status_check" CHECK ("stock_observation"."status" in ('in_stock', 'out_of_stock', 'preorder', 'unknown')),
 	CONSTRAINT "stock_observation_order_check" CHECK ("stock_observation"."observation_order" >= 0)
 );
@@ -164,13 +190,18 @@ CREATE TABLE "storefront" (
 --> statement-breakpoint
 ALTER TABLE "catalog_match" ADD CONSTRAINT "catalog_match_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."product"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog_match" ADD CONSTRAINT "catalog_match_retailer_listing_id_retailer_listing_id_fk" FOREIGN KEY ("retailer_listing_id") REFERENCES "public"."retailer_listing"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog_match" ADD CONSTRAINT "catalog_match_evidence_fk" FOREIGN KEY ("evidence_artifact_id") REFERENCES "public"."source_evidence_artifact"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "change_event" ADD CONSTRAINT "change_event_batch_id_observation_batch_id_fk" FOREIGN KEY ("batch_id") REFERENCES "public"."observation_batch"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "change_event" ADD CONSTRAINT "change_event_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."product"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "change_event" ADD CONSTRAINT "change_event_retailer_listing_id_retailer_listing_id_fk" FOREIGN KEY ("retailer_listing_id") REFERENCES "public"."retailer_listing"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "change_event" ADD CONSTRAINT "change_event_stock_observation_id_stock_observation_id_fk" FOREIGN KEY ("stock_observation_id") REFERENCES "public"."stock_observation"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "change_event" ADD CONSTRAINT "change_event_listing_observation_fk" FOREIGN KEY ("listing_observation_id") REFERENCES "public"."retailer_listing_observation"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "change_event" ADD CONSTRAINT "change_event_listing_causality_fk" FOREIGN KEY ("listing_observation_id","batch_id","retailer_listing_id","effective_at") REFERENCES "public"."retailer_listing_observation"("id","batch_id","retailer_listing_id","observed_at") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "change_event" ADD CONSTRAINT "change_event_stock_causality_fk" FOREIGN KEY ("stock_observation_id","batch_id","retailer_listing_id","effective_at","new_value") REFERENCES "public"."stock_observation"("id","batch_id","retailer_listing_id","observed_at","status") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "current_listing_state" ADD CONSTRAINT "current_listing_state_listing_fk" FOREIGN KEY ("retailer_listing_id") REFERENCES "public"."retailer_listing"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "current_listing_state" ADD CONSTRAINT "current_listing_state_observation_listing_fk" FOREIGN KEY ("listing_observation_id","retailer_listing_id") REFERENCES "public"."retailer_listing_observation"("id","retailer_listing_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "current_stock_state" ADD CONSTRAINT "current_stock_state_retailer_listing_id_retailer_listing_id_fk" FOREIGN KEY ("retailer_listing_id") REFERENCES "public"."retailer_listing"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "current_stock_state" ADD CONSTRAINT "current_stock_state_observation_listing_fk" FOREIGN KEY ("stock_observation_id","retailer_listing_id") REFERENCES "public"."stock_observation"("id","retailer_listing_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "current_stock_state" ADD CONSTRAINT "current_stock_state_observation_facts_fk" FOREIGN KEY ("stock_observation_id","retailer_listing_id","observation_order","observed_at","status") REFERENCES "public"."stock_observation"("id","retailer_listing_id","observation_order","observed_at","status") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "retailer_listing" ADD CONSTRAINT "retailer_listing_storefront_id_storefront_id_fk" FOREIGN KEY ("storefront_id") REFERENCES "public"."storefront"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "retailer_listing_observation" ADD CONSTRAINT "listing_observation_batch_fk" FOREIGN KEY ("batch_id") REFERENCES "public"."observation_batch"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "retailer_listing_observation" ADD CONSTRAINT "listing_observation_evidence_fk" FOREIGN KEY ("evidence_artifact_id") REFERENCES "public"."source_evidence_artifact"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -182,6 +213,7 @@ ALTER TABLE "stock_observation" ADD CONSTRAINT "stock_observation_batch_fk" FORE
 ALTER TABLE "stock_observation" ADD CONSTRAINT "stock_observation_evidence_fk" FOREIGN KEY ("evidence_artifact_id") REFERENCES "public"."source_evidence_artifact"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "stock_observation" ADD CONSTRAINT "stock_observation_listing_fk" FOREIGN KEY ("retailer_listing_id") REFERENCES "public"."retailer_listing"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "catalog_match_active_listing_unique" ON "catalog_match" USING btree ("retailer_listing_id") WHERE "catalog_match"."active";--> statement-breakpoint
+CREATE INDEX "catalog_match_evidence_artifact_id_idx" ON "catalog_match" USING btree ("evidence_artifact_id");--> statement-breakpoint
 CREATE INDEX "catalog_match_product_id_idx" ON "catalog_match" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "catalog_match_retailer_listing_id_idx" ON "catalog_match" USING btree ("retailer_listing_id");--> statement-breakpoint
 CREATE INDEX "change_event_batch_id_idx" ON "change_event" USING btree ("batch_id");--> statement-breakpoint
@@ -189,15 +221,52 @@ CREATE INDEX "change_event_listing_observation_id_idx" ON "change_event" USING b
 CREATE INDEX "change_event_product_id_idx" ON "change_event" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "change_event_retailer_listing_id_idx" ON "change_event" USING btree ("retailer_listing_id");--> statement-breakpoint
 CREATE INDEX "change_event_stock_observation_id_idx" ON "change_event" USING btree ("stock_observation_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "observation_batch_run_identity_unique" ON "observation_batch" USING btree ("run_identity","stockhawk_identity");--> statement-breakpoint
 CREATE UNIQUE INDEX "retailer_listing_source_identity_unique" ON "retailer_listing" USING btree ("storefront_id","source_identity_namespace","source_identity_value");--> statement-breakpoint
 CREATE INDEX "retailer_listing_storefront_id_idx" ON "retailer_listing" USING btree ("storefront_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "retailer_listing_observation_batch_item_unique" ON "retailer_listing_observation" USING btree ("batch_id","retailer_listing_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "retailer_listing_observation_listing_order_unique" ON "retailer_listing_observation" USING btree ("retailer_listing_id","observation_order");--> statement-breakpoint
 CREATE INDEX "retailer_listing_observation_evidence_artifact_id_idx" ON "retailer_listing_observation" USING btree ("evidence_artifact_id");--> statement-breakpoint
 CREATE INDEX "retailer_listing_observation_retailer_listing_id_idx" ON "retailer_listing_observation" USING btree ("retailer_listing_id");--> statement-breakpoint
 CREATE INDEX "search_document_product_id_idx" ON "search_document" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "search_document_storefront_id_idx" ON "search_document" USING btree ("storefront_id");--> statement-breakpoint
 CREATE INDEX "search_document_offer_freshness_idx" ON "search_document" USING btree ("last_checked_at" DESC NULLS LAST,"retailer_listing_id") WHERE "search_document"."classification" = 'offer' and "search_document"."match_status" = 'confirmed' and "search_document"."listing_presence" = 'active';--> statement-breakpoint
 CREATE UNIQUE INDEX "stock_observation_batch_listing_unique" ON "stock_observation" USING btree ("batch_id","retailer_listing_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "stock_observation_listing_order_unique" ON "stock_observation" USING btree ("retailer_listing_id","observation_order");--> statement-breakpoint
 CREATE INDEX "stock_observation_evidence_artifact_id_idx" ON "stock_observation" USING btree ("evidence_artifact_id");--> statement-breakpoint
-CREATE INDEX "stock_observation_retailer_listing_id_idx" ON "stock_observation" USING btree ("retailer_listing_id");
+CREATE INDEX "stock_observation_retailer_listing_id_idx" ON "stock_observation" USING btree ("retailer_listing_id");--> statement-breakpoint
+CREATE VIEW "public"."search_document_source" AS (
+  select
+    matched_product.canonical_name as canonical_product_name,
+    'offer'::text as classification,
+    listing_observation.image_url,
+    stock.observed_at as last_checked_at,
+    listing.stockhawk_identity as listing_identity,
+    listing.listing_presence,
+    'confirmed'::text as match_status,
+    matched_product.id as product_id,
+    1::integer as projection_version,
+    listing_observation.purchase_url,
+    listing_observation.raw_title,
+    listing.id as retailer_listing_id,
+    stock.status as stock_status,
+    matched_storefront.hostname as storefront_hostname,
+    matched_storefront.id as storefront_id,
+    matched_storefront.name as storefront_name,
+    now() as updated_at,
+    matched_product.variant
+  from retailer_listing as listing
+  inner join current_listing_state as listing_state
+    on listing_state.retailer_listing_id = listing.id
+  inner join retailer_listing_observation as listing_observation
+    on listing_observation.id = listing_state.listing_observation_id
+    and listing_observation.retailer_listing_id = listing.id
+  inner join catalog_match as active_match
+    on active_match.retailer_listing_id = listing.id
+    and active_match.active
+  inner join product as matched_product
+    on matched_product.id = active_match.product_id
+  inner join storefront as matched_storefront
+    on matched_storefront.id = listing.storefront_id
+  inner join current_stock_state as stock
+    on stock.retailer_listing_id = listing.id
+);

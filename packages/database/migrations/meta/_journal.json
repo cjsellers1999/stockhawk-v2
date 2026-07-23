@@ -12,57 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1784770930302,
+      "when": 1784829357546,
       "tag": "0001_catalog_persistence",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1784773245262,
-      "tag": "0002_strengthen_catalog_invariants",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1784773848059,
-      "tag": "0003_search_document_source",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1784775553360,
-      "tag": "0004_enforce_batch_event_causality",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1784776562408,
-      "tag": "0005_normalize_current_listing_state",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1784778009102,
-      "tag": "0006_record_listing_reappearance",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1784786756565,
-      "tag": "0007_quiet_the_hunter",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1784788516554,
-      "tag": "0008_sloppy_warlock",
       "breakpoints": true
     }
   ]

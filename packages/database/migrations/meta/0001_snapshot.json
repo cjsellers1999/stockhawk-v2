@@ -1,5 +1,5 @@
 {
-  "id": "c807a4e0-6d6c-4fb4-b9dd-aaab41ccd7c6",
+  "id": "00f60731-1cb5-41d6-9d22-15bfa9ceb28d",
   "prevId": "6455b2b4-98f2-402c-ad30-0c30c182cf49",
   "version": "7",
   "dialect": "postgresql",
@@ -14,6 +14,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "evidence_artifact_id": {
+          "name": "evidence_artifact_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
         },
         "id": {
           "name": "id",
@@ -86,6 +92,21 @@
           "method": "btree",
           "with": {}
         },
+        "catalog_match_evidence_artifact_id_idx": {
+          "name": "catalog_match_evidence_artifact_id_idx",
+          "columns": [
+            {
+              "expression": "evidence_artifact_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "catalog_match_product_id_idx": {
           "name": "catalog_match_product_id_idx",
           "columns": [
@@ -132,6 +153,15 @@
           "tableFrom": "catalog_match",
           "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "catalog_match_evidence_fk": {
+          "name": "catalog_match_evidence_fk",
+          "tableFrom": "catalog_match",
+          "tableTo": "source_evidence_artifact",
+          "columnsFrom": ["evidence_artifact_id"],
           "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -377,6 +407,41 @@
           "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "change_event_listing_causality_fk": {
+          "name": "change_event_listing_causality_fk",
+          "tableFrom": "change_event",
+          "tableTo": "retailer_listing_observation",
+          "columnsFrom": [
+            "listing_observation_id",
+            "batch_id",
+            "retailer_listing_id",
+            "effective_at"
+          ],
+          "columnsTo": ["id", "batch_id", "retailer_listing_id", "observed_at"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "change_event_stock_causality_fk": {
+          "name": "change_event_stock_causality_fk",
+          "tableFrom": "change_event",
+          "tableTo": "stock_observation",
+          "columnsFrom": [
+            "stock_observation_id",
+            "batch_id",
+            "retailer_listing_id",
+            "effective_at",
+            "new_value"
+          ],
+          "columnsTo": [
+            "id",
+            "batch_id",
+            "retailer_listing_id",
+            "observed_at",
+            "status"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -396,13 +461,67 @@
       "checkConstraints": {
         "change_event_event_type_check": {
           "name": "change_event_event_type_check",
-          "value": "\"change_event\".\"event_type\" in ('listing_discovered', 'stock_status_changed')"
+          "value": "\"change_event\".\"event_type\" in ('listing_discovered', 'listing_reappeared', 'stock_status_changed')"
+        },
+        "change_event_payload_check": {
+          "name": "change_event_payload_check",
+          "value": "(\n        \"change_event\".\"event_type\" = 'listing_discovered'\n        and \"change_event\".\"listing_observation_id\" is not null\n        and \"change_event\".\"stock_observation_id\" is null\n        and \"change_event\".\"previous_value\" is null\n        and \"change_event\".\"new_value\" = 'active'\n      ) or (\n        \"change_event\".\"event_type\" = 'listing_reappeared'\n        and \"change_event\".\"listing_observation_id\" is not null\n        and \"change_event\".\"stock_observation_id\" is null\n        and \"change_event\".\"previous_value\" = 'inactive'\n        and \"change_event\".\"new_value\" = 'active'\n      ) or (\n        \"change_event\".\"event_type\" = 'stock_status_changed'\n        and \"change_event\".\"listing_observation_id\" is not null\n        and \"change_event\".\"stock_observation_id\" is not null\n        and \"change_event\".\"previous_value\" is not null\n        and \"change_event\".\"previous_value\" in ('in_stock', 'out_of_stock', 'preorder', 'unknown')\n        and \"change_event\".\"new_value\" in ('in_stock', 'out_of_stock', 'preorder', 'unknown')\n        and \"change_event\".\"previous_value\" <> \"change_event\".\"new_value\"\n      )"
         },
         "change_event_schema_version_check": {
           "name": "change_event_schema_version_check",
           "value": "\"change_event\".\"schema_version\" = 1"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.current_listing_state": {
+      "name": "current_listing_state",
+      "schema": "",
+      "columns": {
+        "listing_observation_id": {
+          "name": "listing_observation_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retailer_listing_id": {
+          "name": "retailer_listing_id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "current_listing_state_listing_fk": {
+          "name": "current_listing_state_listing_fk",
+          "tableFrom": "current_listing_state",
+          "tableTo": "retailer_listing",
+          "columnsFrom": ["retailer_listing_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "current_listing_state_observation_listing_fk": {
+          "name": "current_listing_state_observation_listing_fk",
+          "tableFrom": "current_listing_state",
+          "tableTo": "retailer_listing_observation",
+          "columnsFrom": ["listing_observation_id", "retailer_listing_id"],
+          "columnsTo": ["id", "retailer_listing_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "current_listing_state_listing_observation_id_unique": {
+          "name": "current_listing_state_listing_observation_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["listing_observation_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.current_stock_state": {
@@ -451,12 +570,24 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "current_stock_state_observation_listing_fk": {
-          "name": "current_stock_state_observation_listing_fk",
+        "current_stock_state_observation_facts_fk": {
+          "name": "current_stock_state_observation_facts_fk",
           "tableFrom": "current_stock_state",
           "tableTo": "stock_observation",
-          "columnsFrom": ["stock_observation_id", "retailer_listing_id"],
-          "columnsTo": ["id", "retailer_listing_id"],
+          "columnsFrom": [
+            "stock_observation_id",
+            "retailer_listing_id",
+            "observation_order",
+            "observed_at",
+            "status"
+          ],
+          "columnsTo": [
+            "id",
+            "retailer_listing_id",
+            "observation_order",
+            "observed_at",
+            "status"
+          ],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -541,29 +672,7 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "observation_batch_run_identity_unique": {
-          "name": "observation_batch_run_identity_unique",
-          "columns": [
-            {
-              "expression": "run_identity",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "stockhawk_identity",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -571,6 +680,11 @@
           "name": "observation_batch_idempotency_key_unique",
           "nullsNotDistinct": false,
           "columns": ["idempotency_key"]
+        },
+        "observation_batch_stockhawk_identity_unique": {
+          "name": "observation_batch_stockhawk_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stockhawk_identity"]
         }
       },
       "policies": {},
@@ -651,18 +765,6 @@
       "name": "retailer_listing",
       "schema": "",
       "columns": {
-        "current_observation_order": {
-          "name": "current_observation_order",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "current_observed_at": {
-          "name": "current_observed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
         "id": {
           "name": "id",
           "type": "bigint",
@@ -680,26 +782,8 @@
             "cycle": false
           }
         },
-        "image_url": {
-          "name": "image_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "listing_presence": {
           "name": "listing_presence",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "purchase_url": {
-          "name": "purchase_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "raw_title": {
-          "name": "raw_title",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -807,10 +891,6 @@
         "retailer_listing_source_rule_version_check": {
           "name": "retailer_listing_source_rule_version_check",
           "value": "\"retailer_listing\".\"source_identity_rule_version\" > 0"
-        },
-        "retailer_listing_observation_order_check": {
-          "name": "retailer_listing_observation_order_check",
-          "value": "\"retailer_listing\".\"current_observation_order\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -913,6 +993,27 @@
           "method": "btree",
           "with": {}
         },
+        "retailer_listing_observation_listing_order_unique": {
+          "name": "retailer_listing_observation_listing_order_unique",
+          "columns": [
+            {
+              "expression": "retailer_listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "observation_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "retailer_listing_observation_evidence_artifact_id_idx": {
           "name": "retailer_listing_observation_evidence_artifact_id_idx",
           "columns": [
@@ -979,6 +1080,16 @@
           "name": "retailer_listing_observation_stockhawk_identity_unique",
           "nullsNotDistinct": false,
           "columns": ["stockhawk_identity"]
+        },
+        "retailer_listing_observation_event_facts_unique": {
+          "name": "retailer_listing_observation_event_facts_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "batch_id", "retailer_listing_id", "observed_at"]
+        },
+        "retailer_listing_observation_id_listing_unique": {
+          "name": "retailer_listing_observation_id_listing_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "retailer_listing_id"]
         }
       },
       "policies": {},
@@ -1404,6 +1515,27 @@
           "method": "btree",
           "with": {}
         },
+        "stock_observation_listing_order_unique": {
+          "name": "stock_observation_listing_order_unique",
+          "columns": [
+            {
+              "expression": "retailer_listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "observation_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "stock_observation_evidence_artifact_id_idx": {
           "name": "stock_observation_evidence_artifact_id_idx",
           "columns": [
@@ -1471,10 +1603,27 @@
           "nullsNotDistinct": false,
           "columns": ["stockhawk_identity"]
         },
-        "stock_observation_id_listing_unique": {
-          "name": "stock_observation_id_listing_unique",
+        "stock_observation_current_state_facts_unique": {
+          "name": "stock_observation_current_state_facts_unique",
           "nullsNotDistinct": false,
-          "columns": ["id", "retailer_listing_id"]
+          "columns": [
+            "id",
+            "retailer_listing_id",
+            "observation_order",
+            "observed_at",
+            "status"
+          ]
+        },
+        "stock_observation_event_facts_unique": {
+          "name": "stock_observation_event_facts_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "batch_id",
+            "retailer_listing_id",
+            "observed_at",
+            "status"
+          ]
         }
       },
       "policies": {},
@@ -1563,7 +1712,125 @@
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
+  "views": {
+    "public.search_document_source": {
+      "columns": {
+        "canonical_product_name": {
+          "name": "canonical_product_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classification": {
+          "name": "classification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_checked_at": {
+          "name": "last_checked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "listing_identity": {
+          "name": "listing_identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "listing_presence": {
+          "name": "listing_presence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_status": {
+          "name": "match_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projection_version": {
+          "name": "projection_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purchase_url": {
+          "name": "purchase_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw_title": {
+          "name": "raw_title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retailer_listing_id": {
+          "name": "retailer_listing_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stock_status": {
+          "name": "stock_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storefront_hostname": {
+          "name": "storefront_hostname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storefront_id": {
+          "name": "storefront_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storefront_name": {
+          "name": "storefront_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variant": {
+          "name": "variant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "definition": "\n  select\n    matched_product.canonical_name as canonical_product_name,\n    'offer'::text as classification,\n    listing_observation.image_url,\n    stock.observed_at as last_checked_at,\n    listing.stockhawk_identity as listing_identity,\n    listing.listing_presence,\n    'confirmed'::text as match_status,\n    matched_product.id as product_id,\n    1::integer as projection_version,\n    listing_observation.purchase_url,\n    listing_observation.raw_title,\n    listing.id as retailer_listing_id,\n    stock.status as stock_status,\n    matched_storefront.hostname as storefront_hostname,\n    matched_storefront.id as storefront_id,\n    matched_storefront.name as storefront_name,\n    now() as updated_at,\n    matched_product.variant\n  from retailer_listing as listing\n  inner join current_listing_state as listing_state\n    on listing_state.retailer_listing_id = listing.id\n  inner join retailer_listing_observation as listing_observation\n    on listing_observation.id = listing_state.listing_observation_id\n    and listing_observation.retailer_listing_id = listing.id\n  inner join catalog_match as active_match\n    on active_match.retailer_listing_id = listing.id\n    and active_match.active\n  inner join product as matched_product\n    on matched_product.id = active_match.product_id\n  inner join storefront as matched_storefront\n    on matched_storefront.id = listing.storefront_id\n  inner join current_stock_state as stock\n    on stock.retailer_listing_id = listing.id\n",
+      "name": "search_document_source",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    }
+  },
   "_meta": {
     "columns": {},
     "schemas": {},
