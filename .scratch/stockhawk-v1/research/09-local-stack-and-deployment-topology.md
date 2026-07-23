@@ -61,6 +61,14 @@ pnpm owns workspace dependencies. Turborepo runs dependency-aware, filterable ta
 
 Zod schemas decode untrusted values once at their owning Interface: process configuration, URL/search state, API input, Storefront Integration and Adapter configuration, Connector output, and versioned JSON evidence/checkpoints. Internal Implementations receive parsed typed values rather than repeatedly validating them. App-owned commands and versioned configurations reject unknown structure; retailer payload schemas validate consumed fields but tolerate unrelated additive fields. Infer TypeScript types from the schema where practical and test the boundary with malformed and unknown-version inputs. Zod supplements rather than replaces PostgreSQL constraints, migrations, matching, certification, or shopper-visible stock validation. [Zod documentation](https://zod.dev/)
 
+### Frontend implementation and enforcement
+
+Use shadcn/ui's Base UI-backed `base-nova` source components with `@base-ui/react`, Tailwind CSS v4 through `@tailwindcss/vite`, Lucide icons, exact stable TanStack Query v5, and the exact current TanStack Table v9 beta. Resolve requested tags at bootstrap, pin the results, and never float them. The decision-date snapshot is shadcn `4.14.0`, Base UI `1.6.0`, Tailwind CSS/Vite plugin `4.3.3`, Query `5.101.4`, and Table/core `9.0.0-beta.55`. See the [primary-source frontend check](frontend-stack-primary-sources.md).
+
+StockHawk owns generated shadcn component code inside the web app and defines a CSS-first semantic Tailwind theme that reproduces the [locked design](../design/DESIGN.md). Do not add Radix variants beside Base UI, accept shadcn default-theme drift, or create a shared UI package before a second consumer exists.
+
+Adapt the enforcement pattern inspected at commit `d60c74dcec2401125f912e710a30ca003bf6ed94`: type-aware Oxlint and TanStack Query rules, ESLint flat config for Tailwind compiler-aware class rules, `prettier-plugin-tailwindcss` with the real stylesheet, Tailwind IntelliSense settings, zero warnings, and config tests. Reusable artifact values become semantic tokens. Arbitrary Tailwind values are forbidden; one-off exact geometry belongs in component-owned CSS Modules or scoped custom properties. Keep strict peer checks; narrowly document and prove any exact compatibility exception. Do not copy ACERTUS assets, brand decisions, or a broad peer-check disable. See the [frontend tooling reference](frontend-tooling-reference.md).
+
 ## Why this application stack
 
 | Option | Result | Reason |
@@ -69,7 +77,7 @@ Zod schemas decode untrusted values once at their owning Interface: process conf
 | Next.js full stack | Reject for V1 | SSR, React Server Components, and framework deployment conventions do not help a private operational dashboard. They add another caching/rendering model around live server-side search. |
 | Electron or native Swift | Reject | The owner wants access from approved private devices at home or away, and TanStack Query/Table are accepted. A browser UI avoids shipping a desktop client. |
 
-The browser never loads 100,000 Offers. Fastify owns filtering, sorting, and keyset pagination; TanStack Table uses manual server-side pagination. TanStack Query owns server state. The [locked owner design](../design/DESIGN.md) is the accepted rendered baseline; framework defaults and the earlier multi-variant prototype may not replace it. [Vite backend integration](https://vite.dev/guide/backend-integration), [Fastify TypeScript](https://fastify.dev/docs/latest/Reference/TypeScript/), [TanStack Table pagination](https://tanstack.com/table/latest/docs/guide/pagination)
+The browser never loads 100,000 Offers. Fastify owns filtering, sorting, and keyset pagination; TanStack Table v9 beta uses manual server-side state. TanStack Query owns server state. The [locked owner design](../design/DESIGN.md) is the accepted rendered baseline; framework, Tailwind, and shadcn defaults and the earlier multi-variant prototype may not replace it. [Vite backend integration](https://vite.dev/guide/backend-integration), [Fastify TypeScript](https://fastify.dev/docs/latest/Reference/TypeScript/), [TanStack Table v9 pagination](https://tanstack.com/table/beta/docs/framework/react/guide/pagination)
 
 Shared Zod schemas own runtime API contracts; a tested Fastify integration validates inputs and supplies response serialization schemas without a second handwritten contract. Each access edge is same-origin: Tailscale Serve and Caddy proxy both the SPA and API on their respective hostname. The application allowlists those two exact origins and uses host-only sessions. [Fastify validation and serialization](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
 

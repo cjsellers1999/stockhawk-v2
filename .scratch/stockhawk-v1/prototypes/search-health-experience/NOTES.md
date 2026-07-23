@@ -17,7 +17,7 @@ Card-heavy Search and Health layouts. At this historical stage, the owner reques
 Shared accepted constraints:
 
 - Light and dark mode.
-- TanStack Table and TanStack Query.
+- Historical TanStack Table v8 and TanStack Query; production uses exact-pinned Table v9 beta and Query v5 with the locked shadcn/Base UI/Tailwind stack.
 - Every true UI mutation is optimistic by enforced wrapper; error rolls back and settlement reconciles.
 - Optimism applies to the submitted command (`Queued`), never an unverified external outcome (`Healthy`, stock, or certification).
 - Missing images remain informational only.

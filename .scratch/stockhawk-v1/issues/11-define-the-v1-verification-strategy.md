@@ -13,6 +13,7 @@ What automated, audit, and operational verification is required to trust V1? Def
 ## Upstream verification constraints
 
 - Prove every true UI mutation crosses the optimistic command boundary; direct TanStack Query mutation use outside that boundary must fail static verification.
+- Prove the exact-pinned shadcn/Base UI/Tailwind/Query/Table graph, Table v9 APIs, compiler-aware Tailwind rules, class formatting, semantic light/dark output, and strict peer compatibility; shadcn's v8 Data Table recipe cannot enter production.
 - Prove the built Search and Health experience matches the [locked owner design](../design/DESIGN.md) at representative desktop, tablet, and mobile widths in light and dark modes; deliberate baseline changes require owner approval and a new artifact hash.
 - For every mutation family, test immediate optimistic state, exact rollback after rejection, and reconciliation with authoritative data after settlement.
 - Test the truth boundary explicitly: actions may optimistically show submitted intent such as `Queued`, but must not optimistically claim Storefront health, stock, crawl, or certification outcomes.
@@ -33,7 +34,7 @@ V1 uses three non-substitutable proof planes: deterministic code verification, a
 
 ### Deterministic gate
 
-Every merge candidate passes locked install, format/lint/typecheck/build, checked-in migration validation, architectural static rules, unit/property tests, common Connector conformance, real-PostgreSQL integration tests, Fastify contracts, Playwright end-to-end tests, and automated accessibility checks. Deterministic failures receive no retry-based waiver, and coverage percentage never substitutes for named invariants.
+Every merge candidate passes locked install, format/lint/typecheck/build, checked-in migration validation, architectural static rules, unit/property tests, common Connector conformance, real-PostgreSQL integration tests, Fastify contracts, Playwright end-to-end tests, and automated accessibility checks. The frontend gate proves exact dependency pins, v9 Table integration, type-aware Oxlint, Query/React Compiler rules, compiler-aware Tailwind ESLint, Prettier class ordering, strict peer compatibility, and both semantic themes. Deterministic failures receive no retry-based waiver, and coverage percentage never substitutes for named invariants.
 
 Static verification rejects direct UI mutations outside the optimistic command boundary, network access outside the Crawl Request Broker, domain writes outside the Persistence Boundary, Adapter-owned matching/certification/current-state writes, runtime schema push, unaudited browser use, and retailer-name branches outside registered Bespoke Adapters. Every mutation family proves immediate truthful intent, exact rollback, authoritative reconciliation, duplicate submission, refresh, and overlap behavior; no optimistic state may fabricate stock, health, crawl, or certification success.
 

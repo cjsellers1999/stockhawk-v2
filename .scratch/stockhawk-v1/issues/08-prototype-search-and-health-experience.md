@@ -14,12 +14,13 @@ What final V1 interaction and information hierarchy best supports the morning sh
 
 - Offer thumbnails prefer the Retailer Listing's primary image, fall back to an official Jellycat image only for an exact Catalog Match, then use a neutral placeholder. Ambiguous or variant-unknown listings never receive a potentially wrong official image; image availability never affects health, visibility, or stock.
 - Owner rejected card-per-result layouts. Search is a dense linear table; Health is a dense linear Storefront fact list. Both use light and dark modes, with restrained summary and containing surfaces only where the locked design shows them.
-- Use TanStack Table for table row models and TanStack Query for server state. Every true UI mutation must be optimistic through an enforced shared boundary with immediate cache update, rollback on failure, and authoritative reconciliation.
+- Use exact-pinned latest TanStack Table v9 beta for table row models and exact-pinned stable TanStack Query v5 for server state. Every true UI mutation must be optimistic through an enforced shared boundary with immediate cache update, rollback on failure, and authoritative reconciliation.
+- Implement the locked artifact with Tailwind CSS v4 and locally owned shadcn/ui `base-nova` components backed by Base UI. shadcn defaults and external brand tokens must not alter StockHawk's accepted appearance.
 - Optimistic state represents only truth already established by the owner's action—for example, a retry command becomes `Queued` immediately. It must never claim unverified Storefront health, stock, certification, or crawl success.
 
 ## Design assets
 
-- [Search and Health table prototype](../prototypes/search-health-experience/README.md) — React/Vite prototype with three linear TanStack Table directions, light/dark mode, TanStack Query data, optimistic command behavior, rollback tests, direct-mutation enforcement, and a complete real-Chrome regression suite. Every control was also walked through with Computer Use after fixing table auto-reset freezes.
+- [Search and Health table prototype](../prototypes/search-health-experience/README.md) — Historical React/Vite behavior prototype built on Table v8; it does not select the production Table version or visual system.
 - [Locked owner design](../design/DESIGN.md) — Accepted V1 visual and interaction contract, with the owner-supplied HTML preserved verbatim at SHA-256 `1b03f2a6bbe5b0d4cad972901c100057b658c1375540a283f2f90821a85cb23a`.
 
 ## Answer

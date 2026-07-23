@@ -19,6 +19,8 @@ Which application, database, job-runner, process-supervision, logging, backup, a
 ## Research asset
 
 - [Primary-source local stack and deployment recommendation](../research/09-local-stack-and-deployment-topology.md)
+- [Primary-source frontend stack check](../research/frontend-stack-primary-sources.md)
+- [Frontend tooling reference](../research/frontend-tooling-reference.md)
 
 ## Answer
 
@@ -27,7 +29,9 @@ StockHawk V1 runs **natively on the Mac mini**, without Docker Desktop, as one p
 | Concern | V1 choice |
 | --- | --- |
 | Runtime | Node.js 24 LTS, TypeScript, pnpm workspace, Turborepo local task orchestration |
-| Browser app | React/Vite SPA, TanStack Router, TanStack Query, TanStack Table |
+| Browser app | React/Vite SPA, TanStack Router, TanStack Query v5, exact latest TanStack Table v9 beta |
+| UI foundation | Locally owned shadcn/ui `base-nova` components over Base UI, Tailwind CSS v4, Lucide icons, locked StockHawk theme |
+| Frontend enforcement | Oxlint plus TanStack Query rules; ESLint Tailwind governance; Prettier Tailwind ordering; React Compiler verification |
 | Server | Fastify same-origin JSON API serving the built SPA |
 | Database | PostgreSQL 18 |
 | Data access | Drizzle over `node-postgres`, plus reviewed PostgreSQL-specific SQL |
@@ -43,6 +47,12 @@ StockHawk V1 runs **natively on the Mac mini**, without Docker Desktop, as one p
 pnpm owns dependency installation and the workspace. Turborepo supplies dependency-aware, filterable task orchestration and local caching only; it does not create another runtime or deployment boundary. Cache only deterministic tasks whose inputs, environment, and outputs are completely declared. Migrations, real-PostgreSQL integration, Playwright and live-Storefront checks, backup/restore, and actual-Mac release work are always uncached. V1 has no remote task cache. `launchd` starts the built API and worker entrypoints directly, never Turborepo. Workspace packages remain coarse and follow real deployable or shared Module seams rather than creating a shallow package for every folder.
 
 Zod is the canonical runtime decoder for data entering trusted Modules: environment and deployment configuration, browser URL/search state, HTTP commands and queries, immutable Storefront Integration configuration, Adapter options, Certification Recipes, Connector outputs, and versioned JSON evidence/checkpoints. Decode once at the owning Interface, derive TypeScript types from the schema where useful, then pass typed values inward. App-owned commands and versioned configuration are closed contracts; retailer payload decoders validate the fields StockHawk consumes while tolerating unrelated additive fields. Do not scatter repeated `safeParse` calls through Implementations or maintain parallel handwritten validators. Zod does not replace PostgreSQL constraints and checked-in migrations, Catalog Certification, product matching, or shopper-visible Stock Semantics Validation.
+
+The frontend uses shadcn/ui's Base UI-backed `base-nova` source components, `@base-ui/react`, Tailwind CSS v4 through the Vite plugin, and Lucide icons. Generated component source is owned and reviewed inside `apps/web`; a separate UI package is unjustified while there is one consumer. StockHawk defines its own CSS-first semantic theme from the locked design's exact light/dark variables. It never imports external ACERTUS packages, colors, fonts, or components and never allows shadcn defaults to redefine the accepted artifact. Do not install parallel Radix-backed component copies.
+
+At this decision date the exact snapshot is shadcn `4.14.0`, Base UI `1.6.0`, Tailwind CSS/Vite plugin `4.3.3`, TanStack Query `5.101.4`, and TanStack Table/core `9.0.0-beta.55`. The bootstrap ticket resolves the requested current tags again, pins each result without a range, and records it in the Evidence Bundle. Table must use the `beta` tag because untagged installation is still v8. Table owns row models and manual server state; Query owns remote cache and optimistic commands. Neither owns URL state or authoritative domain truth.
+
+StockHawk adapts the inspected tooling structure at commit `d60c74dcec2401125f912e710a30ca003bf6ed94`: type-aware Oxlint for TypeScript, React, React Compiler, console, and TanStack Query rules; ESLint flat config with the compiler-aware Tailwind rules; the official Tailwind Prettier plugin; and committed Tailwind IntelliSense settings. Tailwind arbitrary values, unknown classes, contradictions, and unsorted classes fail verification. Reusable locked-design choices become semantic theme tokens; one-off exact geometry uses component-owned CSS Modules or scoped custom properties rather than arbitrary utilities or fake global tokens. Every warning fails `lint:check` except a deliberately documented plugin recommendation. pnpm peer checks stay strict; a narrow exact-version compatibility exception requires explicit proof and cannot become a broad workspace disable.
 
 PostgreSQL is selected over SQLite because StockHawk's risk is concurrent write shape, not merely row count. API commands, Connector batches, stock observations, Current Projections, Search Documents, Change Events, checkpoints, Health summaries, and queue state must commit concurrently and transactionally. SQLite WAL still has one writer and would require StockHawk to invent a cross-process single-writer coordinator. PostgreSQL also supplies the required constraints, MVCC, text indexes, queue claiming, retention paths, and future Change Event consumption without another data service.
 

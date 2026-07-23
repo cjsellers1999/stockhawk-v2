@@ -14,6 +14,7 @@ Given every resolved architecture, audit, interaction, operations, and verificat
 
 - Build the three-plane verification system alongside the first vertical slice: deterministic fixtures/tests, the actual-Mac representative release rehearsal, and live per-Storefront qualification.
 - Build the application shell and every UI slice against the [locked owner design](../design/DESIGN.md); the earlier multi-variant prototype supplies behavior prior art only, and visual baseline changes require owner approval.
+- Bootstrap the exact-pinned shadcn `base-nova`/Base UI, Tailwind CSS v4, TanStack Query v5, and latest Table v9 beta stack in the first slice, together with the adapted lint/format rules; never defer frontend conformance until after features exist.
 - No fixture or shared Platform Adapter result may substitute for per-Storefront Catalog Certification and shopper-visible Stock Semantics Validation.
 - Full rollout starts only after the deterministic suite and representative Mac gate pass; first-time recurring scheduling remains behind each Integration's certification, stock-semantics, and target-accounting gate.
 - The first representative-load slice must exercise at least 100,000 Offers, prove accepted search latency and scheduler degradation behavior, and measure database/detail/media growth so cache quota and disk high-water configuration are set before rollout.

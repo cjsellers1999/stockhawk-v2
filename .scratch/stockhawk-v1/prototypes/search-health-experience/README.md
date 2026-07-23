@@ -4,6 +4,8 @@
 
 React/Vite prototype using real TanStack Table row models and TanStack Query cache/mutations. It does not crawl stores or persist production data.
 
+It uses historical TanStack Table v8 and custom prototype styling. Production instead uses the exact latest Table v9 beta, Tailwind CSS v4, and locally owned shadcn/ui `base-nova` components backed by Base UI under the [locked owner design](../../design/DESIGN.md).
+
 Run:
 
 ```sh

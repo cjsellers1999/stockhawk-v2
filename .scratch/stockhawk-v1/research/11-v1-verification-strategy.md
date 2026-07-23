@@ -19,6 +19,7 @@ No one plane substitutes for another. A fixture cannot certify a live Storefront
 - **A real migrated PostgreSQL 18 database** for persistence tests. Mocks may isolate pure code but cannot accept transaction, constraint, concurrency, migration, search, or restore behavior.
 - **Fastify `inject()`** for deterministic route contracts; real loopback HTTP for browser, security, and latency tests.
 - **Playwright** for Chromium and WebKit end-to-end flows, plus `@axe-core/playwright` for automated accessibility checks. Keyboard and screen-reader-oriented manual checks remain required because automated accessibility checks are incomplete.
+- **Pinned frontend graph** for locally owned shadcn `base-nova`/Base UI source, Tailwind CSS v4, TanStack Query v5, and TanStack Table v9 beta. Type-aware Oxlint, the Query/React Compiler rules, compiler-aware Tailwind ESLint, and Prettier class ordering are separate zero-warning gates.
 - **Seeded virtual time** and recorded Connector fixtures for scheduler and Connector simulation. Tests report their seed and fixture version so failures reproduce.
 - **PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)`** for accepted production query shapes under representative data.
 - **Native `pg_dump -Fc` and `pg_restore`** for backup evidence. Parsing an archive is not a restore test.
@@ -35,6 +36,8 @@ Every merge candidate must pass, with no retailer traffic:
 4. unit, property, Connector contract, persistence integration, API, component, and browser end-to-end tests;
 5. accessibility automation;
 6. fixture and schema compatibility checks.
+
+The frontend gate verifies the lockfile's exact Table/core beta pair and stable Query/shadcn/Base UI/Tailwind versions, strict peer compatibility, Table v9 `useTable`/feature APIs, semantic light/dark token generation, portaled Base UI layering, and accepted/rejected Tailwind config fixtures. It explicitly rejects shadcn's still-v8 Data Table recipe, parallel Radix primitives, arbitrary Tailwind values, unknown or contradictory classes, and repository-wide peer-check disabling.
 
 Deterministic tests receive no automatic retry. A fail-then-pass rerun is investigated and recorded as flaky rather than relabeled green. Live tests have typed inconclusive outcomes for external unavailability, but cannot turn an application defect into a pass.
 

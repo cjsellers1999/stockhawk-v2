@@ -2,6 +2,8 @@
 
 These tracer-bullet tickets implement the behavior defined in [SPEC.md](SPEC.md), prove it through [VERIFICATION.md](VERIFICATION.md), and expand it using [ROLLOUT.md](ROLLOUT.md).
 
+Frontend bootstrap follows the [primary-source stack snapshot](../stockhawk-v1/research/frontend-stack-primary-sources.md) and adapts the [pinned frontend tooling reference](../stockhawk-v1/research/frontend-tooling-reference.md).
+
 Work the **frontier**: any ticket whose blockers are all complete. Each ticket must leave the application buildable, demonstrable, and represented in the commit-keyed Evidence Bundle.
 
 ## Boot the verified StockHawk skeleton
@@ -13,10 +15,16 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Install from one pinned Node.js/pnpm dependency graph, add Turborepo as the local task orchestrator, and produce a repeatable production build.
 - [ ] Define coarse workspace boundaries around deployable and genuinely shared Modules; do not create a package for every folder or feature.
 - [ ] Configure dependency-aware/filterable tasks and local caching for deterministic work only; explicitly disable caching for migrations, real-database integration, Playwright/live-source checks, backup/restore, and release gates.
+- [ ] Resolve requested npm tags at ticket start and exact-pin the results. The decision-date baseline is Table/core `9.0.0-beta.55`, Query `5.101.4`, shadcn `4.14.0`, Base UI `1.6.0`, and Tailwind CSS/Vite plugin `4.3.3`; record any newer resolved versions and never leave a tag or range in the dependency graph.
+- [ ] Initialize Tailwind CSS v4 through `@tailwindcss/vite` and the pinned shadcn CLI's `base-nova` Base UI path for Vite/React with TypeScript, CSS variables, neutral metadata, Lucide, and local `apps/web` aliases; install no parallel Radix primitive set.
+- [ ] Generate only the shadcn components needed by the locked shell and first tracer path, keep their source local, and map StockHawk's exact light/dark tokens into a CSS-first semantic theme without accepting shadcn defaults.
+- [ ] Apply Base UI's required application-root isolation and body positioning, then exercise portaled popups/backdrops and focus behavior in both themes.
+- [ ] Adapt the inspected type-aware Oxlint, TanStack Query, React Compiler, Tailwind ESLint, Prettier Tailwind-order, and editor configurations to StockHawk paths; keep every Tailwind correctness rule, zero-warning checks, no arbitrary utilities, and config unit tests.
+- [ ] Keep strict pnpm peer checks. If the selected TypeScript/tooling combination requires a narrow exact-version exception, document only that package/version pair and prove lint, typecheck, config tests, and a production build; never disable peer checks workspace-wide.
 - [ ] Establish shared Zod 4 runtime contracts and decode environment/startup configuration once before trusted application Modules receive it.
 - [ ] Start the API and browser application against a checked-in PostgreSQL migration without runtime schema push.
 - [ ] Build the locked responsive StockHawk shell, exact light/dark tokens, desktop sidebar/top bar, mobile top rail, Search/Health navigation, and truthful API/database/worker readiness from the canonical design artifact.
-- [ ] Establish formatting, linting, type checking, unit/integration orchestration, and production-build gates.
+- [ ] Establish locked-install, formatting, zero-warning linting, type checking, unit/integration orchestration, and production-build gates; prove one-off exact design geometry lives in component CSS Modules/scoped properties rather than arbitrary Tailwind values or fake global tokens.
 - [ ] Record runtime, schema, lockfile, canonical design SHA-256, command, and test metadata in an initial Evidence Bundle.
 
 ## Persist and search one synthetic Offer
@@ -27,7 +35,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 - [ ] Create the first normalized identities, observation/evidence, Product, Catalog Match, stock, event, and Search Document relations with database constraints.
 - [ ] Commit the entire synthetic Observation Batch through one typed idempotent Persistence Boundary operation.
-- [ ] Read the resulting Offer through the Fastify search API and the locked Search table composition, including thumbnail fallback, raw/canonical title hierarchy, Storefront, Stock, Match, Last checked, and exact handoff columns.
+- [ ] Read the resulting Offer through the Fastify search API and the locked TanStack Table v9 Search composition, using v9 `useTable`/feature APIs and the official shadcn Base UI v9 example rather than shadcn's v8 Data Table recipe; include thumbnail fallback, raw/canonical title hierarchy, Storefront, Stock, Match, Last checked, and exact handoff columns.
 - [ ] Prove rollback, replay, stale/out-of-order observation handling, one active match, and causal Change Event uniqueness against real PostgreSQL.
 - [ ] Rebuild Search Documents from authoritative state without any source request and obtain equivalent results.
 
@@ -41,6 +49,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 - [ ] Register one owner command with an idempotency key, durable receipt, domain intent, and atomic pg-boss wakeup.
 - [ ] Share Zod command/query schemas across browser and API boundaries, reject malformed input at the Interface, and retain exact optimistic rollback for authoritative rejection.
 - [ ] Implement the shared optimistic command boundary with immediate truthful intent, exact rollback, and authoritative reconciliation.
+- [ ] Use TanStack Query v5 query-key factories and cache APIs inside that boundary; feature code never owns ad hoc mutation state, cache keys, cancellation, rollback, or invalidation.
 - [ ] Fail static verification for direct feature `useMutation`, direct mutation endpoint calls, or unregistered mutation families.
 - [ ] Test refresh, duplicate clicks, overlapping commands, server rejection, and the rule that external outcomes may show only `Queued` until proven.
 

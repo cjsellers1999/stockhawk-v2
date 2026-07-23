@@ -14,6 +14,16 @@ The artifact's sample retailer names, counts, statuses, page numbers, placeholde
 
 If this document and the HTML differ visually, the HTML wins. If sample data or demo behavior conflicts with the domain model or Implementation Spec, the domain model and Spec win. Deliberate visual changes require owner approval and a new recorded artifact hash.
 
+## Implementation foundation
+
+- Build the React/Vite interface with shadcn/ui's Base UI-backed `base-nova` component source and `@base-ui/react`. Do not introduce parallel Radix implementations of the same primitives.
+- Use Tailwind CSS v4 through `@tailwindcss/vite`. Map the semantic Tailwind theme to the exact variables below; shadcn defaults never override this artifact.
+- Use exact-pinned TanStack Table v9 latest beta for server-managed Search tables and exact-pinned TanStack Query v5 for server state and the enforced optimistic command boundary.
+- Use Lucide for ordinary interface icons while preserving the artifact's StockHawk bird mark as its own approved asset.
+- Generated shadcn component code belongs to StockHawk and must meet the same lint, test, accessibility, and visual-regression gates as handwritten code.
+- Prefer semantic theme utilities and normal Tailwind scale utilities. Arbitrary Tailwind values are forbidden; one-off exact geometry belongs in component-owned CSS Modules or scoped custom properties.
+- This tool choice is not a new design layer. The rendered artifact remains the acceptance baseline.
+
 ## Application shell
 
 - Desktop uses a full-height `224px` left sidebar, `62px` brand row, `62px` top bar, and centered content capped at `1500px` with `24px` padding.
