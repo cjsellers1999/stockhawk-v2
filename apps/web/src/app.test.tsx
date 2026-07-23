@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { App } from "./app.js";
+import { createAppRouter } from "./router.js";
 
 const first = <ElementType,>(elements: ElementType[]): ElementType => {
   const element = elements[0];
@@ -13,15 +14,19 @@ const first = <ElementType,>(elements: ElementType[]): ElementType => {
   return element;
 };
 
-const renderApp = () => {
+const renderApp = (initialEntry = "/") => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const router = createAppRouter(
+    createMemoryHistory({ initialEntries: [initialEntry] }),
+  );
+  const view = render(
     <QueryClientProvider client={queryClient}>
-      <App />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { ...view, router };
 };
 
 afterEach(() => {
@@ -31,8 +36,7 @@ afterEach(() => {
 
 describe("StockHawk shell", () => {
   it("opens Search by default and navigates to Health", async () => {
-    window.history.replaceState({}, "", "/");
-    renderApp();
+    const { router } = renderApp();
 
     expect(
       await screen.findByRole("heading", { name: "Search offers" }),
@@ -43,13 +47,13 @@ describe("StockHawk shell", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Health" })).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/health");
+    expect(router.state.location.pathname).toBe("/health");
   });
 
   it("switches between the locked light and dark themes", async () => {
     const { container } = renderApp();
 
-    const themeControls = screen.getAllByRole("button", {
+    const themeControls = await screen.findAllByRole("button", {
       name: "Use dark theme",
     });
     await userEvent.click(first(themeControls.slice(1)));

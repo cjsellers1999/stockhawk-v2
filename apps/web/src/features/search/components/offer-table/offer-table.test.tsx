@@ -42,4 +42,31 @@ describe("Offer Storefront grouping", () => {
 
     expect(screen.getAllByText("1 offer")).toHaveLength(2);
   });
+
+  it("omits a canonical label that duplicates the retailer title", () => {
+    const offer = {
+      canonicalProductName: "Sky Dragon",
+      imageUrl: null,
+      lastCheckedAt: "2026-07-22T18:00:00.000Z",
+      listingIdentity: "lst_equal_title",
+      listingPresence: "active",
+      matchStatus: "confirmed",
+      purchaseUrl: "https://fixture.stockhawk.test/equal-title",
+      rawTitle: "Sky Dragon",
+      stockStatus: "in_stock",
+      storefrontHostname: "fixture.stockhawk.test",
+      storefrontIdentity: "stf_fixture",
+      storefrontName: "Fixture Store",
+      variant: "Medium",
+    } satisfies Offer;
+
+    render(
+      <OfferTable data={[offer]} failed={false} loading={false} view="flat" />,
+    );
+
+    expect(screen.getByText("Medium exact variant")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Sky Dragon · Medium exact variant"),
+    ).not.toBeInTheDocument();
+  });
 });

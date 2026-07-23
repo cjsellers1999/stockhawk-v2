@@ -15,6 +15,11 @@ export const offerTableColumns = columnHelper.columns([
   columnHelper.accessor("rawTitle", {
     cell: ({ row }) => {
       const offer = row.original;
+      const exactVariant = `${offer.variant} exact variant`;
+      const secondaryLabel =
+        offer.canonicalProductName === offer.rawTitle
+          ? exactVariant
+          : `${offer.canonicalProductName} · ${exactVariant}`;
       return (
         <div className={`${styles.product} flex items-center`}>
           <OfferThumbnail imageUrl={offer.imageUrl} rawTitle={offer.rawTitle} />
@@ -25,7 +30,7 @@ export const offerTableColumns = columnHelper.columns([
             <div
               className={`${styles.canonical} whitespace-normal text-muted-foreground`}
             >
-              {offer.canonicalProductName} · {offer.variant} exact variant
+              {secondaryLabel}
             </div>
           </div>
         </div>

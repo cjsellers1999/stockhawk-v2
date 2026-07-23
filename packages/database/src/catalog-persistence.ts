@@ -10,6 +10,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import {
   catalogMatch,
   changeEvent,
+  currentListingState,
   currentStockState,
   observationBatch,
   product,
@@ -214,12 +215,7 @@ export const createCatalogPersistence = (
       const insertedListings = await transaction
         .insert(retailerListing)
         .values({
-          currentObservationOrder: command.observationOrder,
-          currentObservedAt: observedAt,
-          imageUrl: command.listing.imageUrl,
           listingPresence: "active",
-          purchaseUrl: command.listing.purchaseUrl,
-          rawTitle: command.listing.rawTitle,
           sourceIdentityNamespace: command.listing.sourceIdentity.namespace,
           sourceIdentityRuleVersion: command.listing.sourceIdentity.ruleVersion,
           sourceIdentityValue: command.listing.sourceIdentity.value,
@@ -228,7 +224,7 @@ export const createCatalogPersistence = (
         })
         .onConflictDoNothing()
         .returning();
-      let persistedListing =
+      const persistedListing =
         insertedListings[0] ??
         first(
           await transaction
@@ -267,7 +263,7 @@ export const createCatalogPersistence = (
         );
       }
 
-      persistedListing = first(
+      first(
         await transaction
           .select()
           .from(retailerListing)
@@ -275,24 +271,6 @@ export const createCatalogPersistence = (
           .for("update"),
         "Retailer Listing row lock failed",
       );
-
-      if (command.observationOrder > persistedListing.currentObservationOrder) {
-        persistedListing = first(
-          await transaction
-            .update(retailerListing)
-            .set({
-              currentObservationOrder: command.observationOrder,
-              currentObservedAt: observedAt,
-              imageUrl: command.listing.imageUrl,
-              listingPresence: "active",
-              purchaseUrl: command.listing.purchaseUrl,
-              rawTitle: command.listing.rawTitle,
-            })
-            .where(eq(retailerListing.id, persistedListing.id))
-            .returning(),
-          "Retailer Listing current facts update failed",
-        );
-      }
 
       const persistedListingObservation = first(
         await transaction
@@ -312,6 +290,40 @@ export const createCatalogPersistence = (
           .returning(),
         "Retailer Listing Observation identity conflict",
       );
+
+      const existingCurrentListingState = (
+        await transaction
+          .select({
+            listingObservationId: currentListingState.listingObservationId,
+            observationOrder: retailerListingObservation.observationOrder,
+          })
+          .from(currentListingState)
+          .innerJoin(
+            retailerListingObservation,
+            eq(
+              retailerListingObservation.id,
+              currentListingState.listingObservationId,
+            ),
+          )
+          .where(eq(currentListingState.retailerListingId, persistedListing.id))
+          .for("update")
+      )[0];
+
+      if (existingCurrentListingState === undefined) {
+        await transaction.insert(currentListingState).values({
+          listingObservationId: persistedListingObservation.id,
+          retailerListingId: persistedListing.id,
+        });
+      } else if (
+        command.observationOrder > existingCurrentListingState.observationOrder
+      ) {
+        await transaction
+          .update(currentListingState)
+          .set({ listingObservationId: persistedListingObservation.id })
+          .where(
+            eq(currentListingState.retailerListingId, persistedListing.id),
+          );
+      }
 
       const insertedCatalogMatches = await transaction
         .insert(catalogMatch)

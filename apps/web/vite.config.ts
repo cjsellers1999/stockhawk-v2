@@ -4,6 +4,20 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "tanstack-router",
+              test: /node_modules[\\/]@tanstack[\\/](?:history|react-router|router-core)/,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] }),

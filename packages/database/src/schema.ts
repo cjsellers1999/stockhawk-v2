@@ -101,18 +101,8 @@ export const observationBatch = pgTable(
 export const retailerListing = pgTable(
   "retailer_listing",
   {
-    currentObservationOrder: bigint("current_observation_order", {
-      mode: "number",
-    }).notNull(),
-    currentObservedAt: timestamp("current_observed_at", {
-      mode: "date",
-      withTimezone: true,
-    }).notNull(),
     id: internalIdentity("id"),
-    imageUrl: text("image_url"),
     listingPresence: text("listing_presence").notNull(),
-    purchaseUrl: text("purchase_url").notNull(),
-    rawTitle: text("raw_title").notNull(),
     sourceIdentityNamespace: text("source_identity_namespace").notNull(),
     sourceIdentityRuleVersion: integer(
       "source_identity_rule_version",
@@ -139,10 +129,6 @@ export const retailerListing = pgTable(
     check(
       "retailer_listing_source_rule_version_check",
       sql`${table.sourceIdentityRuleVersion} > 0`,
-    ),
-    check(
-      "retailer_listing_observation_order_check",
-      sql`${table.currentObservationOrder} >= 0`,
     ),
   ],
 );
@@ -198,6 +184,10 @@ export const retailerListingObservation = pgTable(
       table.retailerListingId,
       table.observedAt,
     ),
+    unique("retailer_listing_observation_id_listing_unique").on(
+      table.id,
+      table.retailerListingId,
+    ),
     index("retailer_listing_observation_evidence_artifact_id_idx").on(
       table.evidenceArtifactId,
     ),
@@ -208,6 +198,33 @@ export const retailerListingObservation = pgTable(
       "retailer_listing_observation_order_check",
       sql`${table.observationOrder} >= 0`,
     ),
+  ],
+);
+
+export const currentListingState = pgTable(
+  "current_listing_state",
+  {
+    listingObservationId: bigint("listing_observation_id", { mode: "number" })
+      .notNull()
+      .unique("current_listing_state_listing_observation_id_unique"),
+    retailerListingId: bigint("retailer_listing_id", {
+      mode: "number",
+    }).primaryKey(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.retailerListingId],
+      foreignColumns: [retailerListing.id],
+      name: "current_listing_state_listing_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.listingObservationId, table.retailerListingId],
+      foreignColumns: [
+        retailerListingObservation.id,
+        retailerListingObservation.retailerListingId,
+      ],
+      name: "current_listing_state_observation_listing_fk",
+    }).onDelete("restrict"),
   ],
 );
 
@@ -411,13 +428,6 @@ export const searchDocument = pgTable(
     variant: text("variant").notNull(),
   },
   (table) => [
-    index("search_document_product_id_idx").on(table.productId),
-    index("search_document_storefront_id_idx").on(table.storefrontId),
-    index("search_document_offer_freshness_idx")
-      .on(table.lastCheckedAt.desc(), table.retailerListingId)
-      .where(
-        sql`${table.classification} = 'offer' and ${table.matchStatus} = 'confirmed' and ${table.listingPresence} = 'active'`,
-      ),
     check(
       "search_document_classification_check",
       sql`${table.classification} = 'offer'`,
@@ -580,15 +590,15 @@ export const searchDocumentSource = pgView("search_document_source", {
   select
     matched_product.canonical_name as canonical_product_name,
     'offer'::text as classification,
-    listing.image_url,
+    listing_observation.image_url,
     stock.observed_at as last_checked_at,
     listing.stockhawk_identity as listing_identity,
     listing.listing_presence,
     'confirmed'::text as match_status,
     matched_product.id as product_id,
     1::integer as projection_version,
-    listing.purchase_url,
-    listing.raw_title,
+    listing_observation.purchase_url,
+    listing_observation.raw_title,
     listing.id as retailer_listing_id,
     stock.status as stock_status,
     matched_storefront.hostname as storefront_hostname,
@@ -597,6 +607,11 @@ export const searchDocumentSource = pgView("search_document_source", {
     now() as updated_at,
     matched_product.variant
   from retailer_listing as listing
+  inner join current_listing_state as listing_state
+    on listing_state.retailer_listing_id = listing.id
+  inner join retailer_listing_observation as listing_observation
+    on listing_observation.id = listing_state.listing_observation_id
+    and listing_observation.retailer_listing_id = listing.id
   inner join catalog_match as active_match
     on active_match.retailer_listing_id = listing.id
     and active_match.active
@@ -611,6 +626,7 @@ export const searchDocumentSource = pgView("search_document_source", {
 export const schema = {
   catalogMatch,
   changeEvent,
+  currentListingState,
   currentStockState,
   observationBatch,
   product,

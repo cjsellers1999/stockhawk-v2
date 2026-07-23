@@ -46,10 +46,13 @@ const evidence = {
     batchEventCausality: await sha256(
       "packages/database/migrations/0004_enforce_batch_event_causality.sql",
     ),
+    normalizedListingState: await sha256(
+      "packages/database/migrations/0005_normalize_current_listing_state.sql",
+    ),
   },
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0004_enforce_batch_event_causality",
+  schemaVersion: "0005_normalize_current_listing_state",
   testMetadata: {
     database: [
       "atomic rollback",
@@ -60,6 +63,7 @@ const evidence = {
       "one active catalog match",
       "evidence-backed catalog match",
       "current-state observation consistency",
+      "current-listing immutable observation consistency",
       "causal event uniqueness",
       "required Change Event rollback",
       "typed cross-batch Change Event causality",
@@ -70,6 +74,7 @@ const evidence = {
       "server-backed match-any Offer search and filters",
       "live Offer freshness refresh",
       "durable Storefront identity grouping",
+      "typed TanStack Router navigation and URL search state",
       "TanStack Table v9 Search composition",
     ],
     runner: "vitest@4.1.10",
@@ -87,6 +92,7 @@ const evidence = {
     drizzleKit: databaseManifest.devDependencies["drizzle-kit"],
     drizzleOrm: databaseManifest.dependencies["drizzle-orm"],
     query: webManifest.dependencies["@tanstack/react-query"],
+    router: webManifest.dependencies["@tanstack/react-router"],
     shadcn: webManifest.devDependencies.shadcn,
     table: webManifest.dependencies["@tanstack/react-table"],
     tailwind: webManifest.devDependencies.tailwindcss,

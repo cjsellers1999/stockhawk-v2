@@ -1,16 +1,16 @@
-import type { Offer } from "@stockhawk/contracts";
+import {
+  offerSearchQuerySchema,
+  type Offer,
+  type OfferSearchQuery,
+} from "@stockhawk/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { PackageSearch } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "../../components/ui/button.js";
 import badgeStyles from "./components/offer-badge.module.css";
 import { OfferTable } from "./components/offer-table/offer-table.js";
-import {
-  decodeOfferSearch,
-  encodeOfferSearch,
-  updateOfferSearch,
-} from "./offer-search-state.js";
 import { offersQueryOptions } from "./offers.query.js";
 import styles from "./search-page.module.css";
 
@@ -19,24 +19,20 @@ const noOffers: Offer[] = [];
 const offerCountLabel = (count: number) =>
   `${count.toLocaleString("en-US")} ${count === 1 ? "offer" : "offers"}`;
 
-const initialSearch = () => decodeOfferSearch(window.location.search);
-
 export const SearchPage = () => {
-  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const searchQuery = useSearch({ from: "/" });
+  const navigate = useNavigate({ from: "/" });
   const [searchInput, setSearchInput] = useState("");
   const offersQuery = useQuery(offersQueryOptions(searchQuery));
   const offers = offersQuery.data?.items ?? noOffers;
   const total = offersQuery.data?.total ?? 0;
 
-  const commitSearch = (patch: Record<string, unknown>) => {
-    const nextQuery = updateOfferSearch(searchQuery, patch);
-    const parameters = encodeOfferSearch(nextQuery).toString();
-    const nextUrl =
-      parameters === ""
-        ? window.location.pathname
-        : `${window.location.pathname}?${parameters}`;
-    window.history.replaceState(window.history.state, "", nextUrl);
-    setSearchQuery(nextQuery);
+  const commitSearch = (patch: Partial<OfferSearchQuery>) => {
+    const nextQuery = offerSearchQuerySchema.parse({
+      ...searchQuery,
+      ...patch,
+    });
+    void navigate({ replace: true, search: nextQuery });
   };
 
   const commitSearchInput = () => {
@@ -156,7 +152,11 @@ export const SearchPage = () => {
           aria-label="Stock status"
           className={`${styles.filterField} border border-input bg-background`}
           onChange={(event) =>
-            commitSearch({ stock: event.currentTarget.value })
+            commitSearch({
+              stock: offerSearchQuerySchema.shape.stock.parse(
+                event.currentTarget.value,
+              ),
+            })
           }
           value={searchQuery.stock}
         >
@@ -170,7 +170,11 @@ export const SearchPage = () => {
           aria-label="Match status"
           className={`${styles.filterField} border border-input bg-background`}
           onChange={(event) =>
-            commitSearch({ match: event.currentTarget.value })
+            commitSearch({
+              match: offerSearchQuerySchema.shape.match.parse(
+                event.currentTarget.value,
+              ),
+            })
           }
           value={searchQuery.match}
         >
@@ -182,7 +186,11 @@ export const SearchPage = () => {
           aria-label="Freshness"
           className={`${styles.filterField} border border-input bg-background`}
           onChange={(event) =>
-            commitSearch({ freshness: event.currentTarget.value })
+            commitSearch({
+              freshness: offerSearchQuerySchema.shape.freshness.parse(
+                event.currentTarget.value,
+              ),
+            })
           }
           value={searchQuery.freshness}
         >

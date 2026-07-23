@@ -323,7 +323,7 @@ describe("catalog Persistence Boundary", () => {
 
     await catalogDatabase.commitObservationBatch(initialCommand);
     await sqlClient.unsafe(`
-        create function test_wait_before_listing_update()
+        create function test_wait_before_listing_state_update()
         returns trigger
         language plpgsql
         as $$
@@ -332,9 +332,9 @@ describe("catalog Persistence Boundary", () => {
           return new;
         end
         $$;
-        create trigger test_wait_before_listing_update
-        before update on retailer_listing
-        for each row execute function test_wait_before_listing_update();
+        create trigger test_wait_before_listing_state_update
+        before update on current_listing_state
+        for each row execute function test_wait_before_listing_state_update();
       `);
     await blocker`select pg_advisory_lock(${advisoryLockKey})`;
 
@@ -350,9 +350,15 @@ describe("catalog Persistence Boundary", () => {
       const [listing] = await sqlClient<
         { current_observation_order: number; raw_title: string }[]
       >`
-          select current_observation_order::integer, raw_title
-          from retailer_listing
-          where stockhawk_identity = ${initialCommand.listing.identity}
+          select
+            observation.observation_order::integer as current_observation_order,
+            observation.raw_title
+          from retailer_listing as listing
+          inner join current_listing_state as current
+            on current.retailer_listing_id = listing.id
+          inner join retailer_listing_observation as observation
+            on observation.id = current.listing_observation_id
+          where listing.stockhawk_identity = ${initialCommand.listing.identity}
         `;
       expect(listing).toEqual({
         current_observation_order: 20,
@@ -368,8 +374,8 @@ describe("catalog Persistence Boundary", () => {
         ),
       );
       await sqlClient.unsafe(`
-          drop trigger if exists test_wait_before_listing_update on retailer_listing;
-          drop function if exists test_wait_before_listing_update();
+          drop trigger if exists test_wait_before_listing_state_update on current_listing_state;
+          drop function if exists test_wait_before_listing_state_update();
         `);
       await Promise.all([blocker.end(), observer.end(), sqlClient.end()]);
     }
@@ -487,6 +493,47 @@ describe("catalog Persistence Boundary", () => {
           `;
           throw new Error("Current Stock State accepted contradictory facts");
         }),
+      ).rejects.toMatchObject({ code: "23503" });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("rejects a Current Listing State pointer to another listing's observation", async () => {
+    const catalogDatabase = getDatabase();
+    const firstCommand = commandForListing("listing_state_first");
+    const secondCommand = commandForListing("listing_state_second");
+    const secondNewerCommand = nextObservation({
+      prior: secondCommand,
+      suffix: "listing_state_second_newer",
+      observedAt: "2026-07-22T19:00:00.000Z",
+      observationOrder: 2,
+      status: "out_of_stock",
+    });
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    await catalogDatabase.commitObservationBatch(firstCommand);
+    await catalogDatabase.commitObservationBatch(secondCommand);
+    await catalogDatabase.commitObservationBatch(secondNewerCommand);
+
+    try {
+      await expect(
+        sqlClient`
+          update current_listing_state as current
+          set listing_observation_id = other_observation.id
+          from retailer_listing as current_listing
+          cross join retailer_listing as other_listing
+          cross join lateral (
+            select observation.id
+            from retailer_listing_observation as observation
+            where observation.retailer_listing_id = other_listing.id
+            order by observation.observation_order
+            limit 1
+          ) as other_observation
+          where current.retailer_listing_id = current_listing.id
+            and current_listing.stockhawk_identity = ${firstCommand.listing.identity}
+            and other_listing.stockhawk_identity = ${secondCommand.listing.identity}
+        `,
       ).rejects.toMatchObject({ code: "23503" });
     } finally {
       await sqlClient.end();

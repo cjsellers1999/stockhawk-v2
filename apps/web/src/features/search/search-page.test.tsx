@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import {
   cleanup,
   render,
@@ -9,7 +10,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SearchPage } from "./search-page.js";
+import { createAppRouter } from "../../router.js";
 
 const searchResult = {
   items: [
@@ -36,11 +37,15 @@ const renderSearchPage = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const router = createAppRouter(
+    createMemoryHistory({ initialEntries: ["/"] }),
+  );
+  const view = render(
     <QueryClientProvider client={queryClient}>
-      <SearchPage />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { ...view, router };
 };
 
 afterEach(() => {
@@ -50,16 +55,30 @@ afterEach(() => {
 
 describe("Offer search table", () => {
   it("renders the authoritative Offer hierarchy and exact Purchase Handoff", async () => {
-    window.history.replaceState({}, "", "/");
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify(searchResult), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      }),
-    );
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
+      const requestUrl =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      return Promise.resolve(
+        new Response(
+          JSON.stringify(
+            requestUrl.startsWith("/api/offers")
+              ? searchResult
+              : { api: "ready", database: "ready", worker: "ready" },
+          ),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        ),
+      );
+    });
     vi.stubGlobal("fetch", fetchMock);
 
-    renderSearchPage();
+    const { router } = renderSearchPage();
 
     const offerRow = await screen.findByRole("row", {
       name: /Sky Dragon — Medium/,
@@ -108,9 +127,20 @@ describe("Offer search table", () => {
         "/api/offers?q=Sky+Dragon&stock=in_stock&view=storefront",
       );
     });
-    expect(window.location.search).toBe(
-      "?q=Sky+Dragon&stock=in_stock&view=storefront",
-    );
+    expect(router.state.location.search).toEqual({
+      q: ["Sky Dragon"],
+      stock: "in_stock",
+      view: "storefront",
+    });
+    expect(
+      router.state.matches.find((match) => match.routeId === "/")?.search,
+    ).toEqual({
+      freshness: "all",
+      match: "all",
+      q: ["Sky Dragon"],
+      stock: "in_stock",
+      view: "storefront",
+    });
     expect(
       screen.getByRole("button", { name: "Remove Sky Dragon" }),
     ).toBeInTheDocument();

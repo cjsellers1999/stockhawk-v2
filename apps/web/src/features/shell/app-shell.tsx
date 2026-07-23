@@ -1,17 +1,17 @@
 import type { Readiness } from "@stockhawk/contracts";
+import { Link } from "@tanstack/react-router";
 import { Activity, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ThemeMenu } from "../../components/ui/theme-menu.js";
+import { defaultOfferSearchQuery } from "../search/offer-search.js";
 import styles from "./app-shell.module.css";
 
-export type Destination = "health" | "search";
+type Destination = "health" | "search";
 
 type AppShellProps = {
   children: ReactNode;
   dark: boolean;
-  destination: Destination;
-  onNavigate: (destination: Destination) => void;
   onThemeChange: (dark: boolean) => void;
   readiness: Readiness | undefined;
   readinessFailed: boolean;
@@ -19,43 +19,42 @@ type AppShellProps = {
 
 type NavigationLinkProps = {
   compact?: boolean;
-  current: boolean;
   destination: Destination;
   label: string;
-  onNavigate: (destination: Destination) => void;
 };
 
 const NavigationLink = ({
-  current,
   compact = false,
   destination,
   label,
-  onNavigate,
 }: NavigationLinkProps) => {
   const Icon = destination === "search" ? Search : Activity;
-  const href = destination === "search" ? "/" : "/health";
-
-  return (
-    <a
-      aria-label={compact ? label : undefined}
-      aria-current={current ? "page" : undefined}
-      href={href}
-      onClick={(event) => {
-        event.preventDefault();
-        onNavigate(destination);
-      }}
-    >
+  const content = (
+    <>
       <Icon aria-hidden="true" size={16} />
       <span className={compact ? styles.compactLabel : undefined}>{label}</span>
-    </a>
+    </>
+  );
+
+  return destination === "search" ? (
+    <Link
+      activeOptions={{ exact: true }}
+      aria-label={compact ? label : undefined}
+      search={defaultOfferSearchQuery}
+      to="/"
+    >
+      {content}
+    </Link>
+  ) : (
+    <Link aria-label={compact ? label : undefined} to="/health">
+      {content}
+    </Link>
   );
 };
 
 export const AppShell = ({
   children,
   dark,
-  destination,
-  onNavigate,
   onThemeChange,
   readiness,
   readinessFailed,
@@ -73,34 +72,12 @@ export const AppShell = ({
         <span className={styles.brandWordmark}>StockHawk</span>
       </div>
       <nav aria-label="Primary" className={styles.navigation}>
-        <NavigationLink
-          current={destination === "search"}
-          destination="search"
-          label="Search"
-          onNavigate={onNavigate}
-        />
-        <NavigationLink
-          current={destination === "health"}
-          destination="health"
-          label="Health"
-          onNavigate={onNavigate}
-        />
+        <NavigationLink destination="search" label="Search" />
+        <NavigationLink destination="health" label="Health" />
       </nav>
       <div className={styles.mobileNavigation}>
-        <NavigationLink
-          compact
-          current={destination === "search"}
-          destination="search"
-          label="Search"
-          onNavigate={onNavigate}
-        />
-        <NavigationLink
-          compact
-          current={destination === "health"}
-          destination="health"
-          label="Health"
-          onNavigate={onNavigate}
-        />
+        <NavigationLink compact destination="search" label="Search" />
+        <NavigationLink compact destination="health" label="Health" />
         <ThemeMenu dark={dark} onThemeChange={onThemeChange} />
       </div>
       <div className={styles.footer}>

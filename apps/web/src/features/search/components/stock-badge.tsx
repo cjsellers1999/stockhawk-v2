@@ -19,7 +19,7 @@ const presentationByStatus: Record<
     label: "Preorder",
   },
   unknown: {
-    className: "bg-secondary text-muted-foreground",
+    className: "bg-secondary text-secondary-foreground",
     label: "Unknown",
   },
 };
