@@ -20,7 +20,9 @@ const ThumbnailContent = ({ imageUrl, rawTitle }: OfferThumbnailProps) => {
             : `Retailer listing: ${rawTitle}`
         }
         className={
-          showFallback ? "size-4.5" : "absolute inset-0 size-full object-cover"
+          showFallback
+            ? styles.placeholder
+            : "absolute inset-0 size-full object-cover"
         }
         loading="lazy"
         onError={showFallback ? undefined : () => setImageFailed(true)}

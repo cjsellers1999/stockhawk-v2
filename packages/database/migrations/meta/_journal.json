@@ -15,6 +15,20 @@
       "when": 1784770930302,
       "tag": "0001_catalog_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784773245262,
+      "tag": "0002_strengthen_catalog_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784773848059,
+      "tag": "0003_search_document_source",
+      "breakpoints": true
     }
   ]
 }

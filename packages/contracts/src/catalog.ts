@@ -78,12 +78,37 @@ export type CommitObservationBatchCommand = z.infer<
   typeof commitObservationBatchCommandSchema
 >;
 
+const searchTermsSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return [];
+    }
+    return Array.isArray(value) ? value : [value];
+  },
+  z.array(z.string().trim().min(1).max(200)).max(20),
+);
+
+export const offerSearchQuerySchema = z
+  .object({
+    freshness: z.enum(["all", "fresh", "stale"]).default("all"),
+    match: z.enum(["all", "confirmed", "provisional"]).default("all"),
+    q: searchTermsSchema,
+    stock: z
+      .enum(["all", "in_stock", "out_of_stock", "preorder", "unknown"])
+      .default("all"),
+    view: z.enum(["flat", "storefront"]).default("flat"),
+  })
+  .strict();
+
+export type OfferSearchQuery = z.infer<typeof offerSearchQuerySchema>;
+
 export const offerSchema = z
   .object({
     canonicalProductName: z.string(),
     imageUrl: httpUrlSchema.nullable(),
     lastCheckedAt: z.iso.datetime({ offset: true }),
     listingIdentity: identitySchema,
+    listingPresence: z.literal("active"),
     matchStatus: z.literal("confirmed"),
     purchaseUrl: httpUrlSchema,
     rawTitle: z.string(),

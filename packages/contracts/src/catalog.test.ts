@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   commitObservationBatchCommandSchema,
+  offerSearchQuerySchema,
   offerSearchResponseSchema,
 } from "./catalog.js";
 
@@ -58,6 +59,7 @@ describe("catalog contracts", () => {
           imageUrl: command.listing.imageUrl,
           lastCheckedAt: command.observedAt,
           listingIdentity: command.listing.identity,
+          listingPresence: "active",
           matchStatus: "confirmed",
           purchaseUrl: command.listing.purchaseUrl,
           rawTitle: command.listing.rawTitle,
@@ -77,5 +79,33 @@ describe("catalog contracts", () => {
         untrustedExtra: true,
       }),
     ).toThrow(/unrecognized/i);
+  });
+
+  it("decodes URL-shaped Offer search state with strict defaults", () => {
+    expect(
+      offerSearchQuerySchema.parse({
+        freshness: "fresh",
+        match: "confirmed",
+        q: ["Sky Dragon", "liltulips.com"],
+        stock: "in_stock",
+        view: "storefront",
+      }),
+    ).toEqual({
+      freshness: "fresh",
+      match: "confirmed",
+      q: ["Sky Dragon", "liltulips.com"],
+      stock: "in_stock",
+      view: "storefront",
+    });
+    expect(offerSearchQuerySchema.parse({})).toEqual({
+      freshness: "all",
+      match: "all",
+      q: [],
+      stock: "all",
+      view: "flat",
+    });
+    expect(() =>
+      offerSearchQuerySchema.parse({ q: "", unsupported: true }),
+    ).toThrow(/small|unrecognized/i);
   });
 });

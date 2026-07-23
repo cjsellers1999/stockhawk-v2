@@ -2,7 +2,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { OfferSearchResponse } from "@stockhawk/contracts";
+import type {
+  OfferSearchQuery,
+  OfferSearchResponse,
+} from "@stockhawk/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildApp, isBrowserNavigationRequest } from "./app.js";
@@ -41,6 +44,7 @@ describe("readiness endpoint", () => {
           imageUrl: null,
           lastCheckedAt: "2026-07-22T18:00:00.000Z",
           listingIdentity: "lst_synthetic_sky_dragon",
+          listingPresence: "active" as const,
           matchStatus: "confirmed" as const,
           purchaseUrl: "https://liltulips.com/products/sky-dragon-medium",
           rawTitle: "Sky Dragon — Medium",
@@ -52,21 +56,55 @@ describe("readiness endpoint", () => {
       ],
       total: 1,
     };
+    const searchOffers = vi
+      .fn<(query: OfferSearchQuery) => Promise<typeof searchResult>>()
+      .mockResolvedValue(searchResult);
     const app = buildApp({
       database: {
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
-        searchOffers: vi
-          .fn<() => Promise<typeof searchResult>>()
-          .mockResolvedValue(searchResult),
+        searchOffers,
       },
       webDistPath: undefined,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
 
-    const response = await app.inject({ method: "GET", url: "/api/offers" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/offers?q=Sky%20Dragon&q=liltulips.com&stock=in_stock&view=storefront",
+    });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual(searchResult);
+    expect(searchOffers).toHaveBeenCalledWith({
+      freshness: "all",
+      match: "all",
+      q: ["Sky Dragon", "liltulips.com"],
+      stock: "in_stock",
+      view: "storefront",
+    });
+    await app.close();
+  });
+
+  it("rejects malformed Offer search state before the database boundary", async () => {
+    const searchOffers = vi
+      .fn<(query: OfferSearchQuery) => Promise<OfferSearchResponse>>()
+      .mockResolvedValue({ items: [], total: 0 });
+    const app = buildApp({
+      database: {
+        check: vi.fn<() => Promise<boolean>>(),
+        searchOffers,
+      },
+      webDistPath: undefined,
+      worker: { check: vi.fn<() => Promise<boolean>>() },
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/offers?stock=invented",
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(searchOffers).not.toHaveBeenCalled();
     await app.close();
   });
 

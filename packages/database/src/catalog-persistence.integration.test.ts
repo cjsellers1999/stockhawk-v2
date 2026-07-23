@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { setTimeout } from "node:timers/promises";
 
 import type { CommitObservationBatchCommand } from "@stockhawk/contracts";
 import postgres from "postgres";
@@ -25,6 +26,29 @@ const getDatabase = () => {
     throw new Error("Expected the isolated catalog database to be ready");
   }
   return database;
+};
+
+const waitForLockWaiters = async (
+  client: ReturnType<typeof postgres>,
+  minimum: number,
+) => {
+  const poll = async (attempt: number): Promise<void> => {
+    const [result] = await client<{ waiting: number }[]>`
+      select count(*)::integer as waiting
+      from pg_stat_activity
+      where datname = current_database()
+        and wait_event_type = 'Lock'
+    `;
+    if ((result?.waiting ?? 0) >= minimum) {
+      return;
+    }
+    if (attempt === 199) {
+      throw new Error(`Expected at least ${minimum} PostgreSQL lock waiters`);
+    }
+    await setTimeout(10);
+    await poll(attempt + 1);
+  };
+  await poll(0);
 };
 
 const command = {
@@ -157,6 +181,7 @@ describe("catalog Persistence Boundary", () => {
           imageUrl: null,
           lastCheckedAt: "2026-07-22T18:00:00.000Z",
           listingIdentity: "lst_synthetic_sky_dragon",
+          listingPresence: "active",
           matchStatus: "confirmed",
           purchaseUrl: "https://liltulips.com/products/sky-dragon-medium",
           rawTitle: "Sky Dragon — Medium",
@@ -240,6 +265,100 @@ describe("catalog Persistence Boundary", () => {
     ).resolves.toHaveLength(2);
   });
 
+  it("serializes concurrent out-of-order listing facts without regressing current truth", async () => {
+    const catalogDatabase = getDatabase();
+    const initialCommand = {
+      ...commandForListing("concurrent"),
+      observationOrder: 10,
+    } satisfies CommitObservationBatchCommand;
+    const newestCommand = {
+      ...nextObservation({
+        observedAt: "2026-07-22T20:00:00.000Z",
+        observationOrder: 20,
+        prior: initialCommand,
+        status: "out_of_stock",
+        suffix: "concurrent_newest",
+      }),
+      listing: {
+        ...initialCommand.listing,
+        rawTitle: "Sky Dragon — newest facts",
+      },
+    } satisfies CommitObservationBatchCommand;
+    const delayedCommand = {
+      ...nextObservation({
+        observedAt: "2026-07-22T19:00:00.000Z",
+        observationOrder: 19,
+        prior: initialCommand,
+        status: "preorder",
+        suffix: "concurrent_delayed",
+      }),
+      listing: {
+        ...initialCommand.listing,
+        rawTitle: "Sky Dragon — delayed facts",
+      },
+    } satisfies CommitObservationBatchCommand;
+    const blocker = postgres(testUrl.toString(), { max: 1 });
+    const observer = postgres(testUrl.toString(), { max: 1 });
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+    const advisoryLockKey = 7_220_226;
+    let advisoryLockReleased = false;
+    let newestCommit: Promise<unknown> | undefined;
+    let delayedCommit: Promise<unknown> | undefined;
+
+    await catalogDatabase.commitObservationBatch(initialCommand);
+    await sqlClient.unsafe(`
+        create function test_wait_before_listing_update()
+        returns trigger
+        language plpgsql
+        as $$
+        begin
+          perform pg_advisory_xact_lock(${advisoryLockKey});
+          return new;
+        end
+        $$;
+        create trigger test_wait_before_listing_update
+        before update on retailer_listing
+        for each row execute function test_wait_before_listing_update();
+      `);
+    await blocker`select pg_advisory_lock(${advisoryLockKey})`;
+
+    try {
+      newestCommit = catalogDatabase.commitObservationBatch(newestCommand);
+      await waitForLockWaiters(observer, 1);
+      delayedCommit = catalogDatabase.commitObservationBatch(delayedCommand);
+      await waitForLockWaiters(observer, 2);
+      await blocker`select pg_advisory_unlock(${advisoryLockKey})`;
+      advisoryLockReleased = true;
+      await Promise.all([newestCommit, delayedCommit]);
+
+      const [listing] = await sqlClient<
+        { current_observation_order: number; raw_title: string }[]
+      >`
+          select current_observation_order::integer, raw_title
+          from retailer_listing
+          where stockhawk_identity = ${initialCommand.listing.identity}
+        `;
+      expect(listing).toEqual({
+        current_observation_order: 20,
+        raw_title: "Sky Dragon — newest facts",
+      });
+    } finally {
+      if (!advisoryLockReleased) {
+        await blocker`select pg_advisory_unlock(${advisoryLockKey})`;
+      }
+      await Promise.allSettled(
+        [newestCommit, delayedCommit].filter(
+          (promise): promise is Promise<unknown> => promise !== undefined,
+        ),
+      );
+      await sqlClient.unsafe(`
+          drop trigger if exists test_wait_before_listing_update on retailer_listing;
+          drop function if exists test_wait_before_listing_update();
+        `);
+      await Promise.all([blocker.end(), observer.end(), sqlClient.end()]);
+    }
+  }, 10_000);
+
   it("rolls back every write when an immutable identity conflicts", async () => {
     const catalogDatabase = getDatabase();
     const conflictingCommand = {
@@ -291,6 +410,7 @@ describe("catalog Persistence Boundary", () => {
           await transaction`
             insert into catalog_match (
               active,
+              evidence_artifact_id,
               match_authority,
               matched_at,
               product_id,
@@ -299,17 +419,138 @@ describe("catalog Persistence Boundary", () => {
             )
             select
               true,
+              evidence.id,
               'constraint_test',
               now(),
               ${secondProduct.id},
               listing.id,
               'mat_constraint_conflict'
             from retailer_listing as listing
+            cross join source_evidence_artifact as evidence
             where listing.stockhawk_identity = 'lst_synthetic_sky_dragon'
+              and evidence.stockhawk_identity = 'evd_synthetic_001'
           `;
         }),
       ).rejects.toMatchObject({ code: "23505" });
     } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("requires every Catalog Match to retain evidence", async () => {
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    try {
+      await expect(
+        sqlClient.begin(async (transaction) => {
+          await transaction`
+            update catalog_match
+            set evidence_artifact_id = null
+            where stockhawk_identity = ${command.catalogMatchIdentity}
+          `;
+          throw new Error("Catalog Match accepted missing evidence");
+        }),
+      ).rejects.toMatchObject({ code: "23502" });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("rejects Current Stock State facts that contradict its observation", async () => {
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    try {
+      await expect(
+        sqlClient.begin(async (transaction) => {
+          await transaction`
+            update current_stock_state as current
+            set status = 'out_of_stock'
+            from retailer_listing as listing
+            where current.retailer_listing_id = listing.id
+              and listing.stockhawk_identity = ${command.listing.identity}
+          `;
+          throw new Error("Current Stock State accepted contradictory facts");
+        }),
+      ).rejects.toMatchObject({ code: "23503" });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("rejects a duplicate causal Change Event at the PostgreSQL constraint", async () => {
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    try {
+      await expect(
+        sqlClient`
+          insert into change_event (
+            batch_id,
+            causal_idempotency_key,
+            effective_at,
+            event_type,
+            listing_observation_id,
+            new_value,
+            previous_value,
+            product_id,
+            retailer_listing_id,
+            schema_version,
+            stock_observation_id,
+            stockhawk_identity
+          )
+          select
+            batch_id,
+            causal_idempotency_key,
+            effective_at,
+            event_type,
+            listing_observation_id,
+            new_value,
+            previous_value,
+            product_id,
+            retailer_listing_id,
+            schema_version,
+            stock_observation_id,
+            'evt_duplicate_causal_constraint'
+          from change_event
+          order by stream_position
+          limit 1
+        `,
+      ).rejects.toMatchObject({ code: "23505" });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("keeps inactive Search Documents out of normal Offer search", async () => {
+    const catalogDatabase = getDatabase();
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    try {
+      await sqlClient`
+        update retailer_listing
+        set listing_presence = 'inactive'
+        where stockhawk_identity = ${command.listing.identity}
+      `;
+      await catalogDatabase.rebuildSearchDocuments();
+
+      const result = await catalogDatabase.searchOffers({
+        freshness: "all",
+        match: "all",
+        q: ["liltulips.com"],
+        stock: "all",
+        view: "flat",
+      });
+      expect(result.items).not.toContainEqual(
+        expect.objectContaining({
+          listingIdentity: command.listing.identity,
+        }),
+      );
+    } finally {
+      await sqlClient`
+        update retailer_listing
+        set listing_presence = 'active'
+        where stockhawk_identity = ${command.listing.identity}
+      `;
+      await catalogDatabase.rebuildSearchDocuments();
       await sqlClient.end();
     }
   });

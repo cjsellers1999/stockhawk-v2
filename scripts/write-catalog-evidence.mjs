@@ -33,23 +33,35 @@ const evidence = {
     ".scratch/stockhawk-v1/design/stockhawk-v1-design-prototype.html",
   ),
   lockfileSha256: await sha256("pnpm-lock.yaml"),
-  migrationSha256: await sha256(
-    "packages/database/migrations/0001_catalog_persistence.sql",
-  ),
+  migrationSha256: {
+    catalogPersistence: await sha256(
+      "packages/database/migrations/0001_catalog_persistence.sql",
+    ),
+    catalogInvariants: await sha256(
+      "packages/database/migrations/0002_strengthen_catalog_invariants.sql",
+    ),
+    searchDocumentSource: await sha256(
+      "packages/database/migrations/0003_search_document_source.sql",
+    ),
+  },
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0001_catalog_persistence",
+  schemaVersion: "0003_search_document_source",
   testMetadata: {
     database: [
       "atomic rollback",
       "idempotent replay",
       "stale observation history",
+      "concurrent out-of-order serialization",
       "one active catalog match",
+      "evidence-backed catalog match",
+      "current-state observation consistency",
       "causal event uniqueness",
       "search-document rebuild equivalence",
     ],
     interfaces: [
       "Fastify Offer API against PostgreSQL",
+      "server-backed match-any Offer search and filters",
       "TanStack Table v9 Search composition",
     ],
     runner: "vitest@4.1.10",

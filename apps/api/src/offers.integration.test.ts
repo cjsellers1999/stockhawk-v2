@@ -27,18 +27,28 @@ afterAll(async () => {
 
 describe("Offer search API with migrated PostgreSQL", () => {
   it("returns the synthetic exact-variant Offer", async () => {
-    const response = await app.inject({ method: "GET", url: "/api/offers" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/offers?q=Fixture%20Store&stock=in_stock",
+    });
     const result = offerSearchResponseSchema.parse(response.json());
 
     expect(response.statusCode).toBe(200);
     expect(result.items).toContainEqual(
       expect.objectContaining({
         canonicalProductName: "Sky Dragon",
+        listingPresence: "active",
         listingIdentity: "lst_stockhawk_synthetic_offer_v1",
         stockStatus: "in_stock",
         storefrontName: "StockHawk Fixture Store",
         variant: "Medium",
       }),
     );
+
+    const missingResponse = await app.inject({
+      method: "GET",
+      url: "/api/offers?q=not-a-real-offer",
+    });
+    expect(missingResponse.json()).toEqual({ items: [], total: 0 });
   });
 });

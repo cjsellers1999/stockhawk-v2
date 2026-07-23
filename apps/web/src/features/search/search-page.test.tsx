@@ -1,5 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SearchPage } from "./search-page.js";
@@ -9,8 +16,9 @@ const searchResult = {
     {
       canonicalProductName: "Sky Dragon",
       imageUrl: null,
-      lastCheckedAt: "2026-07-23T01:00:00.000Z",
+      lastCheckedAt: new Date(Date.now() - 4 * 60_000).toISOString(),
       listingIdentity: "lst_stockhawk_synthetic_offer_v1",
+      listingPresence: "active",
       matchStatus: "confirmed",
       purchaseUrl: "https://fixture.stockhawk.test/products/sky-dragon-medium",
       rawTitle: "Sky Dragon — Medium",
@@ -41,6 +49,7 @@ afterEach(() => {
 
 describe("Offer search table", () => {
   it("renders the authoritative Offer hierarchy and exact Purchase Handoff", async () => {
+    window.history.replaceState({}, "", "/");
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify(searchResult), {
         headers: { "content-type": "application/json" },
@@ -66,6 +75,7 @@ describe("Offer search table", () => {
     ).toBeInTheDocument();
     expect(within(offerRow).getByText("In stock")).toBeInTheDocument();
     expect(within(offerRow).getByText("Confirmed")).toBeInTheDocument();
+    expect(within(offerRow).getByText("4 min ago")).toBeInTheDocument();
     expect(within(offerRow).getByText("Target 60 min")).toBeInTheDocument();
     expect(
       within(offerRow).getByRole("img", {
@@ -81,5 +91,27 @@ describe("Offer search table", () => {
       "_blank",
     );
     expect(fetchMock).toHaveBeenCalledWith("/api/offers");
+
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByRole("searchbox", {
+        name: "Match any product, retailer, or URL",
+      }),
+      "Sky Dragon{Enter}",
+    );
+    await user.selectOptions(screen.getByLabelText("Stock status"), "in_stock");
+    await user.click(screen.getByRole("button", { name: "By Storefront" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/offers?q=Sky+Dragon&stock=in_stock&view=storefront",
+      );
+    });
+    expect(window.location.search).toBe(
+      "?q=Sky+Dragon&stock=in_stock&view=storefront",
+    );
+    expect(
+      screen.getByRole("button", { name: "Remove Sky Dragon" }),
+    ).toBeInTheDocument();
   });
 });

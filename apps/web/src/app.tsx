@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
 import { HealthPage } from "./features/health/health-page.js";
 import { AppShell, type Destination } from "./features/shell/app-shell.js";
 import { readinessQueryOptions } from "./features/shell/readiness.query.js";
-import { SearchPage } from "./features/search/search-page.js";
+
+const SearchPage = lazy(async () => {
+  const module = await import("./features/search/search-page.js");
+  return { default: module.SearchPage };
+});
 
 const destinationFromPath = (): Destination =>
   window.location.pathname === "/health" ? "health" : "search";
@@ -42,7 +46,7 @@ export const App = () => {
       readiness={readinessQuery.data}
       readinessFailed={readinessQuery.isError}
     >
-      {page}
+      <Suspense fallback={<p>Loading page…</p>}>{page}</Suspense>
     </AppShell>
   );
 };

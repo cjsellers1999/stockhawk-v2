@@ -1,5 +1,7 @@
 import type { Offer } from "@stockhawk/contracts";
 
+import styles from "./offer-badge.module.css";
+
 const presentationByStatus: Record<
   Offer["stockStatus"],
   { className: string; label: string }
@@ -27,9 +29,9 @@ export const StockBadge = ({ status }: { status: Offer["stockStatus"] }) => {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${presentation.className}`}
+      className={`${styles.badge} inline-flex items-center ${presentation.className}`}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      <span aria-hidden="true" className={`${styles.dot} bg-current`} />
       {presentation.label}
     </span>
   );

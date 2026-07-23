@@ -7,6 +7,7 @@ import {
   index,
   integer,
   pgTable,
+  pgView,
   text,
   timestamp,
   unique,
@@ -210,6 +211,9 @@ export const catalogMatch = pgTable(
   "catalog_match",
   {
     active: boolean("active").default(true).notNull(),
+    evidenceArtifactId: bigint("evidence_artifact_id", {
+      mode: "number",
+    }).notNull(),
     id: internalIdentity("id"),
     matchAuthority: text("match_authority").notNull(),
     matchedAt: timestamp("matched_at", {
@@ -234,6 +238,14 @@ export const catalogMatch = pgTable(
     uniqueIndex("catalog_match_active_listing_unique")
       .on(table.retailerListingId)
       .where(sql`${table.active}`),
+    foreignKey({
+      columns: [table.evidenceArtifactId],
+      foreignColumns: [sourceEvidenceArtifact.id],
+      name: "catalog_match_evidence_fk",
+    }).onDelete("restrict"),
+    index("catalog_match_evidence_artifact_id_idx").on(
+      table.evidenceArtifactId,
+    ),
     index("catalog_match_product_id_idx").on(table.productId),
     index("catalog_match_retailer_listing_id_idx").on(table.retailerListingId),
     check(
@@ -286,9 +298,12 @@ export const stockObservation = pgTable(
       table.batchId,
       table.retailerListingId,
     ),
-    unique("stock_observation_id_listing_unique").on(
+    unique("stock_observation_current_state_facts_unique").on(
       table.id,
       table.retailerListingId,
+      table.observationOrder,
+      table.observedAt,
+      table.status,
     ),
     index("stock_observation_evidence_artifact_id_idx").on(
       table.evidenceArtifactId,
@@ -324,9 +339,21 @@ export const currentStockState = pgTable(
   },
   (table) => [
     foreignKey({
-      columns: [table.stockObservationId, table.retailerListingId],
-      foreignColumns: [stockObservation.id, stockObservation.retailerListingId],
-      name: "current_stock_state_observation_listing_fk",
+      columns: [
+        table.stockObservationId,
+        table.retailerListingId,
+        table.observationOrder,
+        table.observedAt,
+        table.status,
+      ],
+      foreignColumns: [
+        stockObservation.id,
+        stockObservation.retailerListingId,
+        stockObservation.observationOrder,
+        stockObservation.observedAt,
+        stockObservation.status,
+      ],
+      name: "current_stock_state_observation_facts_fk",
     }).onDelete("restrict"),
     check(
       "current_stock_state_status_check",
@@ -461,6 +488,65 @@ export const changeEvent = pgTable(
   ],
 );
 
+export const searchDocumentSource = pgView("search_document_source", {
+  canonicalProductName: text("canonical_product_name").notNull(),
+  classification: text("classification").notNull(),
+  imageUrl: text("image_url"),
+  lastCheckedAt: timestamp("last_checked_at", {
+    mode: "date",
+    withTimezone: true,
+  }).notNull(),
+  listingIdentity: text("listing_identity").notNull(),
+  listingPresence: text("listing_presence").notNull(),
+  matchStatus: text("match_status").notNull(),
+  productId: bigint("product_id", { mode: "number" }).notNull(),
+  projectionVersion: integer("projection_version").notNull(),
+  purchaseUrl: text("purchase_url").notNull(),
+  rawTitle: text("raw_title").notNull(),
+  retailerListingId: bigint("retailer_listing_id", {
+    mode: "number",
+  }).notNull(),
+  stockStatus: text("stock_status").notNull(),
+  storefrontHostname: text("storefront_hostname").notNull(),
+  storefrontId: bigint("storefront_id", { mode: "number" }).notNull(),
+  storefrontName: text("storefront_name").notNull(),
+  updatedAt: timestamp("updated_at", {
+    mode: "date",
+    withTimezone: true,
+  }).notNull(),
+  variant: text("variant").notNull(),
+}).as(sql`
+  select
+    matched_product.canonical_name as canonical_product_name,
+    'offer'::text as classification,
+    listing.image_url,
+    stock.observed_at as last_checked_at,
+    listing.stockhawk_identity as listing_identity,
+    listing.listing_presence,
+    'confirmed'::text as match_status,
+    matched_product.id as product_id,
+    1::integer as projection_version,
+    listing.purchase_url,
+    listing.raw_title,
+    listing.id as retailer_listing_id,
+    stock.status as stock_status,
+    matched_storefront.hostname as storefront_hostname,
+    matched_storefront.id as storefront_id,
+    matched_storefront.name as storefront_name,
+    now() as updated_at,
+    matched_product.variant
+  from retailer_listing as listing
+  inner join catalog_match as active_match
+    on active_match.retailer_listing_id = listing.id
+    and active_match.active
+  inner join product as matched_product
+    on matched_product.id = active_match.product_id
+  inner join storefront as matched_storefront
+    on matched_storefront.id = listing.storefront_id
+  inner join current_stock_state as stock
+    on stock.retailer_listing_id = listing.id
+`);
+
 export const schema = {
   catalogMatch,
   changeEvent,
@@ -470,6 +556,7 @@ export const schema = {
   retailerListing,
   retailerListingObservation,
   searchDocument,
+  searchDocumentSource,
   serviceHeartbeat,
   sourceEvidenceArtifact,
   stockObservation,

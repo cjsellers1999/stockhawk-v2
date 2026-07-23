@@ -39,6 +39,7 @@
     },
     "test:integration": {
       "cache": false,
+      "dependsOn": ["^build"],
       "env": ["DATABASE_URL"]
     },
     "test:e2e": {

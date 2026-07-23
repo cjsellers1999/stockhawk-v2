@@ -1,0 +1,55 @@
+.searchBox {
+  min-height: 42px;
+  gap: 8px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 7px;
+}
+
+.searchBox:focus-within {
+  outline: 1px solid var(--ring);
+}
+
+.chip {
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.chipButton {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}
+
+.segmented {
+  padding: 2px;
+  border-radius: 7px;
+}
+
+.segmentedButton {
+  height: 28px;
+  padding: 0 10px;
+  border-width: 0;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filterField {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.tableFoot {
+  min-height: 54px;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.pagerButton {
+  width: 32px;
+  padding: 0;
+}

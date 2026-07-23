@@ -17,6 +17,7 @@ import {
   retailerListingObservation,
   schema,
   searchDocument,
+  searchDocumentSource,
   sourceEvidenceArtifact,
   stockObservation,
   storefront,
@@ -269,11 +270,14 @@ export const createCatalogPersistence = (
         );
       }
 
-      await transaction
-        .select({ id: retailerListing.id })
-        .from(retailerListing)
-        .where(eq(retailerListing.id, persistedListing.id))
-        .for("update");
+      persistedListing = first(
+        await transaction
+          .select()
+          .from(retailerListing)
+          .where(eq(retailerListing.id, persistedListing.id))
+          .for("update"),
+        "Retailer Listing row lock failed",
+      );
 
       if (command.observationOrder > persistedListing.currentObservationOrder) {
         persistedListing = first(
@@ -315,6 +319,7 @@ export const createCatalogPersistence = (
       const insertedCatalogMatches = await transaction
         .insert(catalogMatch)
         .values({
+          evidenceArtifactId: persistedEvidenceArtifact.id,
           matchAuthority: "synthetic_fixture",
           matchedAt: observedAt,
           productId: persistedProduct.id,
@@ -451,50 +456,17 @@ export const createCatalogPersistence = (
 
       const projection = first(
         await transaction
-          .select({
-            canonicalProductName: product.canonicalName,
-            imageUrl: retailerListing.imageUrl,
-            lastCheckedAt: currentStockState.observedAt,
-            listingIdentity: retailerListing.stockhawkIdentity,
-            listingPresence: retailerListing.listingPresence,
-            productId: product.id,
-            purchaseUrl: retailerListing.purchaseUrl,
-            rawTitle: retailerListing.rawTitle,
-            retailerListingId: retailerListing.id,
-            stockStatus: currentStockState.status,
-            storefrontHostname: storefront.hostname,
-            storefrontId: storefront.id,
-            storefrontName: storefront.name,
-            variant: product.variant,
-          })
-          .from(retailerListing)
-          .innerJoin(
-            catalogMatch,
-            and(
-              eq(catalogMatch.retailerListingId, retailerListing.id),
-              eq(catalogMatch.active, true),
-            ),
-          )
-          .innerJoin(product, eq(product.id, catalogMatch.productId))
-          .innerJoin(
-            storefront,
-            eq(storefront.id, retailerListing.storefrontId),
-          )
-          .innerJoin(
-            currentStockState,
-            eq(currentStockState.retailerListingId, retailerListing.id),
-          )
-          .where(eq(retailerListing.id, persistedListing.id)),
+          .select()
+          .from(searchDocumentSource)
+          .where(
+            eq(searchDocumentSource.retailerListingId, persistedListing.id),
+          ),
         "Search Document source facts are incomplete",
       );
 
       await transaction
         .insert(searchDocument)
-        .values({
-          ...projection,
-          classification: "offer",
-          matchStatus: "confirmed",
-        })
+        .values(projection)
         .onConflictDoUpdate({
           set: {
             canonicalProductName: projection.canonicalProductName,
@@ -523,57 +495,9 @@ export const createCatalogPersistence = (
   rebuildSearchDocuments: async () =>
     database.transaction(async (transaction) => {
       await transaction.delete(searchDocument);
-      await transaction.execute(sql`
-        insert into search_document (
-          retailer_listing_id,
-          listing_identity,
-          product_id,
-          storefront_id,
-          raw_title,
-          canonical_product_name,
-          variant,
-          storefront_name,
-          storefront_hostname,
-          stock_status,
-          classification,
-          match_status,
-          listing_presence,
-          image_url,
-          purchase_url,
-          last_checked_at,
-          projection_version,
-          updated_at
-        )
-        select
-          listing.id,
-          listing.stockhawk_identity,
-          matched_product.id,
-          matched_storefront.id,
-          listing.raw_title,
-          matched_product.canonical_name,
-          matched_product.variant,
-          matched_storefront.name,
-          matched_storefront.hostname,
-          stock.status,
-          'offer',
-          'confirmed',
-          listing.listing_presence,
-          listing.image_url,
-          listing.purchase_url,
-          stock.observed_at,
-          1,
-          now()
-        from retailer_listing as listing
-        inner join catalog_match as active_match
-          on active_match.retailer_listing_id = listing.id
-          and active_match.active
-        inner join product as matched_product
-          on matched_product.id = active_match.product_id
-        inner join storefront as matched_storefront
-          on matched_storefront.id = listing.storefront_id
-        inner join current_stock_state as stock
-          on stock.retailer_listing_id = listing.id
-      `);
+      await transaction
+        .insert(searchDocument)
+        .select(transaction.select().from(searchDocumentSource));
       const countResult = first(
         await transaction
           .select({ count: sql<number>`count(*)::integer` })

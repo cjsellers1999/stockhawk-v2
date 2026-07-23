@@ -35,7 +35,7 @@ describe("StockHawk shell", () => {
     renderApp();
 
     expect(
-      screen.getByRole("heading", { name: "Search offers" }),
+      await screen.findByRole("heading", { name: "Search offers" }),
     ).toBeInTheDocument();
 
     await userEvent.click(
