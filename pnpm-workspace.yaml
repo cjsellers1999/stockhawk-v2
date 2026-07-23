@@ -4,6 +4,10 @@ packages:
 
 strictPeerDependencies: true
 
+peerDependencyRules:
+  allowedVersions:
+    typescript: 7.0.2
+
 allowBuilds:
   esbuild: true
   unrs-resolver: true

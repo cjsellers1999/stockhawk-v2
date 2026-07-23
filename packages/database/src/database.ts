@@ -1,4 +1,8 @@
+import { eq, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
+import { schema, serviceHeartbeat } from "./schema.js";
 
 export type Database = {
   check: () => Promise<boolean>;
@@ -8,33 +12,36 @@ export type Database = {
 };
 
 export const createDatabase = (url: string): Database => {
-  const sql = postgres(url, { max: 5 });
+  const client = postgres(url, { max: 5 });
+  const database = drizzle({ client, schema });
 
   return {
     check: async () => {
       try {
-        await sql`select 1`;
+        await database.execute(sql`select 1`);
         return true;
       } catch {
         return false;
       }
     },
-    close: async () => sql.end(),
+    close: async () => client.end(),
     markWorkerReady: async () => {
-      await sql`
-        insert into service_heartbeat (service_name, observed_at)
-        values ('worker', now())
-        on conflict (service_name)
-        do update set observed_at = excluded.observed_at
-      `;
+      await database
+        .insert(serviceHeartbeat)
+        .values({ observedAt: sql`now()`, serviceName: "worker" })
+        .onConflictDoUpdate({
+          set: { observedAt: sql`excluded.observed_at` },
+          target: serviceHeartbeat.serviceName,
+        });
     },
     workerIsReady: async () => {
       try {
-        const result = await sql<{ ready: boolean }[]>`
-          select coalesce(max(observed_at) > now() - interval '30 seconds', false) as ready
-          from service_heartbeat
-          where service_name = 'worker'
-        `;
+        const result = await database
+          .select({
+            ready: sql<boolean>`coalesce(max(${serviceHeartbeat.observedAt}) > now() - interval '30 seconds', false)`,
+          })
+          .from(serviceHeartbeat)
+          .where(eq(serviceHeartbeat.serviceName, "worker"));
         return result[0]?.ready ?? false;
       } catch {
         return false;

@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "lint": "oxlint --type-aware --deny-warnings src",
     "lint:check": "pnpm lint",
     "migrate": "tsx src/migrate.ts",
@@ -19,13 +20,15 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "drizzle-orm": "0.45.2",
     "postgres": "3.4.9",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "26.1.1",
+    "drizzle-kit": "0.31.10",
     "tsx": "4.23.1",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.10"
   }
 }

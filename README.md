@@ -34,3 +34,7 @@ DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm test:integration
 ```
 
 Migrations, real-database integration, browser/live checks, backup/restore, evidence, and release tasks are intentionally never cached.
+
+Database schema and queries use exact-pinned Drizzle ORM. `pnpm --filter @stockhawk/database db:generate` regenerates reviewed SQL migrations.
+
+TypeScript is exact-pinned at `7.0.2`. Oxlint owns TypeScript, React, Query, and Tailwind source checks. Strict peers remain enabled; pnpm allows only this exact TypeScript version for the ESLint-compatible Query/Tailwind rule packages whose published peer metadata predates TypeScript 7.

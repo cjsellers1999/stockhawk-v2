@@ -6,9 +6,10 @@ const databaseEnvironmentSchema = z
   .object({
     DATABASE_URL: z.url().refine((value) => {
       const url = new URL(value);
+      const hostname = url.hostname === "[::1]" ? "::1" : url.hostname;
       return (
         (url.protocol === "postgres:" || url.protocol === "postgresql:") &&
-        loopbackHosts.has(url.hostname)
+        loopbackHosts.has(hostname)
       );
     }, "PostgreSQL must use a loopback host"),
   })

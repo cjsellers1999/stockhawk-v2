@@ -12,12 +12,18 @@ const sha256 = async (path) =>
     .digest("hex");
 
 const commit = git("rev-parse", "HEAD");
+if (git("status", "--porcelain") !== "") {
+  throw new Error("Bootstrap evidence requires a clean working tree");
+}
 const evidenceDirectory = resolve(workspace, "artifacts/evidence", commit);
 const packageManifest = JSON.parse(
   await readFile(resolve(workspace, "package.json"), "utf8"),
 );
 const webManifest = JSON.parse(
   await readFile(resolve(workspace, "apps/web/package.json"), "utf8"),
+);
+const databaseManifest = JSON.parse(
+  await readFile(resolve(workspace, "packages/database/package.json"), "utf8"),
 );
 
 const evidence = {
@@ -28,11 +34,11 @@ const evidence = {
   ),
   lockfileSha256: await sha256("pnpm-lock.yaml"),
   migrationSha256: await sha256(
-    "packages/database/migrations/0001_bootstrap.sql",
+    "packages/database/migrations/0000_bootstrap.sql",
   ),
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0001_bootstrap",
+  schemaVersion: "0000_bootstrap",
   testMetadata: {
     runner: "vitest@4.1.10",
     suites: [
@@ -46,6 +52,8 @@ const evidence = {
   },
   versions: {
     baseUi: webManifest.dependencies["@base-ui/react"],
+    drizzleKit: databaseManifest.devDependencies["drizzle-kit"],
+    drizzleOrm: databaseManifest.dependencies["drizzle-orm"],
     query: webManifest.dependencies["@tanstack/react-query"],
     shadcn: webManifest.devDependencies.shadcn,
     table: webManifest.dependencies["@tanstack/react-table"],

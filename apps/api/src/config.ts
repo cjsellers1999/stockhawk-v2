@@ -32,6 +32,6 @@ export const decodeApiConfig = (
     databaseUrl: database.url,
     host: parsed.HOST,
     port: parsed.PORT,
-    webDistPath: parsed.WEB_DIST_PATH ?? resolve(process.cwd(), "../web/dist"),
+    webDistPath: resolve(process.cwd(), parsed.WEB_DIST_PATH ?? "../web/dist"),
   };
 };

@@ -19,6 +19,11 @@
       "specifier": "eslint-plugin-react-hooks"
     }
   ],
+  "settings": {
+    "tailwindcss": {
+      "cssConfigPath": "./src/styles.css"
+    }
+  },
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -60,5 +65,39 @@
   "env": {
     "builtin": true
   },
+  "overrides": [
+    {
+      "files": ["apps/web/src/**/*.{ts,tsx}"],
+      "jsPlugins": [
+        {
+          "name": "tailwindcss",
+          "specifier": "eslint-plugin-tailwindcss"
+        }
+      ],
+      "rules": {
+        "tailwindcss/classnames-order": "error",
+        "tailwindcss/enforces-negative-arbitrary-values": "error",
+        "tailwindcss/enforces-shorthand": "error",
+        "tailwindcss/important-modifier-suffix": "error",
+        "tailwindcss/no-arbitrary-value": "error",
+        "tailwindcss/no-contradicting-classname": "error",
+        "tailwindcss/no-custom-classname": "error",
+        "tailwindcss/no-unnecessary-arbitrary-value": "error"
+      }
+    },
+    {
+      "files": ["apps/web/src/lib/cn.ts"],
+      "rules": {
+        "tailwindcss/classnames-order": "off",
+        "tailwindcss/enforces-negative-arbitrary-values": "off",
+        "tailwindcss/enforces-shorthand": "off",
+        "tailwindcss/important-modifier-suffix": "off",
+        "tailwindcss/no-arbitrary-value": "off",
+        "tailwindcss/no-contradicting-classname": "off",
+        "tailwindcss/no-custom-classname": "off",
+        "tailwindcss/no-unnecessary-arbitrary-value": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["**/dist/**", "**/coverage/**", ".scratch/**"]
 }

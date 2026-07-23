@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { buildApp } from "./app.js";
+import { buildApp, isBrowserNavigationRequest } from "./app.js";
 
 describe("readiness endpoint", () => {
   it("reports the API, database, and worker truth independently", async () => {
@@ -42,9 +42,14 @@ describe("readiness endpoint", () => {
     });
 
     const apiResponse = await app.inject({
-      headers: { accept: "application/json" },
+      headers: { accept: "text/html" },
       method: "GET",
       url: "/api/missing",
+    });
+    const mutationResponse = await app.inject({
+      headers: { accept: "text/html" },
+      method: "POST",
+      url: "/health",
     });
     const navigationResponse = await app.inject({
       headers: { accept: "text/html" },
@@ -54,9 +59,16 @@ describe("readiness endpoint", () => {
 
     expect(apiResponse.statusCode).toBe(404);
     expect(apiResponse.headers["content-type"]).toContain("application/json");
+    expect(mutationResponse.statusCode).toBe(404);
     expect(navigationResponse.statusCode).toBe(200);
     expect(navigationResponse.body).toContain("StockHawk");
     await app.close();
     await rm(webDistPath, { recursive: true });
+  });
+
+  it("classifies API dot-segment targets before URL normalization", () => {
+    expect(
+      isBrowserNavigationRequest("GET", "/api/%2e%2e/missing", "text/html"),
+    ).toBe(false);
   });
 });

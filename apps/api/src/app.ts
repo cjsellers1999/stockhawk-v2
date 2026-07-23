@@ -12,6 +12,21 @@ type AppDependencies = {
   worker: ReadinessCheck;
 };
 
+export const isBrowserNavigationRequest = (
+  method: string,
+  originalUrl: string,
+  accept: string | undefined,
+) => {
+  const [pathname] = originalUrl.split("?", 1);
+  return (
+    (method === "GET" || method === "HEAD") &&
+    pathname !== undefined &&
+    pathname !== "/api" &&
+    !pathname.startsWith("/api/") &&
+    accept?.includes("text/html") === true
+  );
+};
+
 export const buildApp = ({
   database,
   webDistPath,
@@ -36,7 +51,13 @@ export const buildApp = ({
   if (webDistPath !== undefined && existsSync(webDistPath)) {
     void app.register(fastifyStatic, { root: webDistPath, wildcard: false });
     app.setNotFoundHandler((request, reply) => {
-      if (!request.headers.accept?.includes("text/html")) {
+      const isBrowserNavigation = isBrowserNavigationRequest(
+        request.method,
+        request.originalUrl,
+        request.headers.accept,
+      );
+
+      if (!isBrowserNavigation) {
         return reply.code(404).send({
           error: "Not Found",
           message: `Route ${request.method}:${request.url} not found`,
