@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createAppRouter } from "../../router";
+import { ThemeProvider } from "../shell/theme-provider";
 
 const searchResult = {
   items: [
@@ -48,9 +49,11 @@ const renderSearchPage = () => {
     createMemoryHistory({ initialEntries: ["/"] }),
   );
   const view = render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>,
   );
   return { ...view, router };
 };
@@ -58,6 +61,7 @@ const renderSearchPage = () => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
 describe("Offer search table", () => {

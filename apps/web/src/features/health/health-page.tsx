@@ -21,7 +21,7 @@ export const HealthPage = () => (
         </p>
       </div>
       <Button variant="ghost">
-        <RefreshCw aria-hidden="true" size={16} />
+        <RefreshCw aria-hidden="true" data-icon="inline-start" size={16} />
         Refresh
       </Button>
     </div>

@@ -91,11 +91,28 @@ export const AppShell = ({
         <NavigationLink destination="search" label="Search" />
         <NavigationLink destination="health" label="Health" />
       </nav>
-      <div className="ml-auto hidden items-center gap-1 pr-2.5 max-md:flex">
-        <NavigationLink compact destination="search" label="Search" />
-        <NavigationLink compact destination="health" label="Health" />
+      <nav
+        aria-label="Primary"
+        className="ml-auto flex items-center gap-1 pr-2.5 md:hidden"
+      >
+        <Link
+          activeOptions={{ exact: true, includeSearch: false }}
+          aria-label="Search"
+          className="inline-flex items-center rounded-sm p-2 text-muted-foreground data-[status=active]:bg-accent data-[status=active]:text-foreground"
+          search={defaultOfferSearchQuery}
+          to="/"
+        >
+          <Search aria-hidden="true" size={16} />
+        </Link>
+        <Link
+          aria-label="Health"
+          className="inline-flex items-center rounded-sm p-2 text-muted-foreground data-[status=active]:bg-accent data-[status=active]:text-foreground"
+          to="/health"
+        >
+          <Activity aria-hidden="true" size={16} />
+        </Link>
         <ThemeMenu dark={dark} onThemeChange={onThemeChange} />
-      </div>
+      </nav>
       <div className="mt-auto px-4 pt-3 pb-4 text-caption text-muted-foreground max-md:hidden">
         Private owner application
         <br />
