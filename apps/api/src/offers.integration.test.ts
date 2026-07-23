@@ -40,6 +40,7 @@ describe("Offer search API with migrated PostgreSQL", () => {
         listingPresence: "active",
         listingIdentity: "lst_stockhawk_synthetic_offer_v1",
         stockStatus: "in_stock",
+        storefrontIdentity: "stf_stockhawk_fixture_store_v1",
         storefrontName: "StockHawk Fixture Store",
         variant: "Medium",
       }),

@@ -7,7 +7,7 @@ import {
 import { and, desc, eq, or, sql, type SQL } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-import { schema, searchDocument } from "./schema.js";
+import { schema, searchDocument, storefront } from "./schema.js";
 
 type StockHawkDatabase = PostgresJsDatabase<typeof schema>;
 
@@ -71,11 +71,13 @@ export const createOfferSearch = (
         rawTitle: searchDocument.rawTitle,
         stockStatus: searchDocument.stockStatus,
         storefrontHostname: searchDocument.storefrontHostname,
+        storefrontIdentity: storefront.stockhawkIdentity,
         storefrontName: searchDocument.storefrontName,
         total: sql<number>`count(*) over()::integer`,
         variant: searchDocument.variant,
       })
       .from(searchDocument)
+      .innerJoin(storefront, eq(storefront.id, searchDocument.storefrontId))
       .where(and(...conditions))
       .orderBy(
         isStale,
@@ -95,6 +97,7 @@ export const createOfferSearch = (
         rawTitle: row.rawTitle,
         stockStatus: row.stockStatus,
         storefrontHostname: row.storefrontHostname,
+        storefrontIdentity: row.storefrontIdentity,
         storefrontName: row.storefrontName,
         variant: row.variant,
       })),

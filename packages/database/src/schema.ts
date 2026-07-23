@@ -82,13 +82,11 @@ export const observationBatch = pgTable(
       .unique("observation_batch_idempotency_key_unique"),
     runIdentity: text("run_identity").notNull(),
     schemaVersion: integer("schema_version").notNull(),
-    stockhawkIdentity: text("stockhawk_identity").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("observation_batch_stockhawk_identity_unique"),
   },
   (table) => [
-    uniqueIndex("observation_batch_run_identity_unique").on(
-      table.runIdentity,
-      table.stockhawkIdentity,
-    ),
     check(
       "observation_batch_command_hash_check",
       sql`${table.commandHash} ~ '^[a-f0-9]{64}$'`,
@@ -193,6 +191,12 @@ export const retailerListingObservation = pgTable(
     uniqueIndex("retailer_listing_observation_batch_item_unique").on(
       table.batchId,
       table.retailerListingId,
+    ),
+    unique("retailer_listing_observation_event_facts_unique").on(
+      table.id,
+      table.batchId,
+      table.retailerListingId,
+      table.observedAt,
     ),
     index("retailer_listing_observation_evidence_artifact_id_idx").on(
       table.evidenceArtifactId,
@@ -302,6 +306,13 @@ export const stockObservation = pgTable(
       table.id,
       table.retailerListingId,
       table.observationOrder,
+      table.observedAt,
+      table.status,
+    ),
+    unique("stock_observation_event_facts_unique").on(
+      table.id,
+      table.batchId,
+      table.retailerListingId,
       table.observedAt,
       table.status,
     ),
@@ -473,6 +484,38 @@ export const changeEvent = pgTable(
       foreignColumns: [retailerListingObservation.id],
       name: "change_event_listing_observation_fk",
     }).onDelete("restrict"),
+    foreignKey({
+      columns: [
+        table.listingObservationId,
+        table.batchId,
+        table.retailerListingId,
+        table.effectiveAt,
+      ],
+      foreignColumns: [
+        retailerListingObservation.id,
+        retailerListingObservation.batchId,
+        retailerListingObservation.retailerListingId,
+        retailerListingObservation.observedAt,
+      ],
+      name: "change_event_listing_causality_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [
+        table.stockObservationId,
+        table.batchId,
+        table.retailerListingId,
+        table.effectiveAt,
+        table.newValue,
+      ],
+      foreignColumns: [
+        stockObservation.id,
+        stockObservation.batchId,
+        stockObservation.retailerListingId,
+        stockObservation.observedAt,
+        stockObservation.status,
+      ],
+      name: "change_event_stock_causality_fk",
+    }).onDelete("restrict"),
     index("change_event_batch_id_idx").on(table.batchId),
     index("change_event_listing_observation_id_idx").on(
       table.listingObservationId,
@@ -483,6 +526,24 @@ export const changeEvent = pgTable(
     check(
       "change_event_event_type_check",
       sql`${table.eventType} in ('listing_discovered', 'stock_status_changed')`,
+    ),
+    check(
+      "change_event_payload_check",
+      sql`(
+        ${table.eventType} = 'listing_discovered'
+        and ${table.listingObservationId} is not null
+        and ${table.stockObservationId} is null
+        and ${table.previousValue} is null
+        and ${table.newValue} = 'active'
+      ) or (
+        ${table.eventType} = 'stock_status_changed'
+        and ${table.listingObservationId} is not null
+        and ${table.stockObservationId} is not null
+        and ${table.previousValue} is not null
+        and ${table.previousValue} in ('in_stock', 'out_of_stock', 'preorder', 'unknown')
+        and ${table.newValue} in ('in_stock', 'out_of_stock', 'preorder', 'unknown')
+        and ${table.previousValue} <> ${table.newValue}
+      )`,
     ),
     check("change_event_schema_version_check", sql`${table.schemaVersion} = 1`),
   ],

@@ -23,4 +23,5 @@ export const offersQueryOptions = (query: OfferSearchQuery) =>
       return offerSearchResponseSchema.parse(await response.json());
     },
     queryKey: searchQueryKeys.offers(query),
+    refetchInterval: 60_000,
   });

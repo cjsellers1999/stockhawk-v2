@@ -4,6 +4,7 @@ import { PackageSearch } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "../../components/ui/button.js";
+import badgeStyles from "./components/offer-badge.module.css";
 import { OfferTable } from "./components/offer-table/offer-table.js";
 import {
   decodeOfferSearch,
@@ -72,7 +73,9 @@ export const SearchPage = () => {
             page.
           </p>
         </div>
-        <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs font-semibold">
+        <span
+          className={`${badgeStyles.badge} inline-flex items-center bg-secondary text-secondary-foreground`}
+        >
           {offerCountLabel(total)}
         </span>
       </div>

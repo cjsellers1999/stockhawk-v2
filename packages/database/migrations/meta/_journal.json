@@ -29,6 +29,13 @@
       "when": 1784773848059,
       "tag": "0003_search_document_source",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784775553360,
+      "tag": "0004_enforce_batch_event_causality",
+      "breakpoints": true
     }
   ]
 }

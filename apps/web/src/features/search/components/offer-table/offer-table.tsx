@@ -64,7 +64,7 @@ export const OfferTable = ({
   const groupedRows = new Map<string, { label: string; rows: typeof rows }>();
   for (const row of rows) {
     const offer = row.original;
-    const key = `${offer.storefrontHostname}:${offer.storefrontName}`;
+    const key = offer.storefrontIdentity;
     const group = groupedRows.get(key);
     if (group === undefined) {
       groupedRows.set(key, { label: offer.storefrontName, rows: [row] });

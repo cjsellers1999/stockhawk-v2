@@ -1,5 +1,5 @@
 import type { Offer } from "@stockhawk/contracts";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import styles from "./offer-table.module.css";
 
@@ -27,14 +27,19 @@ const ageLabel = (ageMinutes: number) => {
 };
 
 export const OfferFreshness = ({ offer }: { offer: Offer }) => {
-  const [renderedAt] = useState(() => Date.now());
+  const [renderedAt, setRenderedAt] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = window.setInterval(
+      () => setRenderedAt(Date.now()),
+      60_000,
+    );
+    return () => window.clearInterval(interval);
+  }, []);
   const checkedAt = new Date(offer.lastCheckedAt);
-  const ageMinutes = Math.max(
-    0,
-    Math.floor((renderedAt - checkedAt.getTime()) / 60_000),
-  );
+  const ageMilliseconds = Math.max(0, renderedAt - checkedAt.getTime());
+  const ageMinutes = Math.floor(ageMilliseconds / 60_000);
   const targetMinutes = freshnessTargetMinutes(offer.stockStatus);
-  const stale = ageMinutes > targetMinutes;
+  const stale = ageMilliseconds > targetMinutes * 60_000;
 
   return (
     <div className={`${styles.fresh} ${stale ? "text-warning" : ""}`}>

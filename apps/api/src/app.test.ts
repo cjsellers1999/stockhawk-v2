@@ -50,6 +50,7 @@ describe("readiness endpoint", () => {
           rawTitle: "Sky Dragon — Medium",
           stockStatus: "in_stock" as const,
           storefrontHostname: "liltulips.com",
+          storefrontIdentity: "stf_lil_tulips",
           storefrontName: "Lil’ Tulips",
           variant: "Medium",
         },

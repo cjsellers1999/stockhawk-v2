@@ -94,10 +94,7 @@ export const createCatalogPersistence = (
             .where(
               or(
                 eq(observationBatch.idempotencyKey, command.idempotencyKey),
-                and(
-                  eq(observationBatch.runIdentity, command.runIdentity),
-                  eq(observationBatch.stockhawkIdentity, command.batchIdentity),
-                ),
+                eq(observationBatch.stockhawkIdentity, command.batchIdentity),
               ),
             ),
           "Observation Batch uniqueness conflict",
@@ -414,44 +411,38 @@ export const createCatalogPersistence = (
 
       if (insertedListings.length === 1) {
         const causalIdempotencyKey = `${command.idempotencyKey}:listing_discovered`;
-        await transaction
-          .insert(changeEvent)
-          .values({
-            batchId: insertedBatch.id,
-            causalIdempotencyKey,
-            effectiveAt: observedAt,
-            eventType: "listing_discovered",
-            listingObservationId: persistedListingObservation.id,
-            newValue: "active",
-            previousValue: null,
-            productId: persistedProduct.id,
-            retailerListingId: persistedListing.id,
-            schemaVersion: 1,
-            stockObservationId: null,
-            stockhawkIdentity: eventIdentity(causalIdempotencyKey),
-          })
-          .onConflictDoNothing();
+        await transaction.insert(changeEvent).values({
+          batchId: insertedBatch.id,
+          causalIdempotencyKey,
+          effectiveAt: observedAt,
+          eventType: "listing_discovered",
+          listingObservationId: persistedListingObservation.id,
+          newValue: "active",
+          previousValue: null,
+          productId: persistedProduct.id,
+          retailerListingId: persistedListing.id,
+          schemaVersion: 1,
+          stockObservationId: null,
+          stockhawkIdentity: eventIdentity(causalIdempotencyKey),
+        });
       }
 
       if (stockTransition !== undefined) {
         const causalIdempotencyKey = `${command.idempotencyKey}:stock_status_changed`;
-        await transaction
-          .insert(changeEvent)
-          .values({
-            batchId: insertedBatch.id,
-            causalIdempotencyKey,
-            effectiveAt: observedAt,
-            eventType: "stock_status_changed",
-            listingObservationId: persistedListingObservation.id,
-            newValue: stockTransition.newValue,
-            previousValue: stockTransition.previousValue,
-            productId: persistedProduct.id,
-            retailerListingId: persistedListing.id,
-            schemaVersion: 1,
-            stockObservationId: persistedStockObservation.id,
-            stockhawkIdentity: eventIdentity(causalIdempotencyKey),
-          })
-          .onConflictDoNothing();
+        await transaction.insert(changeEvent).values({
+          batchId: insertedBatch.id,
+          causalIdempotencyKey,
+          effectiveAt: observedAt,
+          eventType: "stock_status_changed",
+          listingObservationId: persistedListingObservation.id,
+          newValue: stockTransition.newValue,
+          previousValue: stockTransition.previousValue,
+          productId: persistedProduct.id,
+          retailerListingId: persistedListing.id,
+          schemaVersion: 1,
+          stockObservationId: persistedStockObservation.id,
+          stockhawkIdentity: eventIdentity(causalIdempotencyKey),
+        });
       }
 
       const projection = first(

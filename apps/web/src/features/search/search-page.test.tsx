@@ -24,6 +24,7 @@ const searchResult = {
       rawTitle: "Sky Dragon — Medium",
       stockStatus: "in_stock",
       storefrontHostname: "fixture.stockhawk.test",
+      storefrontIdentity: "stf_fixture_store",
       storefrontName: "StockHawk Fixture Store",
       variant: "Medium",
     },
@@ -78,9 +79,9 @@ describe("Offer search table", () => {
     expect(within(offerRow).getByText("4 min ago")).toBeInTheDocument();
     expect(within(offerRow).getByText("Target 60 min")).toBeInTheDocument();
     expect(
-      within(offerRow).getByRole("img", {
-        name: "No image available for Sky Dragon — Medium",
-      }),
+      within(offerRow).getByLabelText(
+        "No image available for Sky Dragon — Medium",
+      ),
     ).toBeInTheDocument();
     expect(within(offerRow).getByRole("link", { name: /Buy/ })).toHaveAttribute(
       "href",

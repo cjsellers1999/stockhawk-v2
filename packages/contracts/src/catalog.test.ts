@@ -65,6 +65,7 @@ describe("catalog contracts", () => {
           rawTitle: command.listing.rawTitle,
           stockStatus: command.stock.status,
           storefrontHostname: "liltulips.com",
+          storefrontIdentity: command.storefront.identity,
           storefrontName: command.storefront.name,
           variant: command.product.variant,
         },

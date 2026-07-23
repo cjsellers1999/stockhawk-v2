@@ -114,6 +114,7 @@ export const offerSchema = z
     rawTitle: z.string(),
     stockStatus: stockStatusSchema,
     storefrontHostname: z.string().min(1),
+    storefrontIdentity: identitySchema,
     storefrontName: z.string().min(1),
     variant: z.string(),
   })

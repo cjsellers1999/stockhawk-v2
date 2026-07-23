@@ -187,6 +187,7 @@ describe("catalog Persistence Boundary", () => {
           rawTitle: "Sky Dragon — Medium",
           stockStatus: "in_stock",
           storefrontHostname: "liltulips.com",
+          storefrontIdentity: "stf_lil_tulips",
           storefrontName: "Lil’ Tulips",
           variant: "Medium",
         },
@@ -221,6 +222,21 @@ describe("catalog Persistence Boundary", () => {
         previousValue: "unknown",
       }),
     ]);
+  });
+
+  it("rejects Observation Batch identity reuse across different runs", async () => {
+    const catalogDatabase = getDatabase();
+    const originalCommand = commandForListing("global_batch_original");
+    const reusedCommand = {
+      ...commandForListing("global_batch_reused"),
+      batchIdentity: originalCommand.batchIdentity,
+    } satisfies CommitObservationBatchCommand;
+
+    await catalogDatabase.commitObservationBatch(originalCommand);
+
+    await expect(
+      catalogDatabase.commitObservationBatch(reusedCommand),
+    ).rejects.toThrow(/Observation Batch idempotency identity was reused/);
   });
 
   it("retains a stale Stock Observation without replacing newer current truth", async () => {
@@ -515,6 +531,188 @@ describe("catalog Persistence Boundary", () => {
           limit 1
         `,
       ).rejects.toMatchObject({ code: "23505" });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("rolls back state when a required Change Event conflicts", async () => {
+    const catalogDatabase = getDatabase();
+    const seedCommand = commandForListing("event_conflict_seed");
+    const blockedCommand = commandForListing("event_conflict_target");
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    await catalogDatabase.commitObservationBatch(seedCommand);
+
+    try {
+      await sqlClient`
+        insert into change_event (
+          batch_id,
+          causal_idempotency_key,
+          effective_at,
+          event_type,
+          listing_observation_id,
+          new_value,
+          previous_value,
+          product_id,
+          retailer_listing_id,
+          schema_version,
+          stock_observation_id,
+          stockhawk_identity
+        )
+        select
+          batch.id,
+          ${`${blockedCommand.idempotencyKey}:listing_discovered`},
+          listing_observation.observed_at,
+          'listing_discovered',
+          listing_observation.id,
+          'active',
+          null,
+          active_match.product_id,
+          listing.id,
+          1,
+          null,
+          'evt_reserved_required_event_conflict'
+        from observation_batch as batch
+        inner join retailer_listing_observation as listing_observation
+          on listing_observation.batch_id = batch.id
+        inner join retailer_listing as listing
+          on listing.id = listing_observation.retailer_listing_id
+        inner join catalog_match as active_match
+          on active_match.retailer_listing_id = listing.id
+          and active_match.active
+        where batch.stockhawk_identity = ${seedCommand.batchIdentity}
+      `;
+
+      await expect(
+        catalogDatabase.commitObservationBatch(blockedCommand),
+      ).rejects.toMatchObject({ cause: { code: "23505" } });
+
+      const [counts] = await sqlClient<{ batches: number; listings: number }[]>`
+        select
+          count(*) filter (
+            where batch.stockhawk_identity = ${blockedCommand.batchIdentity}
+          )::integer as batches,
+          count(*) filter (
+            where listing.stockhawk_identity = ${blockedCommand.listing.identity}
+          )::integer as listings
+        from observation_batch as batch
+        full join retailer_listing as listing on false
+      `;
+      expect(counts).toEqual({ batches: 0, listings: 0 });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("rejects Change Events with causal observations from another batch", async () => {
+    const catalogDatabase = getDatabase();
+    const claimedBatchCommand = commandForListing("event_claimed_batch");
+    const observedCommand = commandForListing("event_actual_batch");
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    await catalogDatabase.commitObservationBatch(claimedBatchCommand);
+    await catalogDatabase.commitObservationBatch(observedCommand);
+
+    try {
+      await expect(
+        sqlClient`
+          insert into change_event (
+            batch_id,
+            causal_idempotency_key,
+            effective_at,
+            event_type,
+            listing_observation_id,
+            new_value,
+            previous_value,
+            product_id,
+            retailer_listing_id,
+            schema_version,
+            stock_observation_id,
+            stockhawk_identity
+          )
+          select
+            claimed_batch.id,
+            'event_mismatched_causality',
+            stock_observation.observed_at,
+            'stock_status_changed',
+            listing_observation.id,
+            stock_observation.status,
+            'unknown',
+            active_match.product_id,
+            listing.id,
+            1,
+            stock_observation.id,
+            'evt_mismatched_causality'
+          from observation_batch as claimed_batch
+          cross join retailer_listing as listing
+          inner join retailer_listing_observation as listing_observation
+            on listing_observation.retailer_listing_id = listing.id
+          inner join stock_observation
+            on stock_observation.batch_id = listing_observation.batch_id
+            and stock_observation.retailer_listing_id = listing.id
+          inner join catalog_match as active_match
+            on active_match.retailer_listing_id = listing.id
+            and active_match.active
+          where claimed_batch.stockhawk_identity = ${claimedBatchCommand.batchIdentity}
+            and listing.stockhawk_identity = ${observedCommand.listing.identity}
+        `,
+      ).rejects.toMatchObject({ code: "23503" });
+    } finally {
+      await sqlClient.end();
+    }
+  });
+
+  it("requires the causal observation for each Change Event type", async () => {
+    const catalogDatabase = getDatabase();
+    const missingObservationCommand = commandForListing(
+      "event_missing_observation",
+    );
+    const sqlClient = postgres(testUrl.toString(), { max: 1 });
+
+    await catalogDatabase.commitObservationBatch(missingObservationCommand);
+
+    try {
+      await expect(
+        sqlClient`
+          insert into change_event (
+            batch_id,
+            causal_idempotency_key,
+            effective_at,
+            event_type,
+            listing_observation_id,
+            new_value,
+            previous_value,
+            product_id,
+            retailer_listing_id,
+            schema_version,
+            stock_observation_id,
+            stockhawk_identity
+          )
+          select
+            batch.id,
+            'event_missing_stock_observation',
+            listing_observation.observed_at,
+            'stock_status_changed',
+            listing_observation.id,
+            'in_stock',
+            'unknown',
+            active_match.product_id,
+            listing.id,
+            1,
+            null,
+            'evt_missing_stock_observation'
+          from observation_batch as batch
+          inner join retailer_listing_observation as listing_observation
+            on listing_observation.batch_id = batch.id
+          inner join retailer_listing as listing
+            on listing.id = listing_observation.retailer_listing_id
+          inner join catalog_match as active_match
+            on active_match.retailer_listing_id = listing.id
+            and active_match.active
+          where batch.stockhawk_identity = ${missingObservationCommand.batchIdentity}
+        `,
+      ).rejects.toMatchObject({ code: "23514" });
     } finally {
       await sqlClient.end();
     }
