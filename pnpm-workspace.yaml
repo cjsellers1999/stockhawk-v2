@@ -23,3 +23,7 @@ minimumReleaseAgeExclude:
   - "@vitejs/plugin-react@6.0.4"
   - shadcn@4.14.0
   - turbo@2.10.6
+  - "@shadscan/cli@0.1.1"
+  - deslop-js@0.9.1
+  - oxlint-plugin-react-doctor@0.9.1
+  - react-doctor@0.9.1

@@ -6,6 +6,7 @@
     "module": "Preserve",
     "noEmit": true,
     "paths": {
+      "@stockhawk/ui": ["./src"],
       "@stockhawk/ui/*": ["./src/*"]
     }
   },

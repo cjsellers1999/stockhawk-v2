@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createAppRouter } from "./router";
+import { ThemeProvider } from "./features/shell/theme-provider";
 
 vi.mock("./features/search/search-page.js", async (importOriginal) => {
   await new Promise<void>((resolve) => setTimeout(resolve, 50));
@@ -27,9 +28,11 @@ const renderApp = (initialEntry = "/") => {
     createMemoryHistory({ initialEntries: [initialEntry] }),
   );
   const view = render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>,
   );
   return { ...view, router };
 };
@@ -37,6 +40,7 @@ const renderApp = (initialEntry = "/") => {
 afterEach(() => {
   cleanup();
   document.documentElement.classList.remove("dark");
+  window.localStorage.clear();
 });
 
 describe("StockHawk shell", () => {

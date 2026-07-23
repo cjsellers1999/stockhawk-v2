@@ -27,6 +27,7 @@ export const SearchPage = () => {
   const offersQuery = useQuery(offersQueryOptions(searchQuery));
   const offers = offersQuery.data?.items ?? noOffers;
   const total = offersQuery.data?.total ?? 0;
+  const isPending = offersQuery.isFetching;
 
   const commitSearch = (patch: Partial<OfferSearchQuery>) => {
     const nextQuery = offerSearchQuerySchema.safeParse({
@@ -62,6 +63,9 @@ export const SearchPage = () => {
 
   const addSearchTerm = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isPending) {
+      return;
+    }
     commitSearchInput();
   };
 
@@ -89,6 +93,7 @@ export const SearchPage = () => {
       </div>
 
       <form
+        aria-busy={isPending}
         className="mb-3 flex gap-3 max-sm:flex-col"
         onSubmit={addSearchTerm}
       >
@@ -122,13 +127,15 @@ export const SearchPage = () => {
               searchError === undefined ? undefined : "offer-search-error"
             }
             aria-invalid={searchError === undefined ? undefined : true}
-            className="min-w-24 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+            className="min-w-24 flex-1 bg-transparent placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             id="offer-search-input"
             onChange={(event) => setSearchInput(event.currentTarget.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                commitSearchInput();
+                if (!isPending) {
+                  commitSearchInput();
+                }
               }
             }}
             placeholder="Add product, retailer, or URL…"
@@ -136,6 +143,9 @@ export const SearchPage = () => {
             value={searchInput}
           />
         </div>
+        <button className="sr-only" disabled={isPending} type="submit">
+          {isPending ? "Updating offers…" : "Add search term"}
+        </button>
         <fieldset
           aria-label="View mode"
           className="inline-flex self-start rounded-md border border-input bg-background p-0.5"
@@ -160,6 +170,12 @@ export const SearchPage = () => {
           </Button>
         </fieldset>
       </form>
+      <span aria-live="polite" className="sr-only">
+        {isPending ? "Updating offers…" : ""}
+      </span>
+      {!isPending && !offersQuery.isError && offers.length === 0 ? (
+        <output className="sr-only">No results found.</output>
+      ) : null}
       {searchError === undefined ? null : (
         <p
           className="mb-3 text-body text-danger"
