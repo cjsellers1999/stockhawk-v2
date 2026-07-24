@@ -1,8 +1,10 @@
 import { execFile, execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { once } from "node:events";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
@@ -11,18 +13,21 @@ const databaseName = `stockhawk_e2e_${process.pid}_${randomBytes(6).toString("he
 const baseDatabaseUrl = new URL(
   process.env.DATABASE_URL ?? "postgres://127.0.0.1:5432/postgres",
 );
-const host = baseDatabaseUrl.hostname;
+const host =
+  baseDatabaseUrl.hostname === "[::1]" ? "::1" : baseDatabaseUrl.hostname;
 if (!["127.0.0.1", "::1", "localhost"].includes(host)) {
   throw new Error("Owner-command E2E requires loopback PostgreSQL");
 }
-const maintenanceUrl = new URL(baseDatabaseUrl);
-maintenanceUrl.pathname = "/postgres";
-maintenanceUrl.search = "";
 const testDatabaseUrl = new URL(baseDatabaseUrl);
 testDatabaseUrl.pathname = `/${databaseName}`;
 testDatabaseUrl.search = "";
 const processes = [];
 let databaseCreated = false;
+let databaseCredentialDirectory;
+let databaseToolEnvironment;
+
+const escapePgPass = (value) =>
+  value.replaceAll("\\", "\\\\").replaceAll(":", "\\:");
 
 const run = (command, arguments_, options = {}) =>
   new Promise((resolveRun, rejectRun) => {
@@ -120,11 +125,47 @@ const stopProcesses = async () => {
 };
 
 try {
-  execFileSync(
-    "createdb",
-    [`--maintenance-db=${maintenanceUrl.toString()}`, databaseName],
-    { cwd: workspace, stdio: "inherit" },
+  databaseToolEnvironment = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([name]) => name !== "DATABASE_URL" && !name.startsWith("PG"),
+    ),
   );
+  Object.assign(databaseToolEnvironment, {
+    PGHOST: host,
+    PGPORT: baseDatabaseUrl.port || "5432",
+  });
+  if (baseDatabaseUrl.username !== "") {
+    const decodedUser = decodeURIComponent(baseDatabaseUrl.username);
+    if (/[\r\n]/u.test(decodedUser)) {
+      throw new Error(
+        "Owner-command E2E database username cannot contain line breaks",
+      );
+    }
+    databaseToolEnvironment.PGUSER = decodedUser;
+  }
+  if (baseDatabaseUrl.password !== "") {
+    const decodedValue = decodeURIComponent(baseDatabaseUrl.password);
+    if (/[\r\n]/u.test(decodedValue)) {
+      throw new Error(
+        "Owner-command E2E database credential cannot contain line breaks",
+      );
+    }
+    databaseCredentialDirectory = await mkdtemp(
+      join(tmpdir(), "stockhawk-e2e-pgpass-"),
+    );
+    const passwordFile = join(databaseCredentialDirectory, "pgpass");
+    await writeFile(passwordFile, `*:*:*:*:${escapePgPass(decodedValue)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    databaseToolEnvironment.PGPASSFILE = passwordFile;
+  }
+
+  execFileSync("createdb", ["--maintenance-db=postgres", databaseName], {
+    cwd: workspace,
+    env: databaseToolEnvironment,
+    stdio: "inherit",
+  });
   databaseCreated = true;
   await run("pnpm", ["--filter", "@stockhawk/database", "migrate"], {
     env: { DATABASE_URL: testDatabaseUrl.toString() },
@@ -150,17 +191,22 @@ try {
     { env: { STOCKHAWK_E2E_BASE_URL: applicationUrl } },
   );
 } finally {
-  await stopProcesses();
-  if (databaseCreated) {
-    execFileSync(
-      "dropdb",
-      [
-        `--maintenance-db=${maintenanceUrl.toString()}`,
-        "--if-exists",
-        "--force",
-        databaseName,
-      ],
-      { cwd: workspace, stdio: "inherit" },
-    );
+  try {
+    await stopProcesses();
+    if (databaseCreated) {
+      execFileSync(
+        "dropdb",
+        ["--maintenance-db=postgres", "--if-exists", "--force", databaseName],
+        {
+          cwd: workspace,
+          env: databaseToolEnvironment,
+          stdio: "inherit",
+        },
+      );
+    }
+  } finally {
+    if (databaseCredentialDirectory !== undefined) {
+      await rm(databaseCredentialDirectory, { force: true, recursive: true });
+    }
   }
 }
