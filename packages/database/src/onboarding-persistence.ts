@@ -191,105 +191,112 @@ export const applyOnboardingCaseCommand = async (
 export const createOnboardingPersistence = (
   database: StockHawkDatabase,
 ): OnboardingPersistence => ({
-  findOnboardingProgress: async () => {
-    const [seedImport] = await database
-      .select()
-      .from(seedSourceImport)
-      .orderBy(seedSourceImport.importedAt)
-      .limit(1);
-    if (seedImport === undefined) {
-      return null;
-    }
+  findOnboardingProgress: async () =>
+    database.transaction(
+      async (transaction) => {
+        const [seedImport] = await transaction
+          .select()
+          .from(seedSourceImport)
+          .orderBy(seedSourceImport.importedAt)
+          .limit(1);
+        if (seedImport === undefined) {
+          return null;
+        }
 
-    const [candidateCountResult] = await database
-      .select({ value: count() })
-      .from(candidateSite)
-      .where(eq(candidateSite.importId, seedImport.id));
-    const [reconciledCountResult] = await database
-      .select({ value: count() })
-      .from(candidateSiteSourceRecord)
-      .innerJoin(
-        candidateSite,
-        eq(candidateSite.id, candidateSiteSourceRecord.candidateSiteId),
-      )
-      .where(eq(candidateSite.importId, seedImport.id));
-    const caseStatusRows = await database
-      .select({
-        status: onboardingCase.status,
-        value: count(),
-      })
-      .from(onboardingCase)
-      .innerJoin(
-        candidateSite,
-        eq(candidateSite.id, onboardingCase.candidateSiteId),
-      )
-      .where(eq(candidateSite.importId, seedImport.id))
-      .groupBy(onboardingCase.status);
-    const caseCounts = new Map(
-      caseStatusRows.map((row) => [row.status, row.value]),
-    );
-    const caseTotal = caseStatusRows.reduce(
-      (total, row) => total + row.value,
-      0,
-    );
-    const [focusCase] = await database
-      .select({
-        candidateIdentity: candidateSite.stockhawkIdentity,
-        candidateName: candidateSite.name,
-        candidateUrl: candidateSite.url,
-        identity: onboardingCase.stockhawkIdentity,
-        nextAction: onboardingCase.nextAction,
-        revision: onboardingCase.revision,
-        sourceRecordCount: count(candidateSiteSourceRecord.id),
-        stage: onboardingCase.stage,
-        status: onboardingCase.status,
-        terminal: onboardingCase.terminal,
-        updatedAt: onboardingCase.updatedAt,
-        waitReason: onboardingCase.waitReason,
-      })
-      .from(onboardingCase)
-      .innerJoin(
-        candidateSite,
-        eq(candidateSite.id, onboardingCase.candidateSiteId),
-      )
-      .innerJoin(
-        candidateSiteSourceRecord,
-        eq(
-          candidateSiteSourceRecord.candidateSiteId,
-          onboardingCase.candidateSiteId,
-        ),
-      )
-      .where(eq(candidateSite.importId, seedImport.id))
-      .groupBy(onboardingCase.id, candidateSite.id)
-      .orderBy(onboardingCase.id)
-      .limit(1);
-    const candidateSiteCount = candidateCountResult?.value ?? 0;
+        const [candidateCountResult] = await transaction
+          .select({ value: count() })
+          .from(candidateSite)
+          .where(eq(candidateSite.importId, seedImport.id));
+        const [reconciledCountResult] = await transaction
+          .select({ value: count() })
+          .from(candidateSiteSourceRecord)
+          .innerJoin(
+            candidateSite,
+            eq(candidateSite.id, candidateSiteSourceRecord.candidateSiteId),
+          )
+          .where(eq(candidateSite.importId, seedImport.id));
+        const caseStatusRows = await transaction
+          .select({
+            status: onboardingCase.status,
+            value: count(),
+          })
+          .from(onboardingCase)
+          .innerJoin(
+            candidateSite,
+            eq(candidateSite.id, onboardingCase.candidateSiteId),
+          )
+          .where(eq(candidateSite.importId, seedImport.id))
+          .groupBy(onboardingCase.status);
+        const caseCounts = new Map(
+          caseStatusRows.map((row) => [row.status, row.value]),
+        );
+        const caseTotal = caseStatusRows.reduce(
+          (total, row) => total + row.value,
+          0,
+        );
+        const [focusCase] = await transaction
+          .select({
+            candidateIdentity: candidateSite.stockhawkIdentity,
+            candidateName: candidateSite.name,
+            candidateUrl: candidateSite.url,
+            identity: onboardingCase.stockhawkIdentity,
+            nextAction: onboardingCase.nextAction,
+            revision: onboardingCase.revision,
+            sourceRecordCount: count(candidateSiteSourceRecord.id),
+            stage: onboardingCase.stage,
+            status: onboardingCase.status,
+            terminal: onboardingCase.terminal,
+            updatedAt: onboardingCase.updatedAt,
+            waitReason: onboardingCase.waitReason,
+          })
+          .from(onboardingCase)
+          .innerJoin(
+            candidateSite,
+            eq(candidateSite.id, onboardingCase.candidateSiteId),
+          )
+          .innerJoin(
+            candidateSiteSourceRecord,
+            eq(
+              candidateSiteSourceRecord.candidateSiteId,
+              onboardingCase.candidateSiteId,
+            ),
+          )
+          .where(eq(candidateSite.importId, seedImport.id))
+          .groupBy(onboardingCase.id, candidateSite.id)
+          .orderBy(onboardingCase.id)
+          .limit(1);
+        const candidateSiteCount = candidateCountResult?.value ?? 0;
 
-    return onboardingProgressSchema.parse({
-      candidateSites: candidateSiteCount,
-      cases: {
-        inProgress: caseCounts.get("in_progress") ?? 0,
-        queued: caseCounts.get("queued") ?? 0,
-        resolved: caseCounts.get("resolved") ?? 0,
-        suspended: caseCounts.get("suspended") ?? 0,
-        total: caseTotal,
+        return onboardingProgressSchema.parse({
+          candidateSites: candidateSiteCount,
+          cases: {
+            inProgress: caseCounts.get("in_progress") ?? 0,
+            queued: caseCounts.get("queued") ?? 0,
+            resolved: caseCounts.get("resolved") ?? 0,
+            suspended: caseCounts.get("suspended") ?? 0,
+            total: caseTotal,
+          },
+          focusCase:
+            focusCase === undefined
+              ? null
+              : {
+                  ...focusCase,
+                  updatedAt: focusCase.updatedAt.toISOString(),
+                },
+          importedAt: seedImport.importedAt.toISOString(),
+          remainingCandidateSites: candidateSiteCount - caseTotal,
+          sourceRecords: {
+            reconciled: reconciledCountResult?.value ?? 0,
+            total: seedImport.sourceRecordCount,
+          },
+          workbookSha256: seedImport.fileSha256,
+        });
       },
-      focusCase:
-        focusCase === undefined
-          ? null
-          : {
-              ...focusCase,
-              updatedAt: focusCase.updatedAt.toISOString(),
-            },
-      importedAt: seedImport.importedAt.toISOString(),
-      remainingCandidateSites: candidateSiteCount - caseTotal,
-      sourceRecords: {
-        reconciled: reconciledCountResult?.value ?? 0,
-        total: seedImport.sourceRecordCount,
+      {
+        accessMode: "read only",
+        isolationLevel: "repeatable read",
       },
-      workbookSha256: seedImport.fileSha256,
-    });
-  },
+    ),
   importSeedWorkbook: async (seed) =>
     database.transaction(async (transaction) => {
       const [insertedImport] = await transaction
