@@ -1,0 +1,50 @@
+{
+  "commit": "b87a2585d90bd5963363069f1868c476fb2f6e18",
+  "lockfileSha256": "842d422dab4bb06af47007e898f42bbdc4b3b61d0b021a43ef789a8ed9c5f0b1",
+  "migrationSha256": {
+    "pgBoss": "d72406c8c37aba0d39b6cc47b938d8a9fd1dfe1ba58390e97708c2d5dc812cca",
+    "seedOnboarding": "80e18b09b6d92d3b891949175654cbf5a78c1c870d7c875d0a6956523a0648fe",
+    "stockHawk": "59732e3643fcdbe5600cbf382dc3c3497d26e260cf40c595ad4012ddcd388b85"
+  },
+  "schemaVersion": "0002_seed_onboarding",
+  "node": "v24.11.1",
+  "packageManager": "pnpm@11.13.0",
+  "seedList": {
+    "candidateSites": 2489,
+    "normalizationRuleVersion": 1,
+    "sourceColumns": 23,
+    "sourceRecords": 2712,
+    "workbook": "data/seed/stockhawk-sites.xlsx",
+    "workbookSha256": "0c4d846c6547e4d36d49de7c4aff250b63ec2cec9b39bfa166aa648586f53bbf",
+    "worksheet": "Sites"
+  },
+  "testMetadata": {
+    "boundaries": [
+      "immutable workbook hash, header, row count, and semantic row preservation",
+      "approved endpoint-equivalence normalization and exact source reconciliation",
+      "atomic idempotent PostgreSQL Seed List import",
+      "durable Onboarding Case pause, queued resume, revision guard, and replay",
+      "exact-Origin and same-origin Fetch Metadata command checks",
+      "optimistic queued intent, duplicate-click suppression, and refresh recovery"
+    ],
+    "runners": ["vitest@4.1.10"]
+  },
+  "verificationCommands": [
+    "pnpm format:check",
+    "pnpm lint:check",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm build",
+    "pnpm validate:react-doctor",
+    "pnpm validate:shadscan",
+    "pnpm test:e2e",
+    "DATABASE_URL=postgres://127.0.0.1:5432/<temporary-database> pnpm test:integration",
+    "DATABASE_URL=postgres://127.0.0.1:5432/<temporary-database> pnpm seed:sites"
+  ],
+  "versions": {
+    "drizzleOrm": "0.45.2",
+    "readExcelFile": "9.2.0",
+    "typescript": "7.0.2",
+    "zod": "4.4.3"
+  }
+}

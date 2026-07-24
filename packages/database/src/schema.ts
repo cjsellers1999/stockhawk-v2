@@ -6,6 +6,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   pgView,
   text,
@@ -28,11 +29,216 @@ export const serviceHeartbeat = pgTable("service_heartbeat", {
   serviceName: text("service_name").primaryKey(),
 });
 
+export const seedSourceImport = pgTable(
+  "seed_source_import",
+  {
+    columnCount: integer("column_count").notNull(),
+    fileName: text("file_name").notNull(),
+    fileSha256: text("file_sha256").notNull(),
+    headers: jsonb("headers").$type<string[]>().notNull(),
+    id: internalIdentity("id"),
+    importedAt: recordedAt("imported_at"),
+    sourceRecordCount: integer("source_record_count").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("seed_source_import_stockhawk_identity_unique"),
+    worksheetName: text("worksheet_name").notNull(),
+  },
+  (table) => [
+    unique("seed_source_import_file_worksheet_unique").on(
+      table.fileSha256,
+      table.worksheetName,
+    ),
+    check(
+      "seed_source_import_sha256_check",
+      sql`${table.fileSha256} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "seed_source_import_counts_check",
+      sql`${table.sourceRecordCount} > 0 and ${table.columnCount} > 0`,
+    ),
+    check(
+      "seed_source_import_headers_check",
+      sql`jsonb_typeof(${table.headers}) = 'array' and jsonb_array_length(${table.headers}) = ${table.columnCount}`,
+    ),
+  ],
+);
+
+export const seedSiteRecord = pgTable(
+  "seed_site_record",
+  {
+    baseUrl: text("base_url").notNull(),
+    id: internalIdentity("id"),
+    importId: bigint("import_id", { mode: "number" })
+      .notNull()
+      .references(() => seedSourceImport.id, { onDelete: "restrict" }),
+    legacyConnectorLabel: text("legacy_connector_label").notNull(),
+    name: text("name").notNull(),
+    rawRecordHash: text("raw_record_hash").notNull(),
+    rawValues: jsonb("raw_values")
+      .$type<Array<boolean | number | string | null>>()
+      .notNull(),
+    sourceRecordId: integer("source_record_id").notNull(),
+    sourceRowNumber: integer("source_row_number").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("seed_site_record_stockhawk_identity_unique"),
+  },
+  (table) => [
+    unique("seed_site_record_import_row_unique").on(
+      table.importId,
+      table.sourceRowNumber,
+    ),
+    unique("seed_site_record_import_source_id_unique").on(
+      table.importId,
+      table.sourceRecordId,
+    ),
+    index("seed_site_record_import_id_idx").on(table.importId),
+    check(
+      "seed_site_record_hash_check",
+      sql`${table.rawRecordHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check("seed_site_record_row_check", sql`${table.sourceRowNumber} >= 5`),
+    check(
+      "seed_site_record_values_check",
+      sql`jsonb_typeof(${table.rawValues}) = 'array'`,
+    ),
+    check("seed_site_record_url_check", sql`${table.baseUrl} ~ '^https?://'`),
+  ],
+);
+
+export const candidateSite = pgTable(
+  "candidate_site",
+  {
+    comparisonEndpointKey: text("comparison_endpoint_key").notNull(),
+    id: internalIdentity("id"),
+    importId: bigint("import_id", { mode: "number" })
+      .notNull()
+      .references(() => seedSourceImport.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    normalizationRuleVersion: integer("normalization_rule_version").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("candidate_site_stockhawk_identity_unique"),
+    url: text("url").notNull(),
+  },
+  (table) => [
+    unique("candidate_site_import_endpoint_unique").on(
+      table.importId,
+      table.comparisonEndpointKey,
+    ),
+    index("candidate_site_import_id_idx").on(table.importId),
+    check(
+      "candidate_site_normalization_version_check",
+      sql`${table.normalizationRuleVersion} = 1`,
+    ),
+    check("candidate_site_url_check", sql`${table.url} ~ '^https?://'`),
+  ],
+);
+
+export const candidateSiteSourceRecord = pgTable(
+  "candidate_site_source_record",
+  {
+    candidateSiteId: bigint("candidate_site_id", { mode: "number" }).notNull(),
+    id: internalIdentity("id"),
+    normalizationDecision: text("normalization_decision").notNull(),
+    normalizationRuleVersion: integer("normalization_rule_version").notNull(),
+    seedSiteRecordId: bigint("seed_site_record_id", {
+      mode: "number",
+    }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.candidateSiteId],
+      foreignColumns: [candidateSite.id],
+      name: "candidate_source_candidate_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.seedSiteRecordId],
+      foreignColumns: [seedSiteRecord.id],
+      name: "candidate_source_seed_record_fk",
+    }).onDelete("restrict"),
+    unique("candidate_site_source_record_unique").on(
+      table.candidateSiteId,
+      table.seedSiteRecordId,
+    ),
+    unique("candidate_site_source_record_seed_unique").on(
+      table.seedSiteRecordId,
+    ),
+    index("candidate_site_source_record_candidate_idx").on(
+      table.candidateSiteId,
+    ),
+    check(
+      "candidate_site_source_record_decision_check",
+      sql`${table.normalizationDecision} in ('unique_http_endpoint', 'syntactically_equivalent_http_endpoint')`,
+    ),
+    check(
+      "candidate_site_source_record_version_check",
+      sql`${table.normalizationRuleVersion} = 1`,
+    ),
+  ],
+);
+
+export const onboardingCase = pgTable(
+  "onboarding_case",
+  {
+    attempts: jsonb("attempts").$type<unknown[]>().notNull(),
+    candidateSiteId: bigint("candidate_site_id", { mode: "number" })
+      .notNull()
+      .unique("onboarding_case_candidate_site_unique")
+      .references(() => candidateSite.id, { onDelete: "restrict" }),
+    createdAt: recordedAt("created_at"),
+    dependencies: jsonb("dependencies").$type<unknown[]>().notNull(),
+    evidence: jsonb("evidence").$type<unknown[]>().notNull(),
+    id: internalIdentity("id"),
+    nextAction: text("next_action").notNull(),
+    revision: integer("revision").notNull(),
+    stage: text("stage").notNull(),
+    status: text("status").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("onboarding_case_stockhawk_identity_unique"),
+    terminal: boolean("terminal").notNull(),
+    updatedAt: recordedAt("updated_at"),
+    waitReason: text("wait_reason"),
+  },
+  (table) => [
+    index("onboarding_case_status_idx").on(
+      table.status,
+      table.updatedAt.desc(),
+    ),
+    check(
+      "onboarding_case_stage_check",
+      sql`${table.stage} in ('preflight', 'storefront_audit', 'integration', 'qualification', 'complete')`,
+    ),
+    check(
+      "onboarding_case_status_check",
+      sql`${table.status} in ('suspended', 'queued', 'in_progress', 'resolved')`,
+    ),
+    check(
+      "onboarding_case_terminal_check",
+      sql`${table.terminal} = (${table.status} = 'resolved')`,
+    ),
+    check(
+      "onboarding_case_wait_check",
+      sql`${table.status} <> 'suspended' or ${table.waitReason} is not null`,
+    ),
+    check("onboarding_case_revision_check", sql`${table.revision} >= 0`),
+    check(
+      "onboarding_case_json_arrays_check",
+      sql`jsonb_typeof(${table.attempts}) = 'array'
+        and jsonb_typeof(${table.dependencies}) = 'array'
+        and jsonb_typeof(${table.evidence}) = 'array'`,
+    ),
+  ],
+);
+
 export const ownerCommandReceipt = pgTable(
   "owner_command_receipt",
   {
     commandFamily: text("command_family").notNull(),
     commandHash: text("command_hash").notNull(),
+    commandPayload: jsonb("command_payload").$type<unknown>().notNull(),
     commandSchemaVersion: integer("command_schema_version").notNull(),
     completedAt: timestamp("completed_at", {
       mode: "date",
@@ -63,7 +269,7 @@ export const ownerCommandReceipt = pgTable(
     ),
     check(
       "owner_command_receipt_family_check",
-      sql`${table.commandFamily} = 'refresh_health'`,
+      sql`${table.commandFamily} in ('refresh_health', 'resume_onboarding')`,
     ),
     check(
       "owner_command_receipt_command_hash_check",
@@ -76,6 +282,13 @@ export const ownerCommandReceipt = pgTable(
     check(
       "owner_command_receipt_status_check",
       sql`${table.status} in ('queued', 'completed', 'failed')`,
+    ),
+    check(
+      "owner_command_receipt_payload_check",
+      sql`jsonb_typeof(${table.commandPayload}) = 'object'
+        and ${table.commandPayload}->>'family' = ${table.commandFamily}
+        and (${table.commandPayload}->>'schemaVersion')::integer = ${table.commandSchemaVersion}
+        and ${table.commandPayload}->>'idempotencyKey' = ${table.idempotencyKey}::text`,
     ),
     check(
       "owner_command_receipt_completion_check",
@@ -734,18 +947,23 @@ export const searchDocumentSource = pgView("search_document_source", {
 `);
 
 export const schema = {
+  candidateSite,
+  candidateSiteSourceRecord,
   catalogMatch,
   changeEvent,
   currentListingState,
   currentStockState,
   healthRefreshCheckpoint,
   observationBatch,
+  onboardingCase,
   ownerCommandReceipt,
   product,
   retailerListing,
   retailerListingObservation,
   searchDocument,
   searchDocumentSource,
+  seedSiteRecord,
+  seedSourceImport,
   serviceHeartbeat,
   sourceEvidenceArtifact,
   stockObservation,

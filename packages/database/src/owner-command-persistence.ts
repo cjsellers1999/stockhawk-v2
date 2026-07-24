@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import {
-  healthRefreshCommandSchema,
   ownerCommandJobSchema,
   ownerCommandReceiptSchema,
-  type HealthRefreshCommand,
+  ownerCommandSchema,
+  type OwnerCommand,
+  type OwnerCommandFamily,
   type OwnerCommandReceipt,
 } from "@stockhawk/contracts";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -12,6 +13,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { PgBoss } from "pg-boss";
 
 import { PersistenceConflictError } from "./catalog-persistence.js";
+import { applyOnboardingCaseCommand } from "./onboarding-persistence.js";
 import { fromStockHawkDrizzle } from "./pg-boss-drizzle-adapter.js";
 import {
   healthRefreshCheckpoint,
@@ -26,17 +28,19 @@ const ownerCommandAdvisoryLockNamespace = 1_397_700_001;
 const terminalJobStates = new Set(["cancelled", "completed", "failed"]);
 
 export class OwnerCommandInFlightError extends Error {
-  constructor() {
-    super("A health refresh command is already queued");
+  constructor(family: OwnerCommandFamily) {
+    const commandLabel =
+      family === "refresh_health" ? "health refresh" : "onboarding resume";
+    super(`A ${commandLabel} command is already queued`);
     this.name = "OwnerCommandInFlightError";
   }
 }
 
 export type OwnerCommandPersistence = {
-  enqueueOwnerCommand: (
-    command: HealthRefreshCommand,
-  ) => Promise<OwnerCommandReceipt>;
-  findLatestOwnerCommand: () => Promise<OwnerCommandReceipt | null>;
+  enqueueOwnerCommand: (command: OwnerCommand) => Promise<OwnerCommandReceipt>;
+  findLatestOwnerCommand: (
+    family: OwnerCommandFamily,
+  ) => Promise<OwnerCommandReceipt | null>;
   findOwnerCommandByIdempotencyKey: (
     idempotencyKey: string,
   ) => Promise<OwnerCommandReceipt | null>;
@@ -48,18 +52,14 @@ export type OwnerCommandPersistence = {
   processNextOwnerCommand: () => Promise<boolean>;
 };
 
-const fingerprint = (command: HealthRefreshCommand) =>
+const fingerprint = (command: OwnerCommand) =>
   createHash("sha256").update(JSON.stringify(command)).digest("hex");
 
 const toReceipt = (
   row: typeof ownerCommandReceipt.$inferSelect,
 ): OwnerCommandReceipt =>
   ownerCommandReceiptSchema.parse({
-    command: {
-      family: row.commandFamily,
-      idempotencyKey: row.idempotencyKey,
-      schemaVersion: row.commandSchemaVersion,
-    },
+    command: row.commandPayload,
     completedAt: row.completedAt?.toISOString() ?? null,
     failedAt: row.failedAt?.toISOString() ?? null,
     receiptId: row.stockhawkIdentity,
@@ -117,7 +117,7 @@ export const createOwnerCommandPersistence = ({
 
   return {
     enqueueOwnerCommand: async (unparsedCommand) => {
-      const command = healthRefreshCommandSchema.parse(unparsedCommand);
+      const command = ownerCommandSchema.parse(unparsedCommand);
       const commandHash = fingerprint(command);
 
       return database.transaction(async (transaction) => {
@@ -148,7 +148,7 @@ export const createOwnerCommandPersistence = ({
           )
           .limit(1);
         if (inFlight !== undefined) {
-          throw new OwnerCommandInFlightError();
+          throw new OwnerCommandInFlightError(command.family);
         }
 
         const receiptId = randomUUID();
@@ -158,6 +158,7 @@ export const createOwnerCommandPersistence = ({
           .values({
             commandFamily: command.family,
             commandHash,
+            commandPayload: command,
             commandSchemaVersion: command.schemaVersion,
             idempotencyKey: command.idempotencyKey,
             jobId,
@@ -188,11 +189,11 @@ export const createOwnerCommandPersistence = ({
         return toReceipt(inserted);
       });
     },
-    findLatestOwnerCommand: async () => {
+    findLatestOwnerCommand: async (family) => {
       const [latest] = await database
         .select()
         .from(ownerCommandReceipt)
-        .where(eq(ownerCommandReceipt.commandFamily, "refresh_health"))
+        .where(eq(ownerCommandReceipt.commandFamily, family))
         .orderBy(
           desc(ownerCommandReceipt.requestedAt),
           desc(ownerCommandReceipt.id),
@@ -235,23 +236,38 @@ export const createOwnerCommandPersistence = ({
             throw new Error("Owner command receipt is missing");
           }
           if (existing.status !== "completed") {
-            await beforeApplyHealthRefresh?.();
-            await transaction
-              .insert(healthRefreshCheckpoint)
-              .values({
-                identity: "owner",
-                lastReceiptIdentity: payload.receiptId,
-                refreshCount: 1,
-                refreshedAt: sql`now()`,
-              })
-              .onConflictDoUpdate({
-                set: {
+            const [receipt] = await transaction
+              .select({ commandPayload: ownerCommandReceipt.commandPayload })
+              .from(ownerCommandReceipt)
+              .where(
+                eq(ownerCommandReceipt.stockhawkIdentity, payload.receiptId),
+              )
+              .limit(1);
+            if (receipt === undefined) {
+              throw new Error("Owner command receipt payload is missing");
+            }
+            const command = ownerCommandSchema.parse(receipt.commandPayload);
+            if (command.family === "refresh_health") {
+              await beforeApplyHealthRefresh?.();
+              await transaction
+                .insert(healthRefreshCheckpoint)
+                .values({
+                  identity: "owner",
                   lastReceiptIdentity: payload.receiptId,
-                  refreshCount: sql`${healthRefreshCheckpoint.refreshCount} + 1`,
+                  refreshCount: 1,
                   refreshedAt: sql`now()`,
-                },
-                target: healthRefreshCheckpoint.identity,
-              });
+                })
+                .onConflictDoUpdate({
+                  set: {
+                    lastReceiptIdentity: payload.receiptId,
+                    refreshCount: sql`${healthRefreshCheckpoint.refreshCount} + 1`,
+                    refreshedAt: sql`now()`,
+                  },
+                  target: healthRefreshCheckpoint.identity,
+                });
+            } else {
+              await applyOnboardingCaseCommand(transaction, command);
+            }
           }
           const [completed] = await transaction
             .update(ownerCommandReceipt)

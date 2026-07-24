@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   healthRefreshCommandSchema,
+  onboardingCaseCommandSchema,
   ownerCommandJobSchema,
   ownerCommandReceiptSchema,
 } from "./owner-command.js";
@@ -57,5 +58,24 @@ describe("owner command contracts", () => {
         status: "failed",
       }),
     ).toThrow(/failed/i);
+  });
+
+  it("decodes one versioned resume or re-audit intent", () => {
+    expect(
+      onboardingCaseCommandSchema.parse({
+        action: "resume",
+        caseIdentity: "obc_6d6294f35cc2c20a72a5e88f56fca573",
+        expectedRevision: 0,
+        family: "resume_onboarding",
+        idempotencyKey,
+      }),
+    ).toEqual({
+      action: "resume",
+      caseIdentity: "obc_6d6294f35cc2c20a72a5e88f56fca573",
+      expectedRevision: 0,
+      family: "resume_onboarding",
+      idempotencyKey,
+      schemaVersion: 1,
+    });
   });
 });

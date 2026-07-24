@@ -12,14 +12,29 @@ export type {
   OfferSearchResponse,
 } from "./catalog.js";
 export {
+  onboardingCaseStageSchema,
+  onboardingCaseStatusSchema,
+  onboardingCaseSummarySchema,
+  onboardingProgressSchema,
+} from "./onboarding.js";
+export type {
+  OnboardingCaseSummary,
+  OnboardingProgress,
+} from "./onboarding.js";
+export {
   healthRefreshCommandSchema,
   latestOwnerCommandResponseSchema,
+  onboardingCaseCommandSchema,
   ownerCommandJobSchema,
   ownerCommandReceiptSchema,
+  ownerCommandSchema,
 } from "./owner-command.js";
 export type {
   HealthRefreshCommand,
   LatestOwnerCommandResponse,
+  OnboardingCaseCommand,
+  OwnerCommand,
+  OwnerCommandFamily,
   OwnerCommandJob,
   OwnerCommandReceipt,
 } from "./owner-command.js";

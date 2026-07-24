@@ -14,6 +14,7 @@ Private, local-first Jellycat catalog and availability application.
 corepack pnpm install --frozen-lockfile
 createdb -h 127.0.0.1 stockhawk
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm migrate
+DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm seed:sites
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm seed:synthetic
 corepack pnpm build
 ```
@@ -42,6 +43,11 @@ decision.
 `GET /api/offers` reads transactional Search Documents. The Health refresh
 command requires the configured exact Origin and same-origin Fetch Metadata and
 reports only queued intent until the worker completes its durable receipt. The
+Seed List import verifies the checked-in workbook hash, preserves all 2,712
+source rows, deterministically reconciles them to 2,489 pre-audit Candidate
+Sites, and opens one suspended Onboarding Case. The Health page exposes this
+progress; its resume/re-audit command uses the same durable optimistic boundary.
+The Seed List import is idempotent. The
 synthetic seed is idempotent and exists only to demonstrate the first
 exact-variant Offer tracer path.
 

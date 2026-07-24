@@ -2,6 +2,7 @@ import { Button } from "@stockhawk/ui/button";
 import { RefreshCw } from "lucide-react";
 
 import { useHealthRefreshCommand } from "../command-boundary/use-health-refresh-command";
+import { OnboardingProgressPanel } from "../onboarding/onboarding-progress-panel";
 
 const summaries = [
   ["Monitoring coverage", "Unassessed"],
@@ -69,6 +70,7 @@ export const HealthPage = () => {
           </div>
         ))}
       </div>
+      <OnboardingProgressPanel />
       <div className="rounded-xl border border-border bg-card shadow-sm">
         <div className="border-b border-border p-4">
           <h2 className="text-heading-4">Storefronts</h2>

@@ -15,6 +15,7 @@
     "lint": "oxlint --type-aware --deny-warnings src",
     "lint:check": "pnpm lint",
     "migrate": "tsx src/migrate.ts",
+    "seed:sites": "tsx src/import-seed-sites.ts",
     "seed:synthetic": "tsx src/seed-synthetic.ts",
     "test": "vitest run --exclude 'src/**/*.integration.test.ts'",
     "test:integration": "vitest run --config vitest.integration.config.ts --passWithNoTests",
@@ -25,6 +26,7 @@
     "drizzle-orm": "0.45.2",
     "pg-boss": "12.26.2",
     "postgres": "3.4.9",
+    "read-excel-file": "9.2.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
