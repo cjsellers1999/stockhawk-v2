@@ -142,8 +142,10 @@ describe("optimistic Health refresh", () => {
       "fetch",
       vi
         .fn<typeof fetch>()
-        .mockResolvedValue(
-          jsonResponse({ receipt: receiptFor(command, "failed") }),
+        .mockImplementation(() =>
+          Promise.resolve(
+            jsonResponse({ receipt: receiptFor(command, "failed") }),
+          ),
         ),
     );
     renderWithQuery(<HealthPage />);
@@ -166,7 +168,9 @@ describe("optimistic Health refresh", () => {
       "fetch",
       vi
         .fn<typeof fetch>()
-        .mockResolvedValue(jsonResponse({ receipt: receiptFor(command) })),
+        .mockImplementation(() =>
+          Promise.resolve(jsonResponse({ receipt: receiptFor(command) })),
+        ),
     );
 
     renderWithQuery(<HealthPage />);

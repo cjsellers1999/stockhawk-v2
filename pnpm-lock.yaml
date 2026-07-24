@@ -227,6 +227,9 @@ importers:
       postgres:
         specifier: 3.4.9
         version: 3.4.9
+      read-excel-file:
+        specifier: 9.2.0
+        version: 9.2.0
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -3539,6 +3542,13 @@ packages:
         integrity: sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==,
       }
 
+  "@xmldom/xmldom@0.9.10":
+    resolution:
+      {
+        integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==,
+      }
+    engines: { node: ">=14.6" }
+
   abstract-logging@2.0.1:
     resolution:
       {
@@ -4785,6 +4795,12 @@ packages:
       picomatch:
         optional: true
 
+  fflate@0.8.3:
+    resolution:
+      {
+        integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==,
+      }
+
   figures@6.1.0:
     resolution:
       {
@@ -5954,6 +5970,12 @@ packages:
       }
     engines: { node: ">= 0.6" }
 
+  node-int64@0.4.0:
+    resolution:
+      {
+        integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==,
+      }
+
   node-releases@2.0.51:
     resolution:
       {
@@ -6689,6 +6711,13 @@ packages:
         integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==,
       }
     engines: { node: ">=0.10.0" }
+
+  read-excel-file@9.2.0:
+    resolution:
+      {
+        integrity: sha512-jwSi8Q9oCmswrYMkuiKvJ6VdHbAXGQnANSOaHBNQZEm2XvaXx8d0t/V7oepgHqT9YWxlQE3HEuCtDZq8BZBmvw==,
+      }
+    engines: { node: ">=18" }
 
   real-require@0.2.0:
     resolution:
@@ -7458,6 +7487,13 @@ packages:
         integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==,
       }
     engines: { node: ">= 0.8" }
+
+  unzipper-esm@0.13.2:
+    resolution:
+      {
+        integrity: sha512-lt8GtgDYV8YcAFZNQuLyR2QvHI8C/TstpgsdjUn9ZxiWLJgn+e5uW6DsO3e/HUJVuWD57ZLLFMZ9xk26tePuHQ==,
+      }
+    engines: { node: ">=8.0.0" }
 
   update-browserslist-db@1.2.3:
     resolution:
@@ -9462,6 +9498,8 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
+  "@xmldom/xmldom@0.9.10": {}
+
   abstract-logging@2.0.1: {}
 
   accepts@2.0.0:
@@ -10226,6 +10264,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fflate@0.8.3: {}
+
   figures@6.1.0:
     dependencies:
       is-unicode-supported: 2.1.0
@@ -10804,6 +10844,8 @@ snapshots:
 
   negotiator@1.0.0: {}
 
+  node-int64@0.4.0: {}
+
   node-releases@2.0.51: {}
 
   non-error@0.1.0: {}
@@ -11283,6 +11325,12 @@ snapshots:
 
   react@19.2.8: {}
 
+  read-excel-file@9.2.0:
+    dependencies:
+      "@xmldom/xmldom": 0.9.10
+      fflate: 0.8.3
+      unzipper-esm: 0.13.2
+
   real-require@0.2.0: {}
 
   real-require@1.0.0: {}
@@ -11754,6 +11802,11 @@ snapshots:
   universalify@2.0.1: {}
 
   unpipe@1.0.0: {}
+
+  unzipper-esm@0.13.2:
+    dependencies:
+      graceful-fs: 4.2.11
+      node-int64: 0.4.0
 
   update-browserslist-db@1.2.3(browserslist@4.28.7):
     dependencies:

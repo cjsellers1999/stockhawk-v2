@@ -15,6 +15,13 @@
       "when": 1784876957521,
       "tag": "0001_pgboss_12_26_2",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784911686851,
+      "tag": "0002_seed_onboarding",
+      "breakpoints": true
     }
   ]
 }

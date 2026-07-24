@@ -13,6 +13,10 @@ import {
 } from "./change-event-reader.js";
 import { createOfferSearch, type OfferSearch } from "./offer-search.js";
 import {
+  createOnboardingPersistence,
+  type OnboardingPersistence,
+} from "./onboarding-persistence.js";
+import {
   createOwnerCommandPersistence,
   OWNER_COMMAND_QUEUE,
   type OwnerCommandPersistence,
@@ -25,6 +29,7 @@ import {
 
 export type Database = CatalogPersistence &
   ChangeEventReader &
+  OnboardingPersistence &
   OfferSearch &
   OwnerCommandPersistence &
   StockObservationReader & {
@@ -65,6 +70,7 @@ export const createDatabase = (
   const catalogPersistence = createCatalogPersistence(database);
   const changeEventReader = createChangeEventReader(database);
   const offerSearch = createOfferSearch(database);
+  const onboardingPersistence = createOnboardingPersistence(database);
   const ownerCommandPersistence = createOwnerCommandPersistence({
     beforeApplyHealthRefresh: options.beforeApplyHealthRefresh,
     boss,
@@ -76,6 +82,7 @@ export const createDatabase = (
     ...catalogPersistence,
     ...changeEventReader,
     ...offerSearch,
+    ...onboardingPersistence,
     ...ownerCommandPersistence,
     ...stockObservationReader,
     check: async () => {

@@ -4,14 +4,18 @@ import fastifyStatic from "@fastify/static";
 import {
   healthRefreshCommandSchema,
   latestOwnerCommandResponseSchema,
+  onboardingCaseCommandSchema,
+  onboardingProgressSchema,
   offerSearchQuerySchema,
   offerSearchResponseSchema,
   ownerCommandReceiptSchema,
   readinessSchema,
-  type HealthRefreshCommand,
+  type OnboardingProgress,
   type OfferSearchQuery,
   type OfferSearchResponse,
   type OwnerCommandReceipt,
+  type OwnerCommand,
+  type OwnerCommandFamily,
 } from "@stockhawk/contracts";
 import { OwnerCommandInFlightError } from "@stockhawk/database";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
@@ -21,10 +25,11 @@ type OfferSearch = {
   searchOffers: (query: OfferSearchQuery) => Promise<OfferSearchResponse>;
 };
 type OwnerCommandDatabase = {
-  enqueueOwnerCommand: (
-    command: HealthRefreshCommand,
-  ) => Promise<OwnerCommandReceipt>;
-  findLatestOwnerCommand: () => Promise<OwnerCommandReceipt | null>;
+  enqueueOwnerCommand: (command: OwnerCommand) => Promise<OwnerCommandReceipt>;
+  findLatestOwnerCommand: (
+    family: OwnerCommandFamily,
+  ) => Promise<OwnerCommandReceipt | null>;
+  findOnboardingProgress: () => Promise<OnboardingProgress | null>;
 };
 
 type AppDependencies = {
@@ -105,7 +110,7 @@ export const buildApp = ({
   app.get("/api/owner-commands/refresh-health", async (_request, reply) => {
     return reply.send(
       latestOwnerCommandResponseSchema.parse({
-        receipt: await database.findLatestOwnerCommand(),
+        receipt: await database.findLatestOwnerCommand("refresh_health"),
       }),
     );
   });
@@ -120,6 +125,57 @@ export const buildApp = ({
       return reply.code(400).send({
         error: "Bad Request",
         message: "Invalid owner command",
+        statusCode: 400,
+      });
+    }
+    let receipt: OwnerCommandReceipt;
+    try {
+      receipt = ownerCommandReceiptSchema.parse(
+        await database.enqueueOwnerCommand(command.data),
+      );
+    } catch (error) {
+      if (error instanceof OwnerCommandInFlightError) {
+        return reply.code(409).send({
+          error: "Conflict",
+          message: error.message,
+          statusCode: 409,
+        });
+      }
+      throw error;
+    }
+    return reply.code(202).send(receipt);
+  });
+
+  app.get("/api/onboarding/progress", async (_request, reply) => {
+    const progress = await database.findOnboardingProgress();
+    if (progress === null) {
+      return reply.code(404).send({
+        error: "Not Found",
+        message: "Seed List has not been imported",
+        statusCode: 404,
+      });
+    }
+    return reply.send(onboardingProgressSchema.parse(progress));
+  });
+
+  app.get("/api/owner-commands/resume-onboarding", async (_request, reply) => {
+    return reply.send(
+      latestOwnerCommandResponseSchema.parse({
+        receipt: await database.findLatestOwnerCommand("resume_onboarding"),
+      }),
+    );
+  });
+
+  app.post("/api/owner-commands/resume-onboarding", async (request, reply) => {
+    if (!hasTrustedMutationHeaders(request)) {
+      return forbidden(reply);
+    }
+
+    const command = onboardingCaseCommandSchema.safeParse(request.body);
+    if (!command.success) {
+      return reply.code(400).send({
+        error: "Bad Request",
+        message: "Invalid Onboarding Case command",
         statusCode: 400,
       });
     }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const onboardingCaseIdentitySchema = z.string().regex(/^obc_[a-f0-9]{32}$/);
+
 export const healthRefreshCommandSchema = z
   .object({
     family: z.literal("refresh_health"),
@@ -10,9 +12,30 @@ export const healthRefreshCommandSchema = z
 
 export type HealthRefreshCommand = z.infer<typeof healthRefreshCommandSchema>;
 
+export const onboardingCaseCommandSchema = z
+  .object({
+    action: z.enum(["resume", "reaudit"]),
+    caseIdentity: onboardingCaseIdentitySchema,
+    expectedRevision: z.int().nonnegative(),
+    family: z.literal("resume_onboarding"),
+    idempotencyKey: z.uuid(),
+    schemaVersion: z.literal(1).default(1),
+  })
+  .strict();
+
+export type OnboardingCaseCommand = z.infer<typeof onboardingCaseCommandSchema>;
+
+export const ownerCommandSchema = z.discriminatedUnion("family", [
+  healthRefreshCommandSchema,
+  onboardingCaseCommandSchema,
+]);
+
+export type OwnerCommand = z.infer<typeof ownerCommandSchema>;
+export type OwnerCommandFamily = OwnerCommand["family"];
+
 export const ownerCommandReceiptSchema = z
   .object({
-    command: healthRefreshCommandSchema,
+    command: ownerCommandSchema,
     completedAt: z.iso.datetime({ offset: true }).nullable(),
     failedAt: z.iso.datetime({ offset: true }).nullable(),
     receiptId: z.uuid(),
