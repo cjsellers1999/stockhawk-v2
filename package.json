@@ -11,6 +11,7 @@
     "dev": "turbo run dev --parallel",
     "evidence": "node scripts/write-bootstrap-evidence.mjs",
     "evidence:catalog": "node scripts/write-catalog-evidence.mjs",
+    "evidence:connector": "node scripts/write-connector-evidence.mjs",
     "evidence:onboarding": "node scripts/write-onboarding-evidence.mjs",
     "evidence:owner-command": "node scripts/write-owner-command-evidence.mjs",
     "format": "prettier --write .",

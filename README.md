@@ -51,6 +51,14 @@ The Seed List import is idempotent. The
 synthetic seed is idempotent and exists only to demonstrate the first
 exact-variant Offer tracer path.
 
+`@stockhawk/connectors` owns the two-job Connector seam and explicit Adapter
+registry. The fixture Adapter performs deterministic Catalog Discovery and
+Stock Monitoring only through the Crawl Request Broker; it never contacts a
+retailer. The Broker owns approved-origin and private-address enforcement,
+redirect validation, global and Storefront permits, cache/backoff, images, and
+audited browser access. Connector Observation Batches and opaque checkpoints
+advance atomically through the PostgreSQL Persistence Boundary.
+
 ## Verification
 
 ```sh

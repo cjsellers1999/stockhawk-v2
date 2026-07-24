@@ -48,6 +48,7 @@ describe("TypeScript configuration policy", () => {
   it.each([
     "apps/api/tsconfig.json",
     "apps/worker/tsconfig.json",
+    "packages/connectors/tsconfig.json",
     "packages/contracts/tsconfig.json",
     "packages/database/tsconfig.json",
   ])("uses NodeNext for TypeScript-emitted Node code in %s", async (path) => {

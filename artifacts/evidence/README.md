@@ -4,6 +4,10 @@
 synthetic Offer tracer-path metadata. `pnpm evidence:owner-command` writes the
 optimistic owner-command and mutation-boundary metadata.
 `pnpm evidence:onboarding` writes immutable Seed List reconciliation and
-resumable Onboarding Case metadata. All use the current commit SHA.
+resumable Onboarding Case metadata.
+`DATABASE_URL=postgres://127.0.0.1:5432/stockhawk pnpm evidence:connector`
+runs its deterministic and PostgreSQL gates, then writes governed Broker,
+Connector conformance, and checkpoint-persistence metadata.
+All use the current commit SHA.
 Bundles retain deterministic release evidence and exclude secrets and retailer
 response bodies.

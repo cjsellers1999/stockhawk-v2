@@ -271,6 +271,14 @@
   letter-spacing: 0;
 }
 
+@utility text-body-strong {
+  font-family: var(--font-family-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.375rem;
+  letter-spacing: 0;
+}
+
 @utility text-body-sm {
   font-family: var(--font-family-sans);
   font-size: 0.8125rem;

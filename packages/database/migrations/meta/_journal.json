@@ -22,6 +22,20 @@
       "when": 1784911686851,
       "tag": "0002_seed_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784915275717,
+      "tag": "0003_connector_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784917613084,
+      "tag": "0004_connector_raw_ingress",
+      "breakpoints": true
     }
   ]
 }

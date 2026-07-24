@@ -8,6 +8,10 @@ import {
   type CatalogPersistence,
 } from "./catalog-persistence.js";
 import {
+  createConnectorPersistence,
+  type ConnectorPersistence,
+} from "./connector-persistence.js";
+import {
   createChangeEventReader,
   type ChangeEventReader,
 } from "./change-event-reader.js";
@@ -29,6 +33,7 @@ import {
 
 export type Database = CatalogPersistence &
   ChangeEventReader &
+  ConnectorPersistence &
   OnboardingPersistence &
   OfferSearch &
   OwnerCommandPersistence &
@@ -69,6 +74,7 @@ export const createDatabase = (
   });
   const catalogPersistence = createCatalogPersistence(database);
   const changeEventReader = createChangeEventReader(database);
+  const connectorPersistence = createConnectorPersistence(database);
   const offerSearch = createOfferSearch(database);
   const onboardingPersistence = createOnboardingPersistence(database);
   const ownerCommandPersistence = createOwnerCommandPersistence({
@@ -81,6 +87,7 @@ export const createDatabase = (
   return {
     ...catalogPersistence,
     ...changeEventReader,
+    ...connectorPersistence,
     ...offerSearch,
     ...onboardingPersistence,
     ...ownerCommandPersistence,
