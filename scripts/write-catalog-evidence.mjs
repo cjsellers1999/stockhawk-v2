@@ -37,34 +37,16 @@ const evidence = {
   ),
   lockfileSha256: await sha256("pnpm-lock.yaml"),
   migrationSha256: {
-    catalogPersistence: await sha256(
-      "packages/database/migrations/0001_catalog_persistence.sql",
+    pgBoss: await sha256(
+      "packages/database/migrations/0001_pgboss_12_26_2.sql",
     ),
-    catalogInvariants: await sha256(
-      "packages/database/migrations/0002_strengthen_catalog_invariants.sql",
-    ),
-    searchDocumentSource: await sha256(
-      "packages/database/migrations/0003_search_document_source.sql",
-    ),
-    batchEventCausality: await sha256(
-      "packages/database/migrations/0004_enforce_batch_event_causality.sql",
-    ),
-    normalizedListingState: await sha256(
-      "packages/database/migrations/0005_normalize_current_listing_state.sql",
-    ),
-    listingReappearance: await sha256(
-      "packages/database/migrations/0006_record_listing_reappearance.sql",
-    ),
-    observationOrderUniqueness: await sha256(
-      "packages/database/migrations/0007_quiet_the_hunter.sql",
-    ),
-    searchDocumentIndexes: await sha256(
-      "packages/database/migrations/0008_sloppy_warlock.sql",
+    stockHawk: await sha256(
+      "packages/database/migrations/0000_stockhawk_baseline.sql",
     ),
   },
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0008_sloppy_warlock",
+  schemaVersion: "0001_pgboss_12_26_2",
   testMetadata: {
     database: [
       "atomic rollback",

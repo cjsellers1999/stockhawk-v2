@@ -71,6 +71,16 @@ CREATE TABLE "current_stock_state" (
 	CONSTRAINT "current_stock_state_observation_order_check" CHECK ("current_stock_state"."observation_order" >= 0)
 );
 --> statement-breakpoint
+CREATE TABLE "health_refresh_checkpoint" (
+	"identity" text PRIMARY KEY NOT NULL,
+	"last_receipt_identity" uuid NOT NULL,
+	"refresh_count" bigint NOT NULL,
+	"refreshed_at" timestamp with time zone NOT NULL,
+	CONSTRAINT "health_refresh_checkpoint_receipt_unique" UNIQUE("last_receipt_identity"),
+	CONSTRAINT "health_refresh_checkpoint_identity_check" CHECK ("health_refresh_checkpoint"."identity" = 'owner'),
+	CONSTRAINT "health_refresh_checkpoint_count_check" CHECK ("health_refresh_checkpoint"."refresh_count" > 0)
+);
+--> statement-breakpoint
 CREATE TABLE "observation_batch" (
 	"command_hash" text NOT NULL,
 	"committed_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -83,6 +93,30 @@ CREATE TABLE "observation_batch" (
 	CONSTRAINT "observation_batch_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
 	CONSTRAINT "observation_batch_command_hash_check" CHECK ("observation_batch"."command_hash" ~ '^[a-f0-9]{64}$'),
 	CONSTRAINT "observation_batch_schema_version_check" CHECK ("observation_batch"."schema_version" = 1)
+);
+--> statement-breakpoint
+CREATE TABLE "owner_command_receipt" (
+	"command_family" text NOT NULL,
+	"command_hash" text NOT NULL,
+	"command_schema_version" integer NOT NULL,
+	"completed_at" timestamp with time zone,
+	"failed_at" timestamp with time zone,
+	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "owner_command_receipt_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
+	"idempotency_key" uuid NOT NULL,
+	"job_id" uuid NOT NULL,
+	"requested_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"status" text NOT NULL,
+	"stockhawk_identity" uuid NOT NULL,
+	CONSTRAINT "owner_command_receipt_idempotency_key_unique" UNIQUE("idempotency_key"),
+	CONSTRAINT "owner_command_receipt_job_id_unique" UNIQUE("job_id"),
+	CONSTRAINT "owner_command_receipt_stockhawk_identity_unique" UNIQUE("stockhawk_identity"),
+	CONSTRAINT "owner_command_receipt_family_check" CHECK ("owner_command_receipt"."command_family" = 'refresh_health'),
+	CONSTRAINT "owner_command_receipt_command_hash_check" CHECK ("owner_command_receipt"."command_hash" ~ '^[a-f0-9]{64}$'),
+	CONSTRAINT "owner_command_receipt_schema_version_check" CHECK ("owner_command_receipt"."command_schema_version" = 1),
+	CONSTRAINT "owner_command_receipt_status_check" CHECK ("owner_command_receipt"."status" in ('queued', 'completed', 'failed')),
+	CONSTRAINT "owner_command_receipt_completion_check" CHECK (("owner_command_receipt"."status" = 'queued' and "owner_command_receipt"."completed_at" is null and "owner_command_receipt"."failed_at" is null)
+        or ("owner_command_receipt"."status" = 'completed' and "owner_command_receipt"."completed_at" is not null and "owner_command_receipt"."failed_at" is null)
+        or ("owner_command_receipt"."status" = 'failed' and "owner_command_receipt"."completed_at" is null and "owner_command_receipt"."failed_at" is not null))
 );
 --> statement-breakpoint
 CREATE TABLE "product" (
@@ -151,6 +185,11 @@ CREATE TABLE "search_document" (
 	CONSTRAINT "search_document_projection_version_check" CHECK ("search_document"."projection_version" = 1)
 );
 --> statement-breakpoint
+CREATE TABLE "service_heartbeat" (
+	"observed_at" timestamp with time zone NOT NULL,
+	"service_name" text PRIMARY KEY NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "source_evidence_artifact" (
 	"content_hash" text NOT NULL,
 	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "source_evidence_artifact_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
@@ -202,6 +241,7 @@ ALTER TABLE "current_listing_state" ADD CONSTRAINT "current_listing_state_listin
 ALTER TABLE "current_listing_state" ADD CONSTRAINT "current_listing_state_observation_listing_fk" FOREIGN KEY ("listing_observation_id","retailer_listing_id") REFERENCES "public"."retailer_listing_observation"("id","retailer_listing_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "current_stock_state" ADD CONSTRAINT "current_stock_state_retailer_listing_id_retailer_listing_id_fk" FOREIGN KEY ("retailer_listing_id") REFERENCES "public"."retailer_listing"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "current_stock_state" ADD CONSTRAINT "current_stock_state_observation_facts_fk" FOREIGN KEY ("stock_observation_id","retailer_listing_id","observation_order","observed_at","status") REFERENCES "public"."stock_observation"("id","retailer_listing_id","observation_order","observed_at","status") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "health_refresh_checkpoint" ADD CONSTRAINT "health_refresh_checkpoint_receipt_fk" FOREIGN KEY ("last_receipt_identity") REFERENCES "public"."owner_command_receipt"("stockhawk_identity") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "retailer_listing" ADD CONSTRAINT "retailer_listing_storefront_id_storefront_id_fk" FOREIGN KEY ("storefront_id") REFERENCES "public"."storefront"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "retailer_listing_observation" ADD CONSTRAINT "listing_observation_batch_fk" FOREIGN KEY ("batch_id") REFERENCES "public"."observation_batch"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "retailer_listing_observation" ADD CONSTRAINT "listing_observation_evidence_fk" FOREIGN KEY ("evidence_artifact_id") REFERENCES "public"."source_evidence_artifact"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -221,6 +261,7 @@ CREATE INDEX "change_event_listing_observation_id_idx" ON "change_event" USING b
 CREATE INDEX "change_event_product_id_idx" ON "change_event" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "change_event_retailer_listing_id_idx" ON "change_event" USING btree ("retailer_listing_id");--> statement-breakpoint
 CREATE INDEX "change_event_stock_observation_id_idx" ON "change_event" USING btree ("stock_observation_id");--> statement-breakpoint
+CREATE INDEX "owner_command_receipt_family_requested_idx" ON "owner_command_receipt" USING btree ("command_family","requested_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
 CREATE UNIQUE INDEX "retailer_listing_source_identity_unique" ON "retailer_listing" USING btree ("storefront_id","source_identity_namespace","source_identity_value");--> statement-breakpoint
 CREATE INDEX "retailer_listing_storefront_id_idx" ON "retailer_listing" USING btree ("storefront_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "retailer_listing_observation_batch_item_unique" ON "retailer_listing_observation" USING btree ("batch_id","retailer_listing_id");--> statement-breakpoint

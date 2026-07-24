@@ -41,7 +41,7 @@ Each Integration supplies its own shopper-visible stock proof. Shared platform c
 
 ## Stage 4 — actual-Mac release gate
 
-Install the candidate release on the target Mac mini and pass the complete verification matrix: representative performance, process and network failures, no-login reboot, post-login Tailscale return, access/security boundaries, residential egress, backup/restore, storage thresholds, locked-design comparison, and manual accessibility checks.
+Install the candidate release on the target Mac mini and pass the complete verification matrix: representative performance, process and network failures, no-login background-service reboot, post-login Tailscale return, Tailscale-only ingress and deny-by-default device authorization, residential egress, backup/restore, storage thresholds, locked-design comparison, and manual accessibility checks. Do not deploy Caddy or reintroduce application authentication.
 
 Only after the capability pilot and this gate may full rollout open. At that point the owner may use pilot data daily; Search and Health must disclose incomplete rollout coverage and may never label V1 complete.
 

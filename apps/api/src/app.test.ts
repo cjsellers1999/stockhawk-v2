@@ -12,63 +12,28 @@ import { describe, expect, it, vi } from "vitest";
 
 import { buildApp, isBrowserNavigationRequest } from "./app.js";
 
-const authenticatedSession = {
-  csrfTokenHash: "b".repeat(64),
-  expiresAt: new Date("2026-07-24T05:00:00.000Z"),
-  id: 1,
-  sessionTokenHash: "a".repeat(64),
-};
-const authenticatedDatabase = () => ({
-  createAdminSession: vi
-    .fn<
-      (
-        input: Omit<typeof authenticatedSession, "id">,
-      ) => Promise<typeof authenticatedSession>
-    >()
-    .mockResolvedValue(authenticatedSession),
+const ownerCommandDatabase = () => ({
   enqueueOwnerCommand:
     vi.fn<
-      (input: {
-        command: HealthRefreshCommand;
-        requestedBySessionId: number;
-      }) => Promise<OwnerCommandReceipt>
+      (input: { command: HealthRefreshCommand }) => Promise<OwnerCommandReceipt>
     >(),
-  findActiveAdminSession: vi
-    .fn<
-      (input: {
-        now: Date;
-        sessionTokenHash: string;
-      }) => Promise<typeof authenticatedSession | null>
-    >()
-    .mockResolvedValue(authenticatedSession),
   findLatestOwnerCommand: vi
     .fn<() => Promise<OwnerCommandReceipt | null>>()
     .mockResolvedValue(null),
 });
-const security = {
-  allowedOrigins: new Set(["https://stockhawk.test"]),
-  cookieSecure: true,
-  createOpaqueToken: () => "unused",
-  now: () => new Date("2026-07-23T17:00:00.000Z"),
-  passwordVerifier: vi
-    .fn<(password: string) => Promise<boolean>>()
-    .mockResolvedValue(true),
-  sessionTtlMs: 12 * 60 * 60 * 1_000,
-  trustLoopbackProxy: false,
-};
-const sessionHeaders = { cookie: "stockhawk_session=test-session" };
+const allowedOrigins = new Set(["https://stockhawk.test"]);
 
 describe("readiness endpoint", () => {
   it("reports the API, database, and worker truth independently", async () => {
     const app = buildApp({
+      allowedOrigins,
       database: {
-        ...authenticatedDatabase(),
+        ...ownerCommandDatabase(),
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
         searchOffers: vi
           .fn<() => Promise<OfferSearchResponse>>()
           .mockResolvedValue({ items: [], total: 0 }),
       },
-      security,
       webDistPath: undefined,
       worker: {
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
@@ -111,18 +76,17 @@ describe("readiness endpoint", () => {
       .fn<(query: OfferSearchQuery) => Promise<typeof searchResult>>()
       .mockResolvedValue(searchResult);
     const app = buildApp({
+      allowedOrigins,
       database: {
-        ...authenticatedDatabase(),
+        ...ownerCommandDatabase(),
         check: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
         searchOffers,
       },
-      security,
       webDistPath: undefined,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
 
     const response = await app.inject({
-      headers: sessionHeaders,
       method: "GET",
       url: "/api/offers?q=Sky%20Dragon&q=liltulips.com&stock=in_stock&view=storefront",
     });
@@ -143,18 +107,17 @@ describe("readiness endpoint", () => {
       .fn<(query: OfferSearchQuery) => Promise<OfferSearchResponse>>()
       .mockResolvedValue({ items: [], total: 0 });
     const app = buildApp({
+      allowedOrigins,
       database: {
-        ...authenticatedDatabase(),
+        ...ownerCommandDatabase(),
         check: vi.fn<() => Promise<boolean>>(),
         searchOffers,
       },
-      security,
       webDistPath: undefined,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
 
     const response = await app.inject({
-      headers: sessionHeaders,
       method: "GET",
       url: "/api/offers?stock=invented",
     });
@@ -171,14 +134,14 @@ describe("readiness endpoint", () => {
       "<title>StockHawk</title>",
     );
     const app = buildApp({
+      allowedOrigins,
       database: {
-        ...authenticatedDatabase(),
+        ...ownerCommandDatabase(),
         check: vi.fn<() => Promise<boolean>>(),
         searchOffers: vi
           .fn<() => Promise<OfferSearchResponse>>()
           .mockResolvedValue({ items: [], total: 0 }),
       },
-      security,
       webDistPath,
       worker: { check: vi.fn<() => Promise<boolean>>() },
     });
@@ -206,6 +169,68 @@ describe("readiness endpoint", () => {
     expect(navigationResponse.body).toContain("StockHawk");
     await app.close();
     await rm(webDistPath, { recursive: true });
+  });
+
+  it("requires exact Origin and Fetch Metadata for owner mutations", async () => {
+    const command = {
+      family: "refresh_health",
+      idempotencyKey: "d8857fd0-b531-4a20-a08d-8f72727d4e0f",
+      schemaVersion: 1,
+    } as const;
+    const receipt: OwnerCommandReceipt = {
+      command,
+      completedAt: null,
+      failedAt: null,
+      receiptId: "2e847567-14e4-49a9-a08c-92151429be8e",
+      requestedAt: "2026-07-23T17:00:00.000Z",
+      status: "queued",
+    };
+    const database = {
+      ...ownerCommandDatabase(),
+      check: vi.fn<() => Promise<boolean>>(),
+      searchOffers: vi
+        .fn<() => Promise<OfferSearchResponse>>()
+        .mockResolvedValue({ items: [], total: 0 }),
+    };
+    database.enqueueOwnerCommand.mockResolvedValue(receipt);
+    const app = buildApp({
+      allowedOrigins,
+      database,
+      webDistPath: undefined,
+      worker: { check: vi.fn<() => Promise<boolean>>() },
+    });
+
+    const wrongOrigin = await app.inject({
+      headers: {
+        origin: "https://attacker.test",
+        "sec-fetch-site": "same-origin",
+      },
+      method: "POST",
+      payload: command,
+      url: "/api/owner-commands/refresh-health",
+    });
+    const missingMetadata = await app.inject({
+      headers: { origin: "https://stockhawk.test" },
+      method: "POST",
+      payload: command,
+      url: "/api/owner-commands/refresh-health",
+    });
+    const accepted = await app.inject({
+      headers: {
+        origin: "https://stockhawk.test",
+        "sec-fetch-site": "same-origin",
+      },
+      method: "POST",
+      payload: command,
+      url: "/api/owner-commands/refresh-health",
+    });
+
+    expect(wrongOrigin.statusCode).toBe(403);
+    expect(missingMetadata.statusCode).toBe(403);
+    expect(accepted.statusCode).toBe(202);
+    expect(database.enqueueOwnerCommand).toHaveBeenCalledOnce();
+    expect(database.enqueueOwnerCommand).toHaveBeenCalledWith({ command });
+    await app.close();
   });
 
   it("classifies API dot-segment targets before URL normalization", () => {

@@ -41,11 +41,12 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 ## Secure one optimistic owner command
 
-**What to build:** The single owner can log in and issue one safe command that updates the UI immediately, queues idempotent intent, rolls back rejection, and reconciles authoritative state.
+**What to build:** The single owner reaches StockHawk only through an approved Tailscale device and can issue one safe command that updates the UI immediately, queues idempotent intent, rolls back rejection, and reconciles authoritative state.
 
 **Blocked by:** Persist and search one synthetic Offer.
 
-- [ ] Implement the admin login, server session, secure cookie, login throttling, exact-origin, Fetch-Metadata, and CSRF boundary.
+- [ ] Keep application authentication absent: no local account, password, login route, session, authentication cookie, CSRF token, or login throttle. Tailscale Serve plus a deny-by-default Grant owns ingress authorization; adding app auth requires a new owner-approved architecture decision.
+- [ ] Require the exact configured Origin and same-origin Fetch Metadata for every mutation while keeping read endpoints directly available through the private ingress.
 - [ ] Register one owner command with an idempotency key, durable receipt, domain intent, and atomic pg-boss wakeup.
 - [ ] Share Zod command/query schemas across browser and API boundaries, reject malformed input at the Interface, and retain exact optimistic rollback for authoritative rejection.
 - [ ] Implement the shared optimistic command boundary with immediate truthful intent, exact rollback, and authoritative reconciliation.
@@ -163,7 +164,7 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 **Blocked by:** Schedule recurring work and expose truthful Health.
 
 - [ ] Generate deterministic representative Offers, listings, variants, matches, statuses, histories, Storefront states, failures, images, and Search Documents using measured first-Storefront distributions.
-- [ ] Prove first home-network page readiness within two seconds and every search/filter/view/page update within 500 milliseconds; retain distributions and query plans.
+- [ ] Prove first-page readiness over the private Tailscale path within two seconds and every search/filter/view/page update within 500 milliseconds; retain distributions and query plans.
 - [ ] Pass visual regression against the locked artifact at representative desktop, tablet, and mobile widths in light and dark modes for Search and Health, including long, empty, loading, missing-image, overflow, and focus states.
 - [ ] Simulate sufficient and insufficient IP capacity, fair scheduling, coalescing, backoff, browser accounting, crashes, and truthful unreachable freshness.
 - [ ] Verify PostgreSQL constraints, concurrency, Search Document rebuild, Change Event causality, retention compaction, and backup-size behavior at load.
@@ -233,13 +234,13 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 **Blocked by:** Reuse the shared HTTP Adapter on a second Storefront; Add another common platform; Qualify a browser-required Storefront; Qualify a Bespoke Connector; Prove terminal outcomes and closeout generation.
 
-- [ ] Provision pinned Node/PostgreSQL/application/Caddy/Tailscale/backup configuration and migrate/load the representative database.
+- [ ] Provision pinned Node/PostgreSQL/application/Tailscale Serve/backup configuration and migrate/load the representative database; Tailscale Serve is the sole ingress and no Caddy, LAN proxy, or public listener exists.
 - [ ] Prove `launchd` starts built API and worker entrypoints directly with no Turborepo or development-server runtime dependency.
 - [ ] Repeat latency, query-plan, scheduler, storage, accessibility, and deterministic release gates on the actual Mac.
 - [ ] Manually compare both themes and responsive Search/Health layouts to the locked artifact on the actual Mac; reject unexplained or unapproved baseline drift.
 - [ ] Kill worker/database/browser/network/Tailscale paths and prove truthful surviving behavior plus idempotent recovery.
-- [ ] Reboot without login and recover PostgreSQL, API, worker, Caddy, and LAN search; after normal login recover persistent Tailscale Serve.
-- [ ] Prove approved-private versus unapproved/public access, loopback-only API/database, security controls, and home-ISP retailer egress.
+- [ ] Reboot without login and recover PostgreSQL, API, and worker background processing; accept that the UI stays unavailable until normal login restores the supported Tailscale client and persistent Serve.
+- [ ] Prove only devices allowed by the deny-by-default Tailscale Grant can reach the app; unapproved/public/LAN-bypass access fails, Funnel/subnet/exit/router forwarding stays disabled, API/database remain loopback-only, and retailer traffic uses the home ISP.
 - [ ] Produce, validate, retain, corrupt/fallback, and clean-restore backups within the accepted RPO/RTO; finalize disk high-water and media quota settings.
 
 ## Open the pilot for daily use
@@ -250,8 +251,8 @@ Work the **frontier**: any ticket whose blockers are all complete. Each ticket m
 
 - [ ] Publish only individually qualified Integrations into recurring work and retain safe historical/Partial data from all pilot cases.
 - [ ] Show rollout coverage, remaining Candidate/branch counts, Partial cases, and Search Health Warnings without calling V1 complete.
-- [ ] Exercise the morning flow from multi-chip in-stock search through exact retailer Purchase Handoff on an approved remote and LAN device.
-- [ ] Confirm the approved remote and LAN presentations preserve the locked visual hierarchy, density, responsive behavior, and all required facts without card-per-result fallback.
+- [ ] Exercise the morning flow from multi-chip in-stock search through exact retailer Purchase Handoff on approved Tailscale devices at home and away.
+- [ ] Confirm the private Tailscale presentation preserves the locked visual hierarchy, density, responsive behavior, and all required facts without card-per-result fallback.
 - [ ] Regenerate and retain the pilot Evidence Bundle and reconciled closeout view for the release commit.
 
 ## Generate deterministic rollout sub-batches

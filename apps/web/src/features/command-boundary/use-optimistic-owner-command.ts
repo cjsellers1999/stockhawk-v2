@@ -113,17 +113,20 @@ export const useOptimisticOwnerCommand = () => {
   const isQueued =
     pendingQuery.data.length > 0 ||
     authoritativeQuery.data?.status === "queued";
-  const status: OptimisticOwnerCommandStatus = isQueued
-    ? "queued"
-    : authoritativeQuery.isError
-      ? "unavailable"
-      : authoritativeQuery.isPending ||
-          authoritativeQuery.isFetching ||
-          mutation.isPending
-        ? "checking"
-        : authoritativeQuery.data?.status === "failed"
-          ? "failed"
-          : "ready";
+  let status: OptimisticOwnerCommandStatus = "ready";
+  if (isQueued) {
+    status = "queued";
+  } else if (authoritativeQuery.isError) {
+    status = "unavailable";
+  } else if (
+    authoritativeQuery.isPending ||
+    authoritativeQuery.isFetching ||
+    mutation.isPending
+  ) {
+    status = "checking";
+  } else if (authoritativeQuery.data?.status === "failed") {
+    status = "failed";
+  }
 
   return {
     canExecute: status === "ready" || status === "failed",

@@ -1,6 +1,6 @@
 {
-  "id": "00f60731-1cb5-41d6-9d22-15bfa9ceb28d",
-  "prevId": "6455b2b4-98f2-402c-ad30-0c30c182cf49",
+  "id": "5533fc98-b11d-4327-92a0-d085a5286966",
+  "prevId": "5b79e7fa-c783-40f2-9220-1236ad5109eb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -27,15 +27,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "catalog_match_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "match_authority": {
@@ -87,10 +87,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"catalog_match\".\"active\"",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"catalog_match\".\"active\"",
+          "concurrently": false
         },
         "catalog_match_evidence_artifact_id_idx": {
           "name": "catalog_match_evidence_artifact_id_idx",
@@ -103,9 +103,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "catalog_match_product_id_idx": {
           "name": "catalog_match_product_id_idx",
@@ -118,9 +118,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "catalog_match_retailer_listing_id_idx": {
           "name": "catalog_match_retailer_listing_id_idx",
@@ -133,46 +133,46 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "catalog_match_product_id_product_id_fk": {
           "name": "catalog_match_product_id_product_id_fk",
           "tableFrom": "catalog_match",
-          "tableTo": "product",
           "columnsFrom": ["product_id"],
+          "tableTo": "product",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "catalog_match_retailer_listing_id_retailer_listing_id_fk": {
           "name": "catalog_match_retailer_listing_id_retailer_listing_id_fk",
           "tableFrom": "catalog_match",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "catalog_match_evidence_fk": {
           "name": "catalog_match_evidence_fk",
           "tableFrom": "catalog_match",
-          "tableTo": "source_evidence_artifact",
           "columnsFrom": ["evidence_artifact_id"],
+          "tableTo": "source_evidence_artifact",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "catalog_match_stockhawk_identity_unique": {
           "name": "catalog_match_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -273,15 +273,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "change_event_stream_position_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         }
       },
@@ -297,9 +297,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "change_event_listing_observation_id_idx": {
           "name": "change_event_listing_observation_id_idx",
@@ -312,9 +312,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "change_event_product_id_idx": {
           "name": "change_event_product_id_idx",
@@ -327,9 +327,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "change_event_retailer_listing_id_idx": {
           "name": "change_event_retailer_listing_id_idx",
@@ -342,9 +342,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "change_event_stock_observation_id_idx": {
           "name": "change_event_stock_observation_id_idx",
@@ -357,75 +357,74 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "change_event_batch_id_observation_batch_id_fk": {
           "name": "change_event_batch_id_observation_batch_id_fk",
           "tableFrom": "change_event",
-          "tableTo": "observation_batch",
           "columnsFrom": ["batch_id"],
+          "tableTo": "observation_batch",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "change_event_product_id_product_id_fk": {
           "name": "change_event_product_id_product_id_fk",
           "tableFrom": "change_event",
-          "tableTo": "product",
           "columnsFrom": ["product_id"],
+          "tableTo": "product",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "change_event_retailer_listing_id_retailer_listing_id_fk": {
           "name": "change_event_retailer_listing_id_retailer_listing_id_fk",
           "tableFrom": "change_event",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "change_event_stock_observation_id_stock_observation_id_fk": {
           "name": "change_event_stock_observation_id_stock_observation_id_fk",
           "tableFrom": "change_event",
-          "tableTo": "stock_observation",
           "columnsFrom": ["stock_observation_id"],
+          "tableTo": "stock_observation",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "change_event_listing_observation_fk": {
           "name": "change_event_listing_observation_fk",
           "tableFrom": "change_event",
-          "tableTo": "retailer_listing_observation",
           "columnsFrom": ["listing_observation_id"],
+          "tableTo": "retailer_listing_observation",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "change_event_listing_causality_fk": {
           "name": "change_event_listing_causality_fk",
           "tableFrom": "change_event",
-          "tableTo": "retailer_listing_observation",
           "columnsFrom": [
             "listing_observation_id",
             "batch_id",
             "retailer_listing_id",
             "effective_at"
           ],
+          "tableTo": "retailer_listing_observation",
           "columnsTo": ["id", "batch_id", "retailer_listing_id", "observed_at"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "change_event_stock_causality_fk": {
           "name": "change_event_stock_causality_fk",
           "tableFrom": "change_event",
-          "tableTo": "stock_observation",
           "columnsFrom": [
             "stock_observation_id",
             "batch_id",
@@ -433,6 +432,7 @@
             "effective_at",
             "new_value"
           ],
+          "tableTo": "stock_observation",
           "columnsTo": [
             "id",
             "batch_id",
@@ -440,21 +440,21 @@
             "observed_at",
             "status"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "change_event_causal_idempotency_key_unique": {
           "name": "change_event_causal_idempotency_key_unique",
-          "nullsNotDistinct": false,
-          "columns": ["causal_idempotency_key"]
+          "columns": ["causal_idempotency_key"],
+          "nullsNotDistinct": false
         },
         "change_event_stockhawk_identity_unique": {
           "name": "change_event_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -496,28 +496,28 @@
         "current_listing_state_listing_fk": {
           "name": "current_listing_state_listing_fk",
           "tableFrom": "current_listing_state",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "current_listing_state_observation_listing_fk": {
           "name": "current_listing_state_observation_listing_fk",
           "tableFrom": "current_listing_state",
-          "tableTo": "retailer_listing_observation",
           "columnsFrom": ["listing_observation_id", "retailer_listing_id"],
+          "tableTo": "retailer_listing_observation",
           "columnsTo": ["id", "retailer_listing_id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "current_listing_state_listing_observation_id_unique": {
           "name": "current_listing_state_listing_observation_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["listing_observation_id"]
+          "columns": ["listing_observation_id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -564,16 +564,15 @@
         "current_stock_state_retailer_listing_id_retailer_listing_id_fk": {
           "name": "current_stock_state_retailer_listing_id_retailer_listing_id_fk",
           "tableFrom": "current_stock_state",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "current_stock_state_observation_facts_fk": {
           "name": "current_stock_state_observation_facts_fk",
           "tableFrom": "current_stock_state",
-          "tableTo": "stock_observation",
           "columnsFrom": [
             "stock_observation_id",
             "retailer_listing_id",
@@ -581,6 +580,7 @@
             "observed_at",
             "status"
           ],
+          "tableTo": "stock_observation",
           "columnsTo": [
             "id",
             "retailer_listing_id",
@@ -588,16 +588,16 @@
             "observed_at",
             "status"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "current_stock_state_stock_observation_id_unique": {
           "name": "current_stock_state_stock_observation_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stock_observation_id"]
+          "columns": ["stock_observation_id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -609,6 +609,68 @@
         "current_stock_state_observation_order_check": {
           "name": "current_stock_state_observation_order_check",
           "value": "\"current_stock_state\".\"observation_order\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.health_refresh_checkpoint": {
+      "name": "health_refresh_checkpoint",
+      "schema": "",
+      "columns": {
+        "identity": {
+          "name": "identity",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_receipt_identity": {
+          "name": "last_receipt_identity",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_count": {
+          "name": "refresh_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refreshed_at": {
+          "name": "refreshed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "health_refresh_checkpoint_receipt_fk": {
+          "name": "health_refresh_checkpoint_receipt_fk",
+          "tableFrom": "health_refresh_checkpoint",
+          "columnsFrom": ["last_receipt_identity"],
+          "tableTo": "owner_command_receipt",
+          "columnsTo": ["stockhawk_identity"],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "health_refresh_checkpoint_receipt_unique": {
+          "name": "health_refresh_checkpoint_receipt_unique",
+          "columns": ["last_receipt_identity"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "health_refresh_checkpoint_identity_check": {
+          "name": "health_refresh_checkpoint_identity_check",
+          "value": "\"health_refresh_checkpoint\".\"identity\" = 'owner'"
+        },
+        "health_refresh_checkpoint_count_check": {
+          "name": "health_refresh_checkpoint_count_check",
+          "value": "\"health_refresh_checkpoint\".\"refresh_count\" > 0"
         }
       },
       "isRLSEnabled": false
@@ -636,15 +698,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "observation_batch_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "idempotency_key": {
@@ -678,13 +740,13 @@
       "uniqueConstraints": {
         "observation_batch_idempotency_key_unique": {
           "name": "observation_batch_idempotency_key_unique",
-          "nullsNotDistinct": false,
-          "columns": ["idempotency_key"]
+          "columns": ["idempotency_key"],
+          "nullsNotDistinct": false
         },
         "observation_batch_stockhawk_identity_unique": {
           "name": "observation_batch_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -696,6 +758,162 @@
         "observation_batch_schema_version_check": {
           "name": "observation_batch_schema_version_check",
           "value": "\"observation_batch\".\"schema_version\" = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.owner_command_receipt": {
+      "name": "owner_command_receipt",
+      "schema": "",
+      "columns": {
+        "command_family": {
+          "name": "command_family",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command_hash": {
+          "name": "command_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command_schema_version": {
+          "name": "command_schema_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failed_at": {
+          "name": "failed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "name": "owner_command_receipt_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
+          }
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job_id": {
+          "name": "job_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_at": {
+          "name": "requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stockhawk_identity": {
+          "name": "stockhawk_identity",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "owner_command_receipt_family_requested_idx": {
+          "name": "owner_command_receipt_family_requested_idx",
+          "columns": [
+            {
+              "expression": "command_family",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "requested_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "owner_command_receipt_idempotency_key_unique": {
+          "name": "owner_command_receipt_idempotency_key_unique",
+          "columns": ["idempotency_key"],
+          "nullsNotDistinct": false
+        },
+        "owner_command_receipt_job_id_unique": {
+          "name": "owner_command_receipt_job_id_unique",
+          "columns": ["job_id"],
+          "nullsNotDistinct": false
+        },
+        "owner_command_receipt_stockhawk_identity_unique": {
+          "name": "owner_command_receipt_stockhawk_identity_unique",
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "owner_command_receipt_family_check": {
+          "name": "owner_command_receipt_family_check",
+          "value": "\"owner_command_receipt\".\"command_family\" = 'refresh_health'"
+        },
+        "owner_command_receipt_command_hash_check": {
+          "name": "owner_command_receipt_command_hash_check",
+          "value": "\"owner_command_receipt\".\"command_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "owner_command_receipt_schema_version_check": {
+          "name": "owner_command_receipt_schema_version_check",
+          "value": "\"owner_command_receipt\".\"command_schema_version\" = 1"
+        },
+        "owner_command_receipt_status_check": {
+          "name": "owner_command_receipt_status_check",
+          "value": "\"owner_command_receipt\".\"status\" in ('queued', 'completed', 'failed')"
+        },
+        "owner_command_receipt_completion_check": {
+          "name": "owner_command_receipt_completion_check",
+          "value": "(\"owner_command_receipt\".\"status\" = 'queued' and \"owner_command_receipt\".\"completed_at\" is null and \"owner_command_receipt\".\"failed_at\" is null)\n        or (\"owner_command_receipt\".\"status\" = 'completed' and \"owner_command_receipt\".\"completed_at\" is not null and \"owner_command_receipt\".\"failed_at\" is null)\n        or (\"owner_command_receipt\".\"status\" = 'failed' and \"owner_command_receipt\".\"completed_at\" is null and \"owner_command_receipt\".\"failed_at\" is not null)"
         }
       },
       "isRLSEnabled": false
@@ -723,15 +941,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "product_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "stockhawk_identity": {
@@ -753,8 +971,8 @@
       "uniqueConstraints": {
         "product_stockhawk_identity_unique": {
           "name": "product_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -771,15 +989,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "retailer_listing_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "listing_presence": {
@@ -843,9 +1061,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "retailer_listing_storefront_id_idx": {
           "name": "retailer_listing_storefront_id_idx",
@@ -858,28 +1076,28 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "retailer_listing_storefront_id_storefront_id_fk": {
           "name": "retailer_listing_storefront_id_storefront_id_fk",
           "tableFrom": "retailer_listing",
-          "tableTo": "storefront",
           "columnsFrom": ["storefront_id"],
+          "tableTo": "storefront",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "retailer_listing_stockhawk_identity_unique": {
           "name": "retailer_listing_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -917,15 +1135,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "retailer_listing_observation_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "image_url": {
@@ -989,9 +1207,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "retailer_listing_observation_listing_order_unique": {
           "name": "retailer_listing_observation_listing_order_unique",
@@ -1010,9 +1228,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "retailer_listing_observation_evidence_artifact_id_idx": {
           "name": "retailer_listing_observation_evidence_artifact_id_idx",
@@ -1025,9 +1243,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "retailer_listing_observation_retailer_listing_id_idx": {
           "name": "retailer_listing_observation_retailer_listing_id_idx",
@@ -1040,56 +1258,56 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "listing_observation_batch_fk": {
           "name": "listing_observation_batch_fk",
           "tableFrom": "retailer_listing_observation",
-          "tableTo": "observation_batch",
           "columnsFrom": ["batch_id"],
+          "tableTo": "observation_batch",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "listing_observation_evidence_fk": {
           "name": "listing_observation_evidence_fk",
           "tableFrom": "retailer_listing_observation",
-          "tableTo": "source_evidence_artifact",
           "columnsFrom": ["evidence_artifact_id"],
+          "tableTo": "source_evidence_artifact",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "listing_observation_listing_fk": {
           "name": "listing_observation_listing_fk",
           "tableFrom": "retailer_listing_observation",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "retailer_listing_observation_stockhawk_identity_unique": {
           "name": "retailer_listing_observation_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         },
         "retailer_listing_observation_event_facts_unique": {
           "name": "retailer_listing_observation_event_facts_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id", "batch_id", "retailer_listing_id", "observed_at"]
+          "columns": ["id", "batch_id", "retailer_listing_id", "observed_at"],
+          "nullsNotDistinct": false
         },
         "retailer_listing_observation_id_listing_unique": {
           "name": "retailer_listing_observation_id_listing_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id", "retailer_listing_id"]
+          "columns": ["id", "retailer_listing_id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1228,9 +1446,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "search_document_storefront_id_idx": {
           "name": "search_document_storefront_id_idx",
@@ -1243,9 +1461,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "search_document_offer_freshness_idx": {
           "name": "search_document_offer_freshness_idx",
@@ -1264,47 +1482,47 @@
             }
           ],
           "isUnique": false,
-          "where": "\"search_document\".\"classification\" = 'offer' and \"search_document\".\"match_status\" = 'confirmed' and \"search_document\".\"listing_presence\" = 'active'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"search_document\".\"classification\" = 'offer' and \"search_document\".\"match_status\" = 'confirmed' and \"search_document\".\"listing_presence\" = 'active'",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "search_document_product_id_product_id_fk": {
           "name": "search_document_product_id_product_id_fk",
           "tableFrom": "search_document",
-          "tableTo": "product",
           "columnsFrom": ["product_id"],
+          "tableTo": "product",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "search_document_retailer_listing_id_retailer_listing_id_fk": {
           "name": "search_document_retailer_listing_id_retailer_listing_id_fk",
           "tableFrom": "search_document",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "search_document_storefront_id_storefront_id_fk": {
           "name": "search_document_storefront_id_storefront_id_fk",
           "tableFrom": "search_document",
-          "tableTo": "storefront",
           "columnsFrom": ["storefront_id"],
+          "tableTo": "storefront",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "search_document_listing_identity_unique": {
           "name": "search_document_listing_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["listing_identity"]
+          "columns": ["listing_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1373,15 +1591,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "source_evidence_artifact_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "observed_at": {
@@ -1416,8 +1634,8 @@
       "uniqueConstraints": {
         "source_evidence_artifact_stockhawk_identity_unique": {
           "name": "source_evidence_artifact_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1451,15 +1669,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "stock_observation_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "observation_order": {
@@ -1511,9 +1729,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "stock_observation_listing_order_unique": {
           "name": "stock_observation_listing_order_unique",
@@ -1532,9 +1750,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "stock_observation_evidence_artifact_id_idx": {
           "name": "stock_observation_evidence_artifact_id_idx",
@@ -1547,9 +1765,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "stock_observation_retailer_listing_id_idx": {
           "name": "stock_observation_retailer_listing_id_idx",
@@ -1562,68 +1780,68 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "stock_observation_batch_fk": {
           "name": "stock_observation_batch_fk",
           "tableFrom": "stock_observation",
-          "tableTo": "observation_batch",
           "columnsFrom": ["batch_id"],
+          "tableTo": "observation_batch",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "stock_observation_evidence_fk": {
           "name": "stock_observation_evidence_fk",
           "tableFrom": "stock_observation",
-          "tableTo": "source_evidence_artifact",
           "columnsFrom": ["evidence_artifact_id"],
+          "tableTo": "source_evidence_artifact",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "stock_observation_listing_fk": {
           "name": "stock_observation_listing_fk",
           "tableFrom": "stock_observation",
-          "tableTo": "retailer_listing",
           "columnsFrom": ["retailer_listing_id"],
+          "tableTo": "retailer_listing",
           "columnsTo": ["id"],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "stock_observation_stockhawk_identity_unique": {
           "name": "stock_observation_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         },
         "stock_observation_current_state_facts_unique": {
           "name": "stock_observation_current_state_facts_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "id",
             "retailer_listing_id",
             "observation_order",
             "observed_at",
             "status"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "stock_observation_event_facts_unique": {
           "name": "stock_observation_event_facts_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "id",
             "batch_id",
             "retailer_listing_id",
             "observed_at",
             "status"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1662,15 +1880,15 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "storefront_id_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "name": {
@@ -1698,8 +1916,8 @@
       "uniqueConstraints": {
         "storefront_stockhawk_identity_unique": {
           "name": "storefront_stockhawk_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stockhawk_identity"]
+          "columns": ["stockhawk_identity"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1709,11 +1927,10 @@
   },
   "enums": {},
   "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
   "views": {
     "public.search_document_source": {
+      "name": "search_document_source",
+      "schema": "public",
       "columns": {
         "canonical_product_name": {
           "name": "canonical_product_name",
@@ -1825,12 +2042,13 @@
         }
       },
       "definition": "\n  select\n    matched_product.canonical_name as canonical_product_name,\n    'offer'::text as classification,\n    listing_observation.image_url,\n    stock.observed_at as last_checked_at,\n    listing.stockhawk_identity as listing_identity,\n    listing.listing_presence,\n    'confirmed'::text as match_status,\n    matched_product.id as product_id,\n    1::integer as projection_version,\n    listing_observation.purchase_url,\n    listing_observation.raw_title,\n    listing.id as retailer_listing_id,\n    stock.status as stock_status,\n    matched_storefront.hostname as storefront_hostname,\n    matched_storefront.id as storefront_id,\n    matched_storefront.name as storefront_name,\n    now() as updated_at,\n    matched_product.variant\n  from retailer_listing as listing\n  inner join current_listing_state as listing_state\n    on listing_state.retailer_listing_id = listing.id\n  inner join retailer_listing_observation as listing_observation\n    on listing_observation.id = listing_state.listing_observation_id\n    and listing_observation.retailer_listing_id = listing.id\n  inner join catalog_match as active_match\n    on active_match.retailer_listing_id = listing.id\n    and active_match.active\n  inner join product as matched_product\n    on matched_product.id = active_match.product_id\n  inner join storefront as matched_storefront\n    on matched_storefront.id = listing.storefront_id\n  inner join current_stock_state as stock\n    on stock.retailer_listing_id = listing.id\n",
-      "name": "search_document_source",
-      "schema": "public",
-      "isExisting": false,
-      "materialized": false
+      "materialized": false,
+      "isExisting": false
     }
   },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
   "_meta": {
     "columns": {},
     "schemas": {},

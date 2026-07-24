@@ -37,7 +37,6 @@ const jsonResponse = (value: unknown, status = 200) =>
 const requestMethod = (init: RequestInit | undefined) => init?.method ?? "GET";
 
 const renderWithQuery = (view: React.ReactNode) => {
-  document.cookie = "stockhawk_csrf=test-csrf-token; Path=/";
   const queryClient = new QueryClient({
     defaultOptions: {
       mutations: { retry: false },
@@ -87,7 +86,6 @@ const OverlapHarness = () => {
 
 afterEach(() => {
   cleanup();
-  document.cookie = "stockhawk_csrf=; Max-Age=0; Path=/";
   vi.unstubAllGlobals();
 });
 

@@ -42,16 +42,16 @@ Deterministic failures receive no retry waiver. Record seeds, fixture versions, 
 
 Run before the capability pilot opens full rollout and after material topology or migration changes.
 
-- Provision locked runtime, PostgreSQL, built application services, Caddy, Tailscale Serve, and backup jobs from documented automation; prove `launchd` has no Turborepo or development-server runtime dependency.
+- Provision locked runtime, PostgreSQL, built application services, Tailscale Serve, its deny-by-default Grant, and backup jobs from documented automation; prove `launchd` has no Turborepo or development-server runtime dependency.
 - Migrate an empty database and load at least 100,000 representative Offers/Search Documents plus required history and failure shapes.
-- Prove first home-network page usable within two seconds and every search/filter/view/page update within 500 milliseconds; record end-to-end distributions and query plans.
+- Prove the first page over the private Tailscale path is usable within two seconds and every search/filter/view/page update within 500 milliseconds; record end-to-end distributions and query plans.
 - Run representative due work to record requests/second, conclusive Offer and restock refreshes/second, backlog slope, latency, throttles, challenges, and freshness attainment.
 - Kill the worker before and after a committed Observation Batch; prove checkpoint recovery, redelivery idempotency, and no duplicate events.
-- Stop PostgreSQL, browser work, retailer internet access, and Tailscale separately; prove surviving local search and truthful Health behavior.
-- Reboot with no login; prove PostgreSQL, Fastify, worker, Caddy, and LAN search recover under `launchd`. After normal login, prove persistent Tailscale Serve returns.
-- Prove approved Tailscale access succeeds while unapproved tailnet and public access fail. Keep API/database loopback-only and Funnel/subnet/exit/router forwarding disabled.
+- Stop PostgreSQL, browser work, retailer internet access, and Tailscale separately; prove truthful Health behavior where dependencies permit and prove Tailscale loss removes all UI access without stopping local background processing.
+- Reboot with no login; prove PostgreSQL, Fastify, and worker recover under `launchd` while the UI remains unavailable. After normal login, prove persistent Tailscale Serve returns without alternate ingress.
+- Prove the deny-by-default Grant allows only approved Tailscale devices. Unapproved tailnet, public, and direct-LAN clients fail; API/database stay loopback-only and Funnel/subnet/exit/router forwarding remain disabled.
 - Prove retailer traffic exits through the home ISP and Crawl Request Broker, never a Tailscale route.
-- Exercise login throttling, session/cookie settings, Origin/Fetch-Metadata/CSRF checks, SSRF origin/redirect/private-address rejection, and log redaction.
+- Exercise exact-Origin and Fetch-Metadata mutation checks, SSRF origin/redirect/private-address rejection, and log redaction. Do not create tests whose only purpose is asserting that removed application authentication is absent.
 - Create `pg_dump -Fc` without stopping collection, parse/checksum/atomically publish it, retain seven completed generations, and restore the newest valid archive into a clean database.
 - Verify restored schema, extensions, constraints, current/history/events, idempotency, representative search, Search Document rebuild, and regenerated due work.
 - Corrupt the newest archive and prove visible fallback to the next valid generation. Show external-copy absence or staleness honestly.

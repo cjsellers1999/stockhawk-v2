@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "admin:hash-password": "tsx src/hash-admin-password.ts",
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx watch src/main.ts",
     "lint": "oxlint --type-aware --deny-warnings src",

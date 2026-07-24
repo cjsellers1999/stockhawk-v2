@@ -7,8 +7,6 @@ import {
 import { Activity, Search } from "lucide-react";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
-import { useAuthenticatedSession } from "../auth/use-authenticated-session";
-
 const commands = [
   { destination: "/", label: "Search offers" },
   { destination: "/health", label: "View service health" },
@@ -31,7 +29,7 @@ const subscribeCommandShortcut = (
   return () => window.removeEventListener("keydown", handleKeyDown);
 };
 
-const AuthenticatedCommandMenu = () => {
+export const CommandMenu = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -74,9 +72,4 @@ const AuthenticatedCommandMenu = () => {
       </div>
     </CommandDialog>
   );
-};
-
-export const CommandMenu = () => {
-  const authenticated = useAuthenticatedSession();
-  return authenticated ? <AuthenticatedCommandMenu /> : null;
 };

@@ -162,7 +162,7 @@ The release fixture contains at least 100,000 Offers/Search Documents, separate 
 - missing images use the accepted fallback/placeholder and never alter visibility, health, certification, or stock;
 - manual retailer handoff opens the exact listing/variant URL.
 
-Against the representative dataset on the production Mac topology, the first home-network page is usable within 2 seconds and each search/filter/view/pagination update displays within 500 milliseconds. Record end-to-end distributions and server/query time separately, plus accepted query plans. Remote Tailscale latency is reported separately and cannot excuse a slow local path.
+Against the representative dataset on the production Mac topology, the first page over the private Tailscale path is usable within 2 seconds and each search/filter/view/pagination update displays within 500 milliseconds. Record end-to-end distributions and server/query time separately, plus accepted query plans. Carrier or relay latency is reported separately and cannot excuse a slow server/query path.
 
 ### End-to-end and accessibility
 
@@ -184,12 +184,12 @@ Before production rollout and after material topology/migration changes, rehears
 2. migrate an empty PostgreSQL database and load the representative dataset;
 3. pass search, query-plan, scheduler, UI latency, and locked-design visual-regression gates in both themes and representative widths;
 4. kill the worker before and after a bounded batch commit, then prove safe recovery;
-5. stop PostgreSQL, break retailer connectivity, exhaust the browser lane, and interrupt Tailscale; local search remains available wherever its dependency permits and Health tells the truth;
-6. reboot with no macOS login and prove PostgreSQL, Fastify, worker, Caddy, and local search recover through `launchd`;
+5. stop PostgreSQL, break retailer connectivity, exhaust the browser lane, and interrupt Tailscale; Health tells the truth wherever reachable, Tailscale loss removes all UI access, and background processing survives wherever its dependency permits;
+6. reboot with no macOS login and prove PostgreSQL, Fastify, and worker background processing recover through `launchd` while UI access remains unavailable;
 7. after normal login, prove persistent Tailscale Serve returns without reconfiguration;
-8. prove Fastify/PostgreSQL are loopback-only, public/Funnel/subnet/exit routing is absent, an approved Tailscale device succeeds, and unapproved/public clients fail;
+8. prove Fastify/PostgreSQL are loopback-only, public/Funnel/subnet/exit routing and alternate LAN ingress are absent, a device allowed by the deny-by-default Tailscale Grant succeeds, and unapproved/public clients fail;
 9. prove retailer traffic exits through the home residential IP and broker, not a Tailscale route;
-10. test CSRF/origin/session/login throttling, SSRF origin/redirect restrictions, private/link-local address blocking, and log redaction;
+10. test exact-Origin and same-origin Fetch Metadata, SSRF origin/redirect restrictions, private/link-local address blocking, and log redaction; do not add tests that merely assert removed application authentication is absent;
 11. create the daily dump without stopping collection and complete the restore drill below.
 
 ## Backup and restore acceptance
@@ -231,7 +231,7 @@ Each gate emits machine-readable results plus a concise human report keyed to:
 - failure-injection, reboot, access-boundary, backup, and restore evidence;
 - live Qualification Records and final reconciliation totals.
 
-The repository owns deterministic fixtures, tests, migrations, scripts, and report schemas. The deployed Mac owns timestamped operational and live-qualification evidence. Secrets, cookies, authorization headers, unrestricted response bodies, and Tailscale node keys never enter artifacts.
+The repository owns deterministic fixtures, tests, migrations, scripts, and report schemas. The deployed Mac owns timestamped operational and live-qualification evidence. Secrets, retailer authorization headers, unrestricted response bodies, and Tailscale node keys never enter artifacts.
 
 ## Implication for implementation sequencing
 

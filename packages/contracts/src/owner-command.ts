@@ -1,32 +1,5 @@
 import { z } from "zod";
 
-export const adminLoginCommandSchema = z
-  .object({
-    password: z.string().min(1).max(1_024),
-  })
-  .strict();
-
-export type AdminLoginCommand = z.infer<typeof adminLoginCommandSchema>;
-
-export const adminSessionResponseSchema = z.discriminatedUnion(
-  "authenticated",
-  [
-    z
-      .object({
-        authenticated: z.literal(false),
-      })
-      .strict(),
-    z
-      .object({
-        authenticated: z.literal(true),
-        expiresAt: z.iso.datetime({ offset: true }),
-      })
-      .strict(),
-  ],
-);
-
-export type AdminSessionResponse = z.infer<typeof adminSessionResponseSchema>;
-
 export const healthRefreshCommandSchema = z
   .object({
     family: z.literal("refresh_health"),

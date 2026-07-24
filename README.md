@@ -21,33 +21,29 @@ corepack pnpm build
 Run the API and worker in separate terminals. The API serves `apps/web/dist` and binds only to loopback.
 
 ```sh
-read -rs STOCKHAWK_ADMIN_PASSWORD
-export STOCKHAWK_ADMIN_PASSWORD
-export ADMIN_PASSWORD_HASH="$(
-  corepack pnpm --filter @stockhawk/api admin:hash-password
-)"
-unset STOCKHAWK_ADMIN_PASSWORD
-
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk corepack pnpm --filter @stockhawk/worker start
 DATABASE_URL=postgres://127.0.0.1:5432/stockhawk \
   APP_ORIGINS=http://127.0.0.1:3100 \
-  SESSION_COOKIE_SECURE=false \
   corepack pnpm start
 ```
 
-Open `http://127.0.0.1:3100` and log in with the password used above. Keep the
-default secure session cookie behind HTTPS; disable it only for direct loopback
-HTTP. `APP_ORIGINS` is the comma-separated allowlist of exact public application
-origins; every non-loopback origin must use HTTPS. Forwarded caller addresses
-key per-caller login throttling only when `TRUST_LOOPBACK_PROXY=true`; leave it
-disabled for direct access. When enabled, only loopback reverse proxies are
-trusted.
+Open `http://127.0.0.1:3100` for local development. `APP_ORIGINS` is the
+comma-separated allowlist of exact application origins accepted for mutations;
+every non-loopback origin must use HTTPS.
+
+Production uses Tailscale Serve as the sole ingress to the loopback API. Apply a
+deny-by-default Tailscale Grant for approved owner devices and keep Funnel,
+subnet routing, exit-node use, alternate LAN proxies, and router forwarding
+disabled. StockHawk intentionally has no application account, password, login,
+or session; do not add application authentication without a new architecture
+decision.
 
 `GET /api/readiness` reports API, database, and worker independently.
-Authenticated `GET /api/offers` reads transactional Search Documents. The
-protected Health refresh command reports only queued intent until the worker
-completes its durable receipt. The synthetic seed is idempotent and exists only
-to demonstrate the first exact-variant Offer tracer path.
+`GET /api/offers` reads transactional Search Documents. The Health refresh
+command requires the configured exact Origin and same-origin Fetch Metadata and
+reports only queued intent until the worker completes its durable receipt. The
+synthetic seed is idempotent and exists only to demonstrate the first
+exact-variant Offer tracer path.
 
 ## Verification
 
@@ -64,7 +60,7 @@ them after the run. The configured PostgreSQL user must be allowed to create
 databases.
 
 `test:e2e` builds the application, provisions another temporary database, and
-runs the authenticated owner-command flow plus axe checks through Chromium,
+runs the owner-command flow plus axe checks through Chromium,
 Fastify, and the worker.
 
 Migrations, real-database integration, browser/live checks, backup/restore,

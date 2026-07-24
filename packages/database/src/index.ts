@@ -19,4 +19,3 @@ export type {
   StockObservationRecord,
 } from "./stock-observation-reader.js";
 export { syntheticOfferObservationBatch } from "./synthetic-offer.js";
-export type { AdminSessionRecord, AdminSessionStore } from "./admin-session.js";

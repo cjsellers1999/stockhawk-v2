@@ -27,16 +27,11 @@ const requestUrl = (input: Parameters<typeof fetch>[0]) => {
   return input instanceof URL ? input.href : input.url;
 };
 
-const authenticatedFetch = () =>
+const appFetch = () =>
   vi.fn<typeof fetch>().mockImplementation((input) => {
     const url = requestUrl(input);
     let body: unknown = { items: [], total: 0 };
-    if (url === "/api/auth/session") {
-      body = {
-        authenticated: true,
-        expiresAt: "2026-07-24T05:00:00.000Z",
-      };
-    } else if (url === "/api/readiness") {
+    if (url === "/api/readiness") {
       body = { api: "ready", database: "ready", worker: "ready" };
     } else if (url === "/api/owner-commands/refresh-health") {
       body = { receipt: null };
@@ -67,7 +62,7 @@ const renderApp = (initialEntry = "/") => {
 };
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", authenticatedFetch());
+  vi.stubGlobal("fetch", appFetch());
 });
 
 afterEach(() => {
@@ -78,26 +73,6 @@ afterEach(() => {
 });
 
 describe("StockHawk shell", () => {
-  it("keeps private data hidden without a server session", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof fetch>().mockResolvedValue(
-        new Response(JSON.stringify({ authenticated: false }), {
-          status: 200,
-        }),
-      ),
-    );
-
-    renderApp();
-
-    expect(
-      await screen.findByRole("heading", { name: "Private owner login" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "Search" }),
-    ).not.toBeInTheDocument();
-  });
-
   it("keeps route-level feedback visible while Search loads", async () => {
     renderApp();
 

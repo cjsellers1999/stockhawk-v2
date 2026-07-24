@@ -43,6 +43,9 @@ export const HealthPage = () => {
             <RefreshCw aria-hidden="true" data-icon="inline-start" size={16} />
             {refreshLabels[refresh.status]}
           </Button>
+          <output aria-live="polite" className="sr-only">
+            Health refresh status: {refreshLabels[refresh.status]}.
+          </output>
           {refresh.status === "failed" ? (
             <p className="text-caption text-danger" role="alert">
               Latest health refresh failed.

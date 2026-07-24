@@ -33,28 +33,24 @@ const evidence = {
   commit,
   lockfileSha256: await sha256("pnpm-lock.yaml"),
   migrationSha256: {
-    ownerCommand: await sha256(
-      "packages/database/migrations/0002_secure_owner_command.sql",
-    ),
     pgBoss: await sha256(
-      "packages/database/migrations/0003_pgboss_12_26_2.sql",
+      "packages/database/migrations/0001_pgboss_12_26_2.sql",
     ),
-    refreshCheckpoint: await sha256(
-      "packages/database/migrations/0004_health_refresh_checkpoint.sql",
+    stockHawk: await sha256(
+      "packages/database/migrations/0000_stockhawk_baseline.sql",
     ),
   },
   node: process.version,
   packageManager: packageManifest.packageManager,
-  schemaVersion: "0004_health_refresh_checkpoint",
+  schemaVersion: "0001_pgboss_12_26_2",
   testMetadata: {
     boundaries: [
-      "password hashing and throttled server sessions",
-      "exact-origin, Fetch-Metadata, and double-submit CSRF",
+      "Tailscale-only ingress architecture and exact-origin/Fetch-Metadata mutation checks",
       "atomic idempotent receipt and pg-boss wakeup",
       "terminal job failure and transactional health-refresh checkpoint",
       "optimistic refresh, duplicate clicks, overlap, and exact rollback",
       "static mutation ownership and command registration",
-      "built Chromium login, queued intent, worker reconciliation, and axe",
+      "built Chromium queued intent, worker reconciliation, and axe",
     ],
     runners: ["vitest@4.1.10", "playwright@1.61.1"],
   },

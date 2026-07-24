@@ -60,13 +60,6 @@ afterAll(async () => {
   }
 });
 
-const createSession = async () =>
-  getDatabase().createAdminSession({
-    csrfTokenHash: "b".repeat(64),
-    expiresAt: new Date(Date.now() + 60_000),
-    sessionTokenHash: randomUUID().replaceAll("-", "").padEnd(64, "a"),
-  });
-
 const healthRefreshCommand = (): HealthRefreshCommand => ({
   family: "refresh_health",
   idempotencyKey: randomUUID(),
@@ -74,33 +67,11 @@ const healthRefreshCommand = (): HealthRefreshCommand => ({
 });
 
 describe("owner command Persistence Boundary", () => {
-  it("persists a server session until its exact expiry", async () => {
-    const ownerDatabase = getDatabase();
-    const session = await createSession();
-
-    await expect(
-      ownerDatabase.findActiveAdminSession({
-        now: new Date(session.expiresAt.getTime() - 1),
-        sessionTokenHash: session.sessionTokenHash,
-      }),
-    ).resolves.toEqual(session);
-    await expect(
-      ownerDatabase.findActiveAdminSession({
-        now: session.expiresAt,
-        sessionTokenHash: session.sessionTokenHash,
-      }),
-    ).resolves.toBeNull();
-  });
-
   it("atomically queues one job and replays one durable receipt", async () => {
     const ownerDatabase = getDatabase();
-    const session = await createSession();
     const attempts = await Promise.allSettled(
       [healthRefreshCommand(), healthRefreshCommand()].map((command) =>
-        ownerDatabase.enqueueOwnerCommand({
-          command,
-          requestedBySessionId: session.id,
-        }),
+        ownerDatabase.enqueueOwnerCommand({ command }),
       ),
     );
     const accepted = attempts.flatMap((attempt) =>
@@ -122,7 +93,6 @@ describe("owner command Persistence Boundary", () => {
     const command = firstReceipt.command;
     const replayedReceipt = await ownerDatabase.enqueueOwnerCommand({
       command,
-      requestedBySessionId: session.id,
     });
 
     expect(firstReceipt.status).toBe("queued");
@@ -150,11 +120,9 @@ describe("owner command Persistence Boundary", () => {
 
   it("records terminal worker failure without applying domain intent", async () => {
     const ownerDatabase = getDatabase();
-    const session = await createSession();
     const command = healthRefreshCommand();
     const receipt = await ownerDatabase.enqueueOwnerCommand({
       command,
-      requestedBySessionId: session.id,
     });
     rejectHealthRefresh = true;
 
@@ -184,11 +152,9 @@ describe("owner command Persistence Boundary", () => {
 
   it("reconciles a receipt after an abandoned job expires terminally", async () => {
     const ownerDatabase = getDatabase();
-    const session = await createSession();
     const command = healthRefreshCommand();
     const receipt = await ownerDatabase.enqueueOwnerCommand({
       command,
-      requestedBySessionId: session.id,
     });
     const abandonedBoss = new PgBoss({
       connectionString: testUrl.toString(),
@@ -231,11 +197,9 @@ describe("owner command Persistence Boundary", () => {
 
   it("rolls domain success back when an active job expires", async () => {
     const ownerDatabase = getDatabase();
-    const session = await createSession();
     const command = healthRefreshCommand();
     const receipt = await ownerDatabase.enqueueOwnerCommand({
       command,
-      requestedBySessionId: session.id,
     });
     const priorCheckpoint = await ownerDatabase.findHealthRefreshCheckpoint();
     const supervisor = new PgBoss({
@@ -281,22 +245,5 @@ describe("owner command Persistence Boundary", () => {
       receiptId: receipt.receiptId,
       status: "failed",
     });
-  });
-
-  it("rolls back the receipt when its session cannot own the intent", async () => {
-    const ownerDatabase = getDatabase();
-    const command = healthRefreshCommand();
-
-    await expect(
-      ownerDatabase.enqueueOwnerCommand({
-        command,
-        requestedBySessionId: Number.MAX_SAFE_INTEGER,
-      }),
-    ).rejects.toMatchObject({
-      cause: { constraint_name: "owner_command_receipt_session_fk" },
-    });
-    await expect(
-      ownerDatabase.findOwnerCommandByIdempotencyKey(command.idempotencyKey),
-    ).resolves.toBeNull();
   });
 });

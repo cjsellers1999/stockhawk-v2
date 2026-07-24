@@ -28,36 +28,6 @@ export const serviceHeartbeat = pgTable("service_heartbeat", {
   serviceName: text("service_name").primaryKey(),
 });
 
-export const adminSession = pgTable(
-  "admin_session",
-  {
-    createdAt: recordedAt("created_at"),
-    csrfTokenHash: text("csrf_token_hash").notNull(),
-    expiresAt: timestamp("expires_at", {
-      mode: "date",
-      withTimezone: true,
-    }).notNull(),
-    id: internalIdentity("id"),
-    sessionTokenHash: text("session_token_hash")
-      .notNull()
-      .unique("admin_session_token_hash_unique"),
-  },
-  (table) => [
-    check(
-      "admin_session_token_hash_check",
-      sql`${table.sessionTokenHash} ~ '^[a-f0-9]{64}$'`,
-    ),
-    check(
-      "admin_session_csrf_hash_check",
-      sql`${table.csrfTokenHash} ~ '^[a-f0-9]{64}$'`,
-    ),
-    check(
-      "admin_session_expiry_check",
-      sql`${table.expiresAt} > ${table.createdAt}`,
-    ),
-  ],
-);
-
 export const ownerCommandReceipt = pgTable(
   "owner_command_receipt",
   {
@@ -80,23 +50,12 @@ export const ownerCommandReceipt = pgTable(
       .notNull()
       .unique("owner_command_receipt_job_id_unique"),
     requestedAt: recordedAt("requested_at"),
-    requestedBySessionId: bigint("requested_by_session_id", {
-      mode: "number",
-    }).notNull(),
     status: text("status").notNull(),
     stockhawkIdentity: uuid("stockhawk_identity")
       .notNull()
       .unique("owner_command_receipt_stockhawk_identity_unique"),
   },
   (table) => [
-    foreignKey({
-      columns: [table.requestedBySessionId],
-      foreignColumns: [adminSession.id],
-      name: "owner_command_receipt_session_fk",
-    }).onDelete("restrict"),
-    index("owner_command_receipt_session_id_idx").on(
-      table.requestedBySessionId,
-    ),
     index("owner_command_receipt_family_requested_idx").on(
       table.commandFamily,
       table.requestedAt.desc(),
@@ -775,7 +734,6 @@ export const searchDocumentSource = pgView("search_document_source", {
 `);
 
 export const schema = {
-  adminSession,
   catalogMatch,
   changeEvent,
   currentListingState,

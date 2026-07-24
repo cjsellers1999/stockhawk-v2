@@ -6,18 +6,10 @@ const expectNoAxeViolations = async (page) => {
   expect(results.violations).toEqual([]);
 };
 
-test("owner logs in and sees one truthful command reconcile", async ({
-  page,
-}) => {
+test("owner sees one truthful command reconcile", async ({ page }) => {
   await page.goto("/health");
-  await expect(
-    page.getByRole("heading", { name: "Private owner login" }),
-  ).toBeVisible();
-  await expectNoAxeViolations(page);
-
-  await page.getByLabel("Admin password").fill("ticket-3-password");
-  await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Health" })).toBeVisible();
+  await expectNoAxeViolations(page);
 
   const mutationRequests = [];
   page.on("request", (request) => {

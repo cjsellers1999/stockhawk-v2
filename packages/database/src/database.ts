@@ -4,10 +4,6 @@ import { PgBoss, type QueueOptions } from "pg-boss";
 import postgres from "postgres";
 
 import {
-  createAdminSessionStore,
-  type AdminSessionStore,
-} from "./admin-session.js";
-import {
   createCatalogPersistence,
   type CatalogPersistence,
 } from "./catalog-persistence.js";
@@ -27,8 +23,7 @@ import {
   type StockObservationReader,
 } from "./stock-observation-reader.js";
 
-export type Database = AdminSessionStore &
-  CatalogPersistence &
+export type Database = CatalogPersistence &
   ChangeEventReader &
   OfferSearch &
   OwnerCommandPersistence &
@@ -67,7 +62,6 @@ export const createDatabase = (
   boss.on("error", () => {
     jobQueueFaulted = true;
   });
-  const adminSessionStore = createAdminSessionStore(database);
   const catalogPersistence = createCatalogPersistence(database);
   const changeEventReader = createChangeEventReader(database);
   const offerSearch = createOfferSearch(database);
@@ -79,7 +73,6 @@ export const createDatabase = (
   const stockObservationReader = createStockObservationReader(database);
 
   return {
-    ...adminSessionStore,
     ...catalogPersistence,
     ...changeEventReader,
     ...offerSearch,

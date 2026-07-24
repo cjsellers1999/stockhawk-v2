@@ -21,8 +21,6 @@ maintenanceUrl.search = "";
 const testDatabaseUrl = new URL(baseDatabaseUrl);
 testDatabaseUrl.pathname = `/${databaseName}`;
 testDatabaseUrl.search = "";
-const adminPasswordHash =
-  "scrypt$32768$8$1$BwcHBwcHBwcHBwcHBwcHBw$OXuonvIE8SOBJSLK244mR4MsxPuL619nVoVY90G7Ymo";
 const processes = [];
 let databaseCreated = false;
 
@@ -140,11 +138,9 @@ try {
   start("worker", "apps/worker/dist/main.js", serviceEnvironment);
   start("api", "apps/api/dist/main.js", {
     ...serviceEnvironment,
-    ADMIN_PASSWORD_HASH: adminPasswordHash,
     APP_ORIGINS: applicationUrl,
     HOST: "127.0.0.1",
     PORT: String(port),
-    SESSION_COOKIE_SECURE: "false",
     WEB_DIST_PATH: resolve(workspace, "apps/web/dist"),
   });
   await waitForApplication(applicationUrl);

@@ -33,10 +33,6 @@ const searchResult = {
   ],
   total: 1,
 };
-const authenticatedSession = {
-  authenticated: true,
-  expiresAt: "2026-07-24T05:00:00.000Z",
-};
 
 const requestUrl = (input: Parameters<typeof fetch>[0]) => {
   if (typeof input === "string") {
@@ -77,9 +73,7 @@ describe("Offer search table", () => {
         database: "ready",
         worker: "ready",
       };
-      if (url === "/api/auth/session") {
-        body = authenticatedSession;
-      } else if (url.startsWith("/api/offers")) {
+      if (url.startsWith("/api/offers")) {
         body = searchResult;
       }
       return Promise.resolve(
@@ -182,19 +176,12 @@ describe("Offer search table", () => {
   it("keeps invalid search terms editable and explains the limit", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn<typeof fetch>().mockImplementation((input) =>
+      vi.fn<typeof fetch>().mockImplementation(() =>
         Promise.resolve(
-          new Response(
-            JSON.stringify(
-              requestUrl(input) === "/api/auth/session"
-                ? authenticatedSession
-                : searchResult,
-            ),
-            {
-              headers: { "content-type": "application/json" },
-              status: 200,
-            },
-          ),
+          new Response(JSON.stringify(searchResult), {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          }),
         ),
       ),
     );

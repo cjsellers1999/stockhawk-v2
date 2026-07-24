@@ -3,11 +3,11 @@
 Date: 2026-07-22  
 Status: recommended V1 decision
 
-Owner amendment: private access is required while away from home. Tailscale Serve is now the normal access path; Caddy remains the pre-login LAN fallback because supported Tailscale on macOS is user-scoped.
+Owner amendment: Tailscale Serve is the sole ingress and its deny-by-default Grant is the authorization boundary. Caddy and all application-local authentication are removed. Supported Tailscale on macOS may be unavailable before user login; background services still recover, but UI access deliberately fails closed until Tailscale returns.
 
 ## Decision
 
-Run StockHawk natively on the Mac mini as one TypeScript release with two StockHawk processes, one PostgreSQL database, and two private access edges:
+Run StockHawk natively on the Mac mini as one TypeScript release with two StockHawk processes, one PostgreSQL database, and one private access edge:
 
 - Node.js 24 LTS and TypeScript.
 - A pnpm workspace with Turborepo for local-only development, build, and deterministic verification orchestration.
@@ -19,24 +19,23 @@ Run StockHawk natively on the Mac mini as one TypeScript release with two StockH
 - pg-boss v12 for durable jobs in the same PostgreSQL database.
 - A separate worker process containing the planner, request broker, Connectors, HTTP clients, and adaptive Playwright pool.
 - Native macOS `launchd` supervision; no Docker Desktop in production.
-- Tailscale Serve as the normal private HTTPS path for approved owner devices at home or away.
-- Caddy internal HTTPS on unprivileged LAN port `8443` as the automatic no-login reboot fallback. Fastify and PostgreSQL remain loopback-only.
+- Tailscale Serve as the sole private HTTPS ingress for devices approved by a deny-by-default Grant at home or away. Fastify and PostgreSQL remain loopback-only.
 - Pino structured JSON diagnostics retained for 30 days. Durable Health and run summaries remain in PostgreSQL.
 - One format/checksum-validated `pg_dump -Fc` daily, seven completed daily generations, encrypted external-disk copy when available, and an automated weekly restore test.
 
 Use the latest supported patch of each selected major and pin exact application dependencies in the lockfile. Node recommends LTS lines for production; Node 24 is the active LTS line at this decision date. PostgreSQL supports each major for five years. [Node releases](https://nodejs.org/en/about/previous-releases), [PostgreSQL versioning](https://www.postgresql.org/support/versioning/)
 
 ```text
-Approved owner device anywhere       Approved home-LAN device
-        |                                      |
- Tailscale client                         HTTPS :8443
-        |                                      |
- encrypted direct/DERP path                  Caddy
-        |                                      |
- Tailscale Serve HTTPS                        |
-        |                                      |
-        +------------- 127.0.0.1 --------------+
-                          |
+Approved owner device anywhere
+        |
+ Tailscale client
+        |
+ encrypted direct/DERP path
+        |
+ Tailscale Serve HTTPS
+        |
+    127.0.0.1
+        |
  Fastify API + built React SPA -------- PostgreSQL 18
         |                                  |    |
         |                                  |    +-- pg-boss queues
@@ -53,7 +52,7 @@ Approved owner device anywhere       Approved home-LAN device
  launchd -> daily backup/weekly restore verifier -> encrypted external disk
 ```
 
-The API and worker are separate so a browser or Connector crash cannot take down morning search. Tailscale Serve and Caddy are alternate inbound routes to the same loopback API, not separate applications. The system remains one codebase, schema, deployment, and release—not microservices.
+The API and worker are separate so a browser or Connector crash cannot take down morning search. Tailscale Serve is the only inbound route to the loopback API. The system remains one codebase, schema, deployment, and release—not microservices.
 
 ### Workspace orchestration and runtime contracts
 
@@ -79,7 +78,7 @@ Adapt the enforcement pattern inspected at commit `d60c74dcec2401125f912e710a30c
 
 The browser never loads 100,000 Offers. Fastify owns filtering, sorting, and keyset pagination; TanStack Table v9 beta uses manual server-side state. TanStack Query owns server state. The [locked owner design](../design/DESIGN.md) is the accepted rendered baseline; framework, Tailwind, and shadcn defaults and the earlier multi-variant prototype may not replace it. [Vite backend integration](https://vite.dev/guide/backend-integration), [Fastify TypeScript](https://fastify.dev/docs/latest/Reference/TypeScript/), [TanStack Table v9 pagination](https://tanstack.com/table/beta/docs/framework/react/guide/pagination)
 
-Shared Zod schemas own runtime API contracts; a tested Fastify integration validates inputs and supplies response serialization schemas without a second handwritten contract. Each access edge is same-origin: Tailscale Serve and Caddy proxy both the SPA and API on their respective hostname. The application allowlists those two exact origins and uses host-only sessions. [Fastify validation and serialization](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
+Shared Zod schemas own runtime API contracts; a tested Fastify integration validates inputs and supplies response serialization schemas without a second handwritten contract. Tailscale Serve proxies both the SPA and API on one same-origin hostname. The application allowlists that exact production origin for mutations and has no account, login, password, session, authentication cookie, or CSRF token. [Fastify validation and serialization](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
 
 ### Enforced optimistic command boundary
 
@@ -153,14 +152,14 @@ The shared Crawl Request Broker remains the only way a Connector obtains HTTP, b
 | Boot | LaunchDaemon can start before user login | Adds Docker Desktop and its Linux VM startup state |
 | Crawl ceiling | No VM CPU/RAM/disk allocation can become an accidental bottleneck | VM resource and disk-image limits add another ceiling to inspect |
 | Data/recovery | PostgreSQL files and dumps have ordinary explicit paths | Named volumes live behind the VM and require Docker-aware recovery |
-| Maintenance | macOS + Node + PostgreSQL + Caddy + supported Tailscale client | Same software plus Docker Desktop/VM/network/storage layers |
+| Maintenance | macOS + Node + PostgreSQL + supported Tailscale client | Same software plus Docker Desktop/VM/network/storage layers |
 | Portability | Provisioning script and pinned versions | Stronger image portability, not valuable enough for this one fixed Mac |
 
 Docker Desktop's Mac settings explicitly manage a Linux VM, resource limits, disk image, sign-in startup, and Time Machine inclusion. Those layers do not improve the one-machine private-access requirement. Use containers only for optional development/CI parity, never as V1 production truth. [Docker Desktop settings](https://docs.docker.com/desktop/settings-and-maintenance/settings/), [Docker volumes](https://docs.docker.com/engine/storage/volumes/)
 
-Install API, worker, PostgreSQL, and Caddy as supervised LaunchDaemons under least-privilege service accounts. Caddy serves `https://<mac-mini-bonjour-name>:8443`, with HTTP redirects disabled, so it does not require root merely to bind ports `80` or `443`. `RunAtLoad`/keep-alive restarts unexpected exits. The backup verifier is a separate calendar LaunchDaemon so a broken queue cannot suppress backups. Apple documents LaunchDaemons as system services that can run without a logged-in user. [Apple `launchd` guide](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html)
+Install API, worker, and PostgreSQL as supervised LaunchDaemons under least-privilege service accounts. `RunAtLoad`/keep-alive restarts unexpected exits. The backup verifier is a separate calendar LaunchDaemon so a broken queue cannot suppress backups. Apple documents LaunchDaemons as system services that can run without a logged-in user. [Apple `launchd` guide](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html)
 
-Configure Tailscale Serve in persistent background mode to proxy its private HTTPS hostname to Fastify's loopback port. Serve configuration resumes across a Tailscale restart, but official Tailscale documentation states that macOS cannot run Tailscale as the system before a user logs in. Therefore Tailscale cannot replace the LaunchDaemon-backed LAN edge without weakening reboot recovery. Caddy restores local access before login; Tailscale remote access returns automatically after the owner's normal macOS login and Tailscale reconnection. FileVault remains enabled and StockHawk does not enable automatic login to hide this platform limitation. [Tailscale Serve persistence](https://tailscale.com/docs/reference/tailscale-cli/serve), [Tailscale unattended limitation on macOS](https://tailscale.com/docs/how-to/run-unattended)
+Configure Tailscale Serve in persistent background mode to proxy its private HTTPS hostname to Fastify's loopback port. Serve configuration resumes across a Tailscale restart, but official Tailscale documentation states that macOS cannot run Tailscale as the system before a user logs in. The owner accepts that UI access remains unavailable until normal macOS login and Tailscale reconnection; LaunchDaemons still restore database, API, worker, and collection. FileVault remains enabled and StockHawk does not add alternate ingress or enable automatic login to hide this platform limitation. [Tailscale Serve persistence](https://tailscale.com/docs/reference/tailscale-cli/serve), [Tailscale unattended limitation on macOS](https://tailscale.com/docs/how-to/run-unattended)
 
 Configure the Mac to restart after power failure and avoid sleep while serving. On reboot: PostgreSQL starts; API and worker wait/retry for database readiness; the worker reclaims expired jobs and resumes from committed checkpoints; browser contexts are recreated empty. Search remains usable if the worker is down, with visible stale/partial status. [Apple energy settings](https://support.apple.com/guide/mac-help/change-energy-settings-mchlp1168/mac)
 
@@ -205,9 +204,9 @@ Tailscale Serve terminates normal HTTPS and proxies only to Fastify on loopback.
 
 Tailscale's valid HTTPS certificate avoids installing a private CA for normal use. Enabling tailnet HTTPS publishes the chosen machine and tailnet DNS certificate name to public certificate-transparency infrastructure, although it does not expose the service. Use a non-sensitive hostname such as `stockhawk`; never put the owner's name, address, or purpose-sensitive data in it. [Tailscale HTTPS certificates](https://tailscale.com/docs/how-to/set-up-https-certificates)
 
-Caddy remains the independent home-LAN recovery path and terminates `tls internal` at `https://<mac-mini-bonjour-name>:8443`; approved fallback devices install its root CA. Fastify allowlists the exact Tailscale and Caddy origins and issues host-only sessions, so the owner may need to log in once per hostname. The application—not Tailscale identity headers or Caddy Basic Auth—owns the one owner account using Argon2id, PostgreSQL-backed sessions, and `Secure`, `HttpOnly`, `SameSite=Strict` cookies. Mutations validate Origin/Fetch Metadata and CSRF tokens. [Caddy internal TLS](https://caddyserver.com/docs/caddyfile/directives/tls), [Argon2](https://www.rfc-editor.org/rfc/rfc9106.html), [OWASP session management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+Tailscale Serve plus the deny-by-default Grant is the complete inbound authorization boundary. StockHawk deliberately adds no application account, password, login route, server session, authentication cookie, or CSRF token. Mutations still validate the exact configured Origin and same-origin Fetch Metadata and remain idempotent. Do not reintroduce application authentication or an alternate proxy without a new owner-approved architecture decision.
 
-Bind Fastify and PostgreSQL only to loopback/Unix sockets. Caddy binds only the chosen LAN interface; Tailscale is the only remote ingress. Enable the macOS firewall and FileVault, no router port forwarding/UPnP exposure, no PostgreSQL `trust`, and least-privilege runtime/migration/backup roles. Tailscale loss removes remote access but does not stop the API, worker, database, or local Caddy path. [macOS firewall](https://support.apple.com/guide/mac-help/block-connections-to-your-mac-with-a-firewall-mh34041/mac), [FileVault](https://support.apple.com/guide/mac-help/protect-data-on-your-mac-with-filevault-mh11785/mac)
+Bind Fastify and PostgreSQL only to loopback/Unix sockets. Enable the macOS firewall and FileVault, no router port forwarding/UPnP exposure, no PostgreSQL `trust`, and least-privilege runtime/migration/backup roles. Keep Funnel, subnet routing, exit-node use, and direct LAN listeners disabled. Tailscale loss removes all UI access but does not stop the API, worker, database, or collection. [macOS firewall](https://support.apple.com/guide/mac-help/block-connections-to-your-mac-with-a-firewall-mh34041/mac), [FileVault](https://support.apple.com/guide/mac-help/protect-data-on-your-mac-with-filevault-mh11785/mac)
 
 Tailscale changes only inbound owner access. The collector never uses a Tailscale exit node: all retailer HTTP, browser, redirect, and image traffic still leaves from the home ISP and passes through the shared residential-IP Crawl Request Broker. The broker permits only audited public origins, validates redirects, and blocks loopback, link-local, and private-address destinations. Browser downloads and retailer credentials remain disabled. Retailer HTML is rendered as text/data, never injected into StockHawk's DOM.
 
@@ -219,12 +218,12 @@ Implementation is not complete until it proves:
 - every UI mutation passes the optimistic boundary and rollback/reconciliation tests;
 - database constraints reject duplicate source identities, stale transitions, duplicate events, illegal lifecycle states, and destructive deletes;
 - killing the worker during HTTP and browser batches restarts and resumes without duplicate domain effects;
-- rebooting with no logged-in user restores API, worker, database, and Caddy automatically, without weakening FileVault;
+- rebooting with no logged-in user restores API, worker, and database background processing automatically, without weakening FileVault, while UI access remains unavailable;
 - after normal macOS login, persistent Tailscale Serve returns without another setup command;
 - an approved non-LAN device reaches the Tailscale HTTPS URL, while an unapproved tailnet device and a public-internet client cannot;
 - Tailscale Funnel, exit-node routing, subnet routing, and public router forwarding remain disabled;
-- API and PostgreSQL are unreachable directly from both LAN and tailnet devices; both access origins reject unauthenticated mutations at the application boundary;
-- disabling Tailscale removes remote access while local Caddy search and all background processing continue;
+- API and PostgreSQL are unreachable directly from both LAN and tailnet devices; the sole Tailscale origin rejects mutations without the exact Origin and same-origin Fetch Metadata;
+- disabling Tailscale removes all UI access while background processing continues;
 - adaptive HTTP/browser work always uses the shared residential-IP broker;
 - an egress verification proves retailer traffic still uses the home residential IP rather than Tailscale routing;
 - a daily dump is produced without stopping crawling and the weekly clean restore passes; and
@@ -233,8 +232,8 @@ Implementation is not complete until it proves:
 ## Revisit triggers
 
 - Add PostgreSQL WAL archiving when the owner needs an RPO below 24 hours.
-- Remove Caddy only if Tailscale officially supports unattended pre-login macOS operation or an independently supervised always-on tailnet gateway is deliberately added.
-- If remote access must survive a Mac reboot before login, evaluate a separate always-on Tailscale gateway; never disable FileVault or enable automatic login as a shortcut.
+- Add an alternate ingress or application authentication only through a new owner-approved architecture decision; neither is a contingency implementation task.
+- If UI access must survive a Mac reboot before login, evaluate a separate always-on Tailscale gateway; never disable FileVault or enable automatic login as a shortcut.
 - Reconsider containers only if StockHawk must run on multiple heterogeneous hosts.
 - Reconsider Redis only if measured PostgreSQL queue contention remains after bounded-job and index tuning.
 - Reconsider a separate search engine only if measured PostgreSQL search misses accepted latency at realistic scale and its dual-write/rebuild failure model is designed first.
