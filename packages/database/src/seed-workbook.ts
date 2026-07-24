@@ -290,7 +290,7 @@ export const readSeedWorkbook = async (
       `Seed workbook SHA-256 mismatch: expected ${expectedSha256}, received ${fileSha256}`,
     );
   }
-  const rows = await readSheet(path, SEED_WORKSHEET_NAME);
+  const rows = await readSheet(bytes, SEED_WORKSHEET_NAME);
   const fileName = path.split(/[\\/]/).at(-1);
   if (fileName === undefined || fileName === "") {
     throw new TypeError("Seed workbook path requires a file name");
