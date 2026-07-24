@@ -21,9 +21,9 @@ type OfferSearch = {
   searchOffers: (query: OfferSearchQuery) => Promise<OfferSearchResponse>;
 };
 type OwnerCommandDatabase = {
-  enqueueOwnerCommand: (input: {
-    command: HealthRefreshCommand;
-  }) => Promise<OwnerCommandReceipt>;
+  enqueueOwnerCommand: (
+    command: HealthRefreshCommand,
+  ) => Promise<OwnerCommandReceipt>;
   findLatestOwnerCommand: () => Promise<OwnerCommandReceipt | null>;
 };
 
@@ -126,9 +126,7 @@ export const buildApp = ({
     let receipt: OwnerCommandReceipt;
     try {
       receipt = ownerCommandReceiptSchema.parse(
-        await database.enqueueOwnerCommand({
-          command: command.data,
-        }),
+        await database.enqueueOwnerCommand(command.data),
       );
     } catch (error) {
       if (error instanceof OwnerCommandInFlightError) {

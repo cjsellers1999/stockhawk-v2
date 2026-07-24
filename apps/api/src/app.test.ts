@@ -14,9 +14,7 @@ import { buildApp, isBrowserNavigationRequest } from "./app.js";
 
 const ownerCommandDatabase = () => ({
   enqueueOwnerCommand:
-    vi.fn<
-      (input: { command: HealthRefreshCommand }) => Promise<OwnerCommandReceipt>
-    >(),
+    vi.fn<(command: HealthRefreshCommand) => Promise<OwnerCommandReceipt>>(),
   findLatestOwnerCommand: vi
     .fn<() => Promise<OwnerCommandReceipt | null>>()
     .mockResolvedValue(null),
@@ -229,7 +227,7 @@ describe("readiness endpoint", () => {
     expect(missingMetadata.statusCode).toBe(403);
     expect(accepted.statusCode).toBe(202);
     expect(database.enqueueOwnerCommand).toHaveBeenCalledOnce();
-    expect(database.enqueueOwnerCommand).toHaveBeenCalledWith({ command });
+    expect(database.enqueueOwnerCommand).toHaveBeenCalledWith(command);
     await app.close();
   });
 

@@ -33,9 +33,9 @@ export class OwnerCommandInFlightError extends Error {
 }
 
 export type OwnerCommandPersistence = {
-  enqueueOwnerCommand: (input: {
-    command: HealthRefreshCommand;
-  }) => Promise<OwnerCommandReceipt>;
+  enqueueOwnerCommand: (
+    command: HealthRefreshCommand,
+  ) => Promise<OwnerCommandReceipt>;
   findLatestOwnerCommand: () => Promise<OwnerCommandReceipt | null>;
   findOwnerCommandByIdempotencyKey: (
     idempotencyKey: string,
@@ -116,7 +116,7 @@ export const createOwnerCommandPersistence = ({
   };
 
   return {
-    enqueueOwnerCommand: async ({ command: unparsedCommand }) => {
+    enqueueOwnerCommand: async (unparsedCommand) => {
       const command = healthRefreshCommandSchema.parse(unparsedCommand);
       const commandHash = fingerprint(command);
 

@@ -71,7 +71,7 @@ describe("owner command Persistence Boundary", () => {
     const ownerDatabase = getDatabase();
     const attempts = await Promise.allSettled(
       [healthRefreshCommand(), healthRefreshCommand()].map((command) =>
-        ownerDatabase.enqueueOwnerCommand({ command }),
+        ownerDatabase.enqueueOwnerCommand(command),
       ),
     );
     const accepted = attempts.flatMap((attempt) =>
@@ -91,9 +91,7 @@ describe("owner command Persistence Boundary", () => {
       throw new Error("Expected one accepted owner command");
     }
     const command = firstReceipt.command;
-    const replayedReceipt = await ownerDatabase.enqueueOwnerCommand({
-      command,
-    });
+    const replayedReceipt = await ownerDatabase.enqueueOwnerCommand(command);
 
     expect(firstReceipt.status).toBe("queued");
     expect(replayedReceipt).toEqual(firstReceipt);
@@ -121,9 +119,7 @@ describe("owner command Persistence Boundary", () => {
   it("records terminal worker failure without applying domain intent", async () => {
     const ownerDatabase = getDatabase();
     const command = healthRefreshCommand();
-    const receipt = await ownerDatabase.enqueueOwnerCommand({
-      command,
-    });
+    const receipt = await ownerDatabase.enqueueOwnerCommand(command);
     rejectHealthRefresh = true;
 
     try {
@@ -153,9 +149,7 @@ describe("owner command Persistence Boundary", () => {
   it("reconciles a receipt after an abandoned job expires terminally", async () => {
     const ownerDatabase = getDatabase();
     const command = healthRefreshCommand();
-    const receipt = await ownerDatabase.enqueueOwnerCommand({
-      command,
-    });
+    const receipt = await ownerDatabase.enqueueOwnerCommand(command);
     const abandonedBoss = new PgBoss({
       connectionString: testUrl.toString(),
       migrate: false,
@@ -198,9 +192,7 @@ describe("owner command Persistence Boundary", () => {
   it("rolls domain success back when an active job expires", async () => {
     const ownerDatabase = getDatabase();
     const command = healthRefreshCommand();
-    const receipt = await ownerDatabase.enqueueOwnerCommand({
-      command,
-    });
+    const receipt = await ownerDatabase.enqueueOwnerCommand(command);
     const priorCheckpoint = await ownerDatabase.findHealthRefreshCheckpoint();
     const supervisor = new PgBoss({
       connectionString: testUrl.toString(),
