@@ -5,10 +5,11 @@ import type {
 } from "@stockhawk/contracts";
 import {
   useQuery,
+  useQueryClient,
   type MutationObserverOptions,
   type QueryClient,
 } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import {
@@ -22,6 +23,30 @@ import { useCommandMutation } from "./use-command-mutation";
 
 type MutationContext = {
   previousProgress: OnboardingProgress | undefined;
+};
+
+type ReceiptStatus = OwnerCommandReceipt["status"] | undefined;
+
+const refreshProgressAfterTerminalReceipt = ({
+  currentStatus,
+  previousStatus,
+  queryClient,
+}: {
+  currentStatus: ReceiptStatus;
+  previousStatus: { current: ReceiptStatus };
+  queryClient: QueryClient;
+}) => {
+  const transitionedFromQueued =
+    previousStatus.current === "queued" &&
+    currentStatus !== undefined &&
+    currentStatus !== "queued";
+  previousStatus.current = currentStatus;
+  if (transitionedFromQueued) {
+    void queryClient.invalidateQueries({
+      exact: true,
+      queryKey: onboardingQueryKeys.progress(),
+    });
+  }
 };
 
 const createOnboardingCommandOptions = (
@@ -117,6 +142,7 @@ export type OnboardingCaseCommandStatus =
   "checking" | "failed" | "queued" | "ready" | "unavailable";
 
 export const useOnboardingCaseCommand = () => {
+  const queryClient = useQueryClient();
   const progressQuery = useQuery(onboardingProgressQueryOptions);
   const receiptQuery = useQuery(onboardingCommandReceiptQueryOptions);
   const mutation = useCommandMutation<
@@ -126,6 +152,15 @@ export const useOnboardingCaseCommand = () => {
     MutationContext
   >(createOnboardingCommandOptions);
   const submitting = useRef(false);
+  const previousReceiptStatus = useRef<ReceiptStatus>(undefined);
+  const receiptStatus = receiptQuery.data?.status;
+  useEffect(() => {
+    refreshProgressAfterTerminalReceipt({
+      currentStatus: receiptStatus,
+      previousStatus: previousReceiptStatus,
+      queryClient,
+    });
+  }, [queryClient, receiptStatus]);
   const focusCase = progressQuery.data?.focusCase;
   const action = focusCase?.status === "resolved" ? "reaudit" : "resume";
   const isQueued =
@@ -172,7 +207,7 @@ export const useOnboardingCaseCommand = () => {
         schemaVersion: 1,
       },
       {
-        onError: () => {
+        onSettled: () => {
           submitting.current = false;
         },
       },

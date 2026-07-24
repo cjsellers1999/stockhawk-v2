@@ -5,11 +5,13 @@ import {
   type OwnerCommandReceipt,
 } from "@stockhawk/contracts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ownerCommandQueryKeys } from "../command-boundary/owner-command.query-keys";
 import { OnboardingProgressPanel } from "./onboarding-progress-panel";
+import { onboardingQueryKeys } from "./onboarding.query-keys";
 
 const progress: OnboardingProgress = {
   candidateSites: 2_489,
@@ -40,6 +42,10 @@ const progress: OnboardingProgress = {
   workbookSha256:
     "0c4d846c6547e4d36d49de7c4aff250b63ec2cec9b39bfa166aa648586f53bbf",
 };
+const focusCase = progress.focusCase;
+if (focusCase === null) {
+  throw new TypeError("Onboarding progress fixture requires a focus case");
+}
 
 const jsonResponse = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), {
@@ -54,6 +60,24 @@ const requestUrl = (input: RequestInfo | URL) => {
   return input instanceof URL ? input.href : input.url;
 };
 
+const parseSubmittedCommand = (body: BodyInit | null | undefined) => {
+  if (typeof body !== "string") {
+    throw new TypeError("Expected serialized Onboarding Case command");
+  }
+  return onboardingCaseCommandSchema.parse(JSON.parse(body));
+};
+
+const completedReceipt = (receipt: OwnerCommandReceipt | null) => {
+  if (receipt === null) {
+    throw new TypeError("Expected queued Onboarding Case receipt");
+  }
+  return {
+    ...receipt,
+    completedAt: "2026-07-24T17:00:02.000Z",
+    status: "completed" as const,
+  };
+};
+
 const renderPanel = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -61,11 +85,12 @@ const renderPanel = () => {
       queries: { retry: false },
     },
   });
-  return render(
+  const result = render(
     <QueryClientProvider client={queryClient}>
       <OnboardingProgressPanel />
     </QueryClientProvider>,
   );
+  return { ...result, queryClient };
 };
 
 afterEach(() => {
@@ -164,6 +189,144 @@ describe("Onboarding progress", () => {
     expect(
       await screen.findByRole("button", { name: "Queued" }),
     ).toBeDisabled();
+  });
+
+  it("refreshes progress when a queued command receipt completes", async () => {
+    let progressReads = 0;
+    let latestReceipt: OwnerCommandReceipt | null = null;
+    const queuedProgress: OnboardingProgress = {
+      ...progress,
+      cases: {
+        ...progress.cases,
+        queued: 1,
+        suspended: 0,
+      },
+      focusCase: {
+        ...focusCase,
+        nextAction: "Run onboarding preflight",
+        revision: 1,
+        status: "queued",
+        waitReason: null,
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        if (requestUrl(input) === "/api/onboarding/progress") {
+          progressReads += 1;
+          return jsonResponse(progressReads >= 3 ? queuedProgress : progress);
+        }
+        if (init?.method === "POST") {
+          latestReceipt = {
+            command: parseSubmittedCommand(init.body),
+            completedAt: null,
+            failedAt: null,
+            receiptId: "2e847567-14e4-49a9-a08c-92151429be8e",
+            requestedAt: "2026-07-24T17:00:01.000Z",
+            status: "queued",
+          };
+          return jsonResponse(latestReceipt, 202);
+        }
+        return jsonResponse({ receipt: latestReceipt });
+      }),
+    );
+    renderPanel();
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Resume audit" }),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Queued" }),
+    ).toBeDisabled();
+
+    latestReceipt = completedReceipt(latestReceipt);
+
+    expect(
+      await screen.findByText("Run onboarding preflight", undefined, {
+        timeout: 2_500,
+      }),
+    ).toBeVisible();
+  });
+
+  it("allows a later re-audit after a successful resume without remounting", async () => {
+    let authoritativeProgress = progress;
+    let latestReceipt: OwnerCommandReceipt | null = null;
+    const submittedCommands: OnboardingCaseCommand[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        if (requestUrl(input) === "/api/onboarding/progress") {
+          return jsonResponse(authoritativeProgress);
+        }
+        if (init?.method === "POST") {
+          const command = parseSubmittedCommand(init.body);
+          submittedCommands.push(command);
+          latestReceipt = {
+            command,
+            completedAt: null,
+            failedAt: null,
+            receiptId:
+              submittedCommands.length === 1
+                ? "2e847567-14e4-49a9-a08c-92151429be8e"
+                : "10c6216f-c1ea-4b43-9809-aa6d73895c8c",
+            requestedAt: "2026-07-24T17:00:01.000Z",
+            status: "queued",
+          };
+          return jsonResponse(latestReceipt, 202);
+        }
+        return jsonResponse({ receipt: latestReceipt });
+      }),
+    );
+    const { queryClient } = renderPanel();
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Resume audit" }),
+    );
+    await waitFor(() => {
+      expect(submittedCommands).toHaveLength(1);
+    });
+
+    authoritativeProgress = {
+      ...progress,
+      cases: {
+        ...progress.cases,
+        resolved: 1,
+        suspended: 0,
+      },
+      focusCase: {
+        ...focusCase,
+        nextAction: "Re-audit resolved Onboarding Case",
+        revision: 2,
+        status: "resolved",
+        terminal: true,
+        waitReason: null,
+      },
+    };
+    latestReceipt = completedReceipt(latestReceipt);
+    await act(async () => {
+      await Promise.all([
+        queryClient.refetchQueries({
+          exact: true,
+          queryKey: onboardingQueryKeys.progress(),
+        }),
+        queryClient.refetchQueries({
+          exact: true,
+          queryKey: ownerCommandQueryKeys.onboarding(),
+        }),
+      ]);
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Re-audit" }));
+
+    await waitFor(() => {
+      expect(submittedCommands).toHaveLength(2);
+    });
+    expect(submittedCommands[1]).toMatchObject({
+      action: "reaudit",
+      expectedRevision: 2,
+    });
   });
 
   it("explains an imported queue before any durable case opens", async () => {
