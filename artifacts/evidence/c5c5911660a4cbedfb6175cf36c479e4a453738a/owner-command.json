@@ -1,0 +1,41 @@
+{
+  "commit": "c5c5911660a4cbedfb6175cf36c479e4a453738a",
+  "lockfileSha256": "e9ae3fc5aa941cd95a5bbf0dd12cd9e438eeaa8ba3aaeec54bab5c4bc0aeb388",
+  "migrationSha256": {
+    "pgBoss": "d72406c8c37aba0d39b6cc47b938d8a9fd1dfe1ba58390e97708c2d5dc812cca",
+    "stockHawk": "59732e3643fcdbe5600cbf382dc3c3497d26e260cf40c595ad4012ddcd388b85"
+  },
+  "schemaVersion": "0001_pgboss_12_26_2",
+  "node": "v24.11.1",
+  "packageManager": "pnpm@11.13.0",
+  "testMetadata": {
+    "boundaries": [
+      "Tailscale-only ingress architecture and exact-origin/Fetch-Metadata mutation checks",
+      "atomic idempotent receipt and pg-boss wakeup",
+      "terminal job failure and transactional health-refresh checkpoint",
+      "optimistic refresh, duplicate clicks, overlap, and exact rollback",
+      "static mutation ownership and command registration",
+      "built Chromium queued intent, worker reconciliation, and axe"
+    ],
+    "runners": ["vitest@4.1.10", "playwright@1.61.1"]
+  },
+  "verificationCommands": [
+    "pnpm format:check",
+    "pnpm lint:check",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm build",
+    "pnpm validate:react-doctor",
+    "pnpm validate:shadscan",
+    "DATABASE_URL=postgres://127.0.0.1:5432/stockhawk pnpm test:integration",
+    "DATABASE_URL=postgres://127.0.0.1:5432/postgres pnpm test:e2e"
+  ],
+  "versions": {
+    "axePlaywright": "4.12.1",
+    "drizzleOrm": "0.45.2",
+    "pgBoss": "12.26.2",
+    "playwright": "1.61.1",
+    "query": "5.101.4",
+    "typescript": "7.0.2"
+  }
+}
