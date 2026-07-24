@@ -83,7 +83,7 @@ export const OnboardingProgressPanel = () => {
           <div className="text-caption text-muted-foreground">
             Seed records reconciled
           </div>
-          <div className="text-body font-semibold">
+          <div className="text-body-strong">
             {count.format(progressQuery.data.sourceRecords.reconciled)} /{" "}
             {count.format(progressQuery.data.sourceRecords.total)}
           </div>
@@ -92,13 +92,13 @@ export const OnboardingProgressPanel = () => {
           <div className="text-caption text-muted-foreground">
             Candidate Sites
           </div>
-          <div className="text-body font-semibold">
+          <div className="text-body-strong">
             {count.format(progressQuery.data.candidateSites)}
           </div>
         </div>
         <div>
           <div className="text-caption text-muted-foreground">Cases opened</div>
-          <div className="text-body font-semibold">
+          <div className="text-body-strong">
             {count.format(progressQuery.data.cases.total)}
           </div>
         </div>
@@ -106,14 +106,14 @@ export const OnboardingProgressPanel = () => {
           <div className="text-caption text-muted-foreground">
             Remaining queue
           </div>
-          <div className="text-body font-semibold">
+          <div className="text-body-strong">
             {count.format(progressQuery.data.remainingCandidateSites)}
           </div>
         </div>
       </div>
       {focusCase === null ? (
         <div className="mt-4 border-t border-border pt-4">
-          <h3 className="text-body font-semibold">No Onboarding Case opened</h3>
+          <h3 className="text-body-strong">No Onboarding Case opened</h3>
           <p className="mt-1 text-caption text-muted-foreground">
             Imported Candidate Sites remain queued for a durable case.
           </p>
@@ -122,9 +122,7 @@ export const OnboardingProgressPanel = () => {
         <div className="mt-4 border-t border-border pt-4">
           <div className="flex items-start justify-between gap-4 max-sm:flex-col">
             <div>
-              <div className="text-body font-semibold">
-                {focusCase.candidateName}
-              </div>
+              <div className="text-body-strong">{focusCase.candidateName}</div>
               <div className="text-caption text-muted-foreground">
                 {focusCase.candidateUrl}
               </div>

@@ -10,7 +10,10 @@ import { onboardingQueryKeys } from "./onboarding.query-keys";
 
 export const onboardingProgressQueryOptions = queryOptions({
   queryFn: async ({ signal }) => {
-    const response = await fetch("/api/onboarding/progress", { signal });
+    const response = await fetch("/api/onboarding/progress", {
+      method: "GET",
+      signal,
+    });
     if (!response.ok) {
       throw new Error("Onboarding progress is unavailable");
     }
@@ -23,7 +26,7 @@ export const onboardingCommandReceiptQueryOptions = queryOptions({
   queryFn: async ({ signal }) => {
     const response = await fetch(
       ownerCommandRegistry.resume_onboarding.endpoint,
-      { signal },
+      { method: "GET", signal },
     );
     if (!response.ok) {
       throw new Error("Onboarding Case command state is unavailable");

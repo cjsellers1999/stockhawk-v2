@@ -2,6 +2,13 @@ export type {
   CatalogPersistence,
   CommitObservationBatchResult,
 } from "./catalog-persistence.js";
+export { ConnectorPersistenceConflictError } from "./connector-persistence.js";
+export type {
+  CommitConnectorBatchResult,
+  ConnectorBatchRecord,
+  ConnectorPersistence,
+  ConnectorRunRecord,
+} from "./connector-persistence.js";
 export type {
   ChangeEventReader,
   ChangeEventRecord,

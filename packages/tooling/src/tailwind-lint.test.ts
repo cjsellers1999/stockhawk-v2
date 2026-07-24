@@ -115,6 +115,7 @@ describe("Tailwind policy", () => {
     expect(uiStyles).toContain("@utility text-display");
     expect(uiStyles).toContain("@utility text-heading-1");
     expect(uiStyles).toContain("@utility text-body");
+    expect(uiStyles).toContain("@utility text-body-strong");
     expect(uiStyles).toContain("@utility text-label");
     expect(uiStyles).toContain("@utility text-caption");
   });

@@ -1,4 +1,10 @@
 import { sql } from "drizzle-orm";
+import type {
+  ConnectorCheckpoint,
+  ConnectorListingObservation as ConnectorListingObservationPayload,
+  ConnectorObservationBatch,
+  SourceEvidenceArtifactInput,
+} from "@stockhawk/contracts";
 import {
   bigint,
   boolean,
@@ -396,6 +402,195 @@ export const observationBatch = pgTable(
     check(
       "observation_batch_schema_version_check",
       sql`${table.schemaVersion} = 1`,
+    ),
+  ],
+);
+
+export const connectorRun = pgTable(
+  "connector_run",
+  {
+    adapterId: text("adapter_id").notNull(),
+    adapterVersion: text("adapter_version").notNull(),
+    createdAt: recordedAt("created_at"),
+    id: internalIdentity("id"),
+    integrationIdentity: text("integration_identity").notNull(),
+    job: text("job").notNull(),
+    latestCheckpoint: jsonb("latest_checkpoint").$type<ConnectorCheckpoint>(),
+    latestSequence: integer("latest_sequence").notNull(),
+    resumeMode: text("resume_mode").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("connector_run_stockhawk_identity_unique"),
+    updatedAt: recordedAt("updated_at"),
+  },
+  (table) => [
+    index("connector_run_integration_updated_idx").on(
+      table.integrationIdentity,
+      table.updatedAt.desc(),
+    ),
+    check(
+      "connector_run_job_check",
+      sql`${table.job} in ('catalog_discovery', 'stock_monitoring')`,
+    ),
+    check(
+      "connector_run_resume_mode_check",
+      sql`${table.resumeMode} in ('checkpoint', 'restart_only')`,
+    ),
+    check("connector_run_sequence_check", sql`${table.latestSequence} >= 0`),
+    check(
+      "connector_run_checkpoint_check",
+      sql`${table.resumeMode} <> 'restart_only' or ${table.latestCheckpoint} is null`,
+    ),
+  ],
+);
+
+export const connectorObservationBatch = pgTable(
+  "connector_observation_batch",
+  {
+    batchPayload: jsonb("batch_payload")
+      .$type<ConnectorObservationBatch>()
+      .notNull(),
+    commandHash: text("command_hash").notNull(),
+    committedAt: recordedAt("committed_at"),
+    id: internalIdentity("id"),
+    runId: bigint("run_id", { mode: "number" })
+      .notNull()
+      .references(() => connectorRun.id, { onDelete: "restrict" }),
+    sequence: integer("sequence").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("connector_observation_batch_stockhawk_identity_unique"),
+  },
+  (table) => [
+    unique("connector_observation_batch_run_sequence_unique").on(
+      table.runId,
+      table.sequence,
+    ),
+    index("connector_observation_batch_run_id_idx").on(table.runId),
+    check(
+      "connector_observation_batch_hash_check",
+      sql`${table.commandHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "connector_observation_batch_sequence_check",
+      sql`${table.sequence} >= 0`,
+    ),
+    check(
+      "connector_observation_batch_payload_check",
+      sql`jsonb_typeof(${table.batchPayload}) = 'object'
+        and (${table.batchPayload}->>'schemaVersion')::integer = 1
+        and ${table.batchPayload}->>'identity' = ${table.stockhawkIdentity}
+        and (${table.batchPayload}->>'sequence')::integer = ${table.sequence}`,
+    ),
+  ],
+);
+
+export const connectorEvidenceArtifact = pgTable(
+  "connector_evidence_artifact",
+  {
+    artifactPayload: jsonb("artifact_payload")
+      .$type<SourceEvidenceArtifactInput>()
+      .notNull(),
+    batchId: bigint("batch_id", { mode: "number" }).notNull(),
+    content: text("content").notNull(),
+    contentHash: text("content_hash").notNull(),
+    id: internalIdentity("id"),
+    mediaType: text("media_type").notNull(),
+    observedAt: timestamp("observed_at", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
+    sourceUrl: text("source_url").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("connector_evidence_artifact_stockhawk_identity_unique"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.batchId],
+      foreignColumns: [connectorObservationBatch.id],
+      name: "connector_evidence_batch_fk",
+    }).onDelete("restrict"),
+    index("connector_evidence_artifact_batch_id_idx").on(table.batchId),
+    check(
+      "connector_evidence_artifact_hash_check",
+      sql`${table.contentHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "connector_evidence_artifact_payload_check",
+      sql`jsonb_typeof(${table.artifactPayload}) = 'object'
+        and ${table.artifactPayload}->>'identity' = ${table.stockhawkIdentity}`,
+    ),
+  ],
+);
+
+export const connectorListingObservation = pgTable(
+  "connector_listing_observation",
+  {
+    accessMethod: text("access_method").notNull(),
+    batchId: bigint("batch_id", { mode: "number" }).notNull(),
+    evidenceArtifactId: bigint("evidence_artifact_id", {
+      mode: "number",
+    }).notNull(),
+    id: internalIdentity("id"),
+    observationPayload: jsonb("observation_payload")
+      .$type<ConnectorListingObservationPayload>()
+      .notNull(),
+    observedAt: timestamp("observed_at", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
+    parentSourceIdentityNamespace: text(
+      "parent_source_identity_namespace",
+    ).notNull(),
+    parentSourceIdentityRuleVersion: integer(
+      "parent_source_identity_rule_version",
+    ).notNull(),
+    parentSourceIdentityValue: text("parent_source_identity_value").notNull(),
+    stockhawkIdentity: text("stockhawk_identity")
+      .notNull()
+      .unique("connector_listing_observation_stockhawk_identity_unique"),
+    variantSourceIdentityNamespace: text(
+      "variant_source_identity_namespace",
+    ).notNull(),
+    variantSourceIdentityRuleVersion: integer(
+      "variant_source_identity_rule_version",
+    ).notNull(),
+    variantSourceIdentityValue: text("variant_source_identity_value").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.batchId],
+      foreignColumns: [connectorObservationBatch.id],
+      name: "connector_listing_observation_batch_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.evidenceArtifactId],
+      foreignColumns: [connectorEvidenceArtifact.id],
+      name: "connector_listing_observation_evidence_fk",
+    }).onDelete("restrict"),
+    unique("connector_listing_observation_batch_variant_unique").on(
+      table.batchId,
+      table.variantSourceIdentityNamespace,
+      table.variantSourceIdentityRuleVersion,
+      table.variantSourceIdentityValue,
+    ),
+    index("connector_listing_observation_batch_id_idx").on(table.batchId),
+    index("connector_listing_observation_evidence_id_idx").on(
+      table.evidenceArtifactId,
+    ),
+    check(
+      "connector_listing_observation_access_method_check",
+      sql`${table.accessMethod} in ('http', 'browser')`,
+    ),
+    check(
+      "connector_listing_observation_rule_version_check",
+      sql`${table.parentSourceIdentityRuleVersion} > 0
+        and ${table.variantSourceIdentityRuleVersion} > 0`,
+    ),
+    check(
+      "connector_listing_observation_payload_check",
+      sql`jsonb_typeof(${table.observationPayload}) = 'object'`,
     ),
   ],
 );
@@ -951,6 +1146,10 @@ export const schema = {
   candidateSiteSourceRecord,
   catalogMatch,
   changeEvent,
+  connectorEvidenceArtifact,
+  connectorListingObservation,
+  connectorObservationBatch,
+  connectorRun,
   currentListingState,
   currentStockState,
   healthRefreshCheckpoint,
